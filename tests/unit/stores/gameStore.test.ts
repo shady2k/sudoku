@@ -10,10 +10,12 @@ import { gameStore } from '../../../src/lib/stores/gameStore.svelte.ts';
 import type { GameSession } from '../../../src/lib/models/types';
 import * as GameSessionService from '../../../src/lib/services/GameSession';
 import * as TimerService from '../../../src/lib/services/TimerService';
+import * as StorageService from '../../../src/lib/services/StorageService';
 
 // Mock dependencies
 vi.mock('../../../src/lib/services/GameSession');
 vi.mock('../../../src/lib/services/TimerService');
+vi.mock('../../../src/lib/services/StorageService');
 
 describe('GameStore', () => {
   beforeEach(() => {
@@ -25,6 +27,13 @@ describe('GameStore', () => {
 
     // Clear mocks
     vi.clearAllMocks();
+
+    // Mock StorageService to always succeed
+    vi.mocked(StorageService.saveGameSession).mockResolvedValue({
+      success: true,
+      data: undefined
+    });
+    vi.mocked(StorageService.hasSavedGame).mockReturnValue(false);
   });
 
   describe('Initial State', () => {

@@ -9,21 +9,23 @@ import Statistics from '../../../src/components/Statistics.svelte';
 
 // Mock the gameStore module with factory function
 vi.mock('../../../src/lib/stores/gameStore.svelte', () => {
-  // Create mock stores inside the factory
-  const mockSession = writable<any>(null);
-
   return {
-    session: mockSession,
+    gameStore: {
+      session: null as any,
+      isLoading: false,
+      error: null,
+      currentTime: Date.now(),
+    }
   };
 });
 
 // Import the mocked stores after the mock is set up
-import { session as mockSession } from '../../../src/lib/stores/gameStore.svelte';
+import { gameStore } from '../../../src/lib/stores/gameStore.svelte';
 
 describe('Statistics Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSession.set(null);
+    gameStore.session = null;
   });
 
   it('should not render when no session exists', () => {
@@ -32,33 +34,33 @@ describe('Statistics Component', () => {
   });
 
   it('should display difficulty level', () => {
-    mockSession.set({
+    gameStore.session = {
       difficultyLevel: 7,
       errorCount: 0,
       isCompleted: false,
-    } as any);
+    } as any;
 
     render(Statistics);
     expect(screen.getByText('7%')).toBeInTheDocument();
   });
 
   it('should display error count', () => {
-    mockSession.set({
+    gameStore.session = {
       difficultyLevel: 5,
       errorCount: 3,
       isCompleted: false,
-    } as any);
+    } as any;
 
     render(Statistics);
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
   it('should highlight errors when count is greater than zero', () => {
-    mockSession.set({
+    gameStore.session = {
       difficultyLevel: 5,
       errorCount: 5,
       isCompleted: false,
-    } as any);
+    } as any;
 
     render(Statistics);
     const errorValue = screen.getByText('5');
@@ -66,22 +68,22 @@ describe('Statistics Component', () => {
   });
 
   it('should show completion message when game is completed', () => {
-    mockSession.set({
+    gameStore.session = {
       difficultyLevel: 5,
       errorCount: 0,
       isCompleted: true,
-    } as any);
+    } as any;
 
     render(Statistics);
     expect(screen.getByText('🎉 Completed!')).toBeInTheDocument();
   });
 
   it('should not show completion message when game is in progress', () => {
-    mockSession.set({
+    gameStore.session = {
       difficultyLevel: 5,
       errorCount: 0,
       isCompleted: false,
-    } as any);
+    } as any;
 
     render(Statistics);
     expect(screen.queryByText('🎉 Completed!')).not.toBeInTheDocument();

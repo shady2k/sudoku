@@ -11,6 +11,16 @@ import userEvent from '@testing-library/user-event';
 import Cell from '../../../src/components/Cell.svelte';
 import type { Cell as CellType } from '../../../src/lib/models/types';
 
+// Mock the gameStore
+vi.mock('../../../src/lib/stores/gameStore.svelte.ts', () => ({
+  gameStore: {
+    session: null,
+    isLoading: false,
+    error: null,
+    currentTime: Date.now(),
+  }
+}));
+
 describe('Cell Component', () => {
   const user = userEvent.setup();
 
@@ -149,17 +159,20 @@ describe('Cell Component', () => {
       render(Cell, { cell, isSelected: false, isRelated: false, onSelect });
 
       // Check for candidates container
-      const candidatesDiv = document.querySelector('.candidates');
+      const candidatesDiv = screen.getByTestId('candidates-container');
       expect(candidatesDiv).toBeInTheDocument();
 
       // Check specific manual candidates are displayed
-      expect(screen.getByText('1')).toBeInTheDocument();
-      expect(screen.getByText('2')).toBeInTheDocument();
-      expect(screen.getByText('5')).toBeInTheDocument();
-      expect(screen.getByText('9')).toBeInTheDocument();
+      expect(screen.getByTestId('candidate-1')).toBeInTheDocument();
+      expect(screen.getByTestId('candidate-2')).toBeInTheDocument();
+      expect(screen.getByTestId('candidate-5')).toBeInTheDocument();
+      expect(screen.getByTestId('candidate-9')).toBeInTheDocument();
     });
 
-    it('should render auto candidates when enabled', () => {
+    it('should render auto candidates when enabled', async () => {
+      const { gameStore } = await import('../../../src/lib/stores/gameStore.svelte.ts');
+      gameStore.session = { showAutoCandidates: true } as any;
+
       const cell = createMockCell({
         value: 0,
         manualCandidates: new Set(),
@@ -169,12 +182,17 @@ describe('Cell Component', () => {
 
       render(Cell, { cell, isSelected: false, isRelated: false, onSelect });
 
-      expect(screen.getByText('3')).toBeInTheDocument();
-      expect(screen.getByText('4')).toBeInTheDocument();
-      expect(screen.getByText('6')).toBeInTheDocument();
+      expect(screen.getByTestId('candidate-3')).toBeInTheDocument();
+      expect(screen.getByTestId('candidate-4')).toBeInTheDocument();
+      expect(screen.getByTestId('candidate-6')).toBeInTheDocument();
+
+      gameStore.session = null;
     });
 
-    it('should display both manual and auto candidates (manual takes precedence in styling)', () => {
+    it('should display both manual and auto candidates (manual takes precedence in styling)', async () => {
+      const { gameStore } = await import('../../../src/lib/stores/gameStore.svelte.ts');
+      gameStore.session = { showAutoCandidates: true } as any;
+
       const cell = createMockCell({
         value: 0,
         manualCandidates: new Set([1, 2]),
@@ -185,13 +203,16 @@ describe('Cell Component', () => {
       render(Cell, { cell, isSelected: false, isRelated: false, onSelect });
 
       // Manual candidates should have distinct styling
-      const candidate1 = screen.getByText('1').closest('.candidate');
-      const candidate2 = screen.getByText('2').closest('.candidate');
-      const candidate3 = screen.getByText('3').closest('.candidate');
+      const candidate1 = screen.getByTestId('candidate-1');
+      const candidate2 = screen.getByTestId('candidate-2');
+      const candidate3 = screen.getByTestId('candidate-3');
 
-      expect(candidate1).toHaveClass('manual');
-      expect(candidate2).toHaveClass('manual');
-      expect(candidate3).not.toHaveClass('manual');
+      expect(candidate1).toHaveClass('manual-candidate');
+      expect(candidate2).toHaveClass('manual-candidate');
+      expect(candidate3).toHaveClass('auto-candidate');
+      expect(candidate3).not.toHaveClass('manual-candidate');
+
+      gameStore.session = null;
     });
 
     it('should render 3×3 grid with 9 positions (some empty)', () => {
@@ -204,11 +225,11 @@ describe('Cell Component', () => {
       render(Cell, { cell, isSelected: false, isRelated: false, onSelect });
 
       // All 9 candidate positions should exist
-      const candidateSpans = document.querySelectorAll('.candidate');
+      const candidateSpans = document.querySelectorAll('.candidate-number');
       expect(candidateSpans).toHaveLength(9);
 
       // Empty positions should be hidden
-      const emptyCandidates = document.querySelectorAll('.candidate.empty');
+      const emptyCandidates = document.querySelectorAll('.candidate-number.empty');
       expect(emptyCandidates.length).toBeGreaterThan(0);
     });
 

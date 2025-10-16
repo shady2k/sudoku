@@ -14,23 +14,25 @@ import type { GameSession, Cell as CellType } from '../../../src/lib/models/type
 
 // Mock the gameStore module
 vi.mock('../../../src/lib/stores/gameStore.svelte', () => {
-  // Create mock stores and functions inside the factory
-  const mockSession = writable<any>(null);
-
   const mockSelectCell = vi.fn();
   const mockMakeMove = vi.fn();
+  const mockSetManualCandidates = vi.fn();
 
   return {
-    session: mockSession,
     gameStore: {
+      session: null as any,
+      isLoading: false,
+      error: null,
+      currentTime: Date.now(),
       selectCell: mockSelectCell,
       makeMove: mockMakeMove,
+      setManualCandidates: mockSetManualCandidates,
     },
   };
 });
 
 // Import the mocked stores and gameStore after the mock is set up
-import { session as mockSession, gameStore } from '../../../src/lib/stores/gameStore.svelte';
+import { gameStore } from '../../../src/lib/stores/gameStore.svelte';
 
 // Extract mocks for testing
 const mockSelectCell = gameStore.selectCell as ReturnType<typeof vi.fn>;
@@ -85,12 +87,12 @@ describe('SudokuGrid Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSession.set(null);
+    gameStore.session = null;
   });
 
   describe('Rendering', () => {
     it('should render empty state when no session', () => {
-      mockSession.set(null);
+      gameStore.session = null;
       render(SudokuGrid);
 
       expect(screen.getByText('No game in progress')).toBeInTheDocument();
@@ -99,7 +101,7 @@ describe('SudokuGrid Component', () => {
 
     it('should render 9×9 grid when session exists', () => {
       const session = createMockSession();
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -114,7 +116,7 @@ describe('SudokuGrid Component', () => {
 
     it('should render all cells with correct positions', () => {
       const session = createMockSession();
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -129,7 +131,7 @@ describe('SudokuGrid Component', () => {
 
     it('should apply thick borders for 3×3 box boundaries', () => {
       const session = createMockSession();
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -147,7 +149,7 @@ describe('SudokuGrid Component', () => {
     it('should mark selected cell as selected', () => {
       const session = createMockSession();
       session.selectedCell = { row: 0, col: 0 };
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -157,7 +159,7 @@ describe('SudokuGrid Component', () => {
 
     it('should call selectCell when clicking a cell', async () => {
       const session = createMockSession();
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -171,7 +173,7 @@ describe('SudokuGrid Component', () => {
       const session = createMockSession();
       session.cells[0][0].isClue = true;
       session.cells[0][0].value = 5;
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -187,7 +189,7 @@ describe('SudokuGrid Component', () => {
     it('should highlight cells in same row as selected cell', () => {
       const session = createMockSession();
       session.selectedCell = { row: 4, col: 4 }; // Center cell
-      mockSession.set(session);
+      gameStore.session = session;
 
       // Mock getRelatedCells to return same row
       vi.doMock('../../../src/lib/utils/validation', () => ({
@@ -216,7 +218,7 @@ describe('SudokuGrid Component', () => {
     it('should move selection up with ArrowUp', async () => {
       const session = createMockSession();
       session.selectedCell = { row: 5, col: 5 };
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -228,7 +230,7 @@ describe('SudokuGrid Component', () => {
     it('should move selection down with ArrowDown', async () => {
       const session = createMockSession();
       session.selectedCell = { row: 3, col: 3 };
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -240,7 +242,7 @@ describe('SudokuGrid Component', () => {
     it('should move selection left with ArrowLeft', async () => {
       const session = createMockSession();
       session.selectedCell = { row: 4, col: 4 };
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -252,7 +254,7 @@ describe('SudokuGrid Component', () => {
     it('should move selection right with ArrowRight', async () => {
       const session = createMockSession();
       session.selectedCell = { row: 2, col: 2 };
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -264,7 +266,7 @@ describe('SudokuGrid Component', () => {
     it('should not move beyond grid boundaries (top)', async () => {
       const session = createMockSession();
       session.selectedCell = { row: 0, col: 5 };
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -277,7 +279,7 @@ describe('SudokuGrid Component', () => {
     it('should not move beyond grid boundaries (bottom)', async () => {
       const session = createMockSession();
       session.selectedCell = { row: 8, col: 5 };
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -290,7 +292,7 @@ describe('SudokuGrid Component', () => {
     it('should not move beyond grid boundaries (left)', async () => {
       const session = createMockSession();
       session.selectedCell = { row: 5, col: 0 };
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -303,7 +305,7 @@ describe('SudokuGrid Component', () => {
     it('should not move beyond grid boundaries (right)', async () => {
       const session = createMockSession();
       session.selectedCell = { row: 5, col: 8 };
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -318,7 +320,7 @@ describe('SudokuGrid Component', () => {
     it('should enter number 1-9 when key pressed', async () => {
       const session = createMockSession();
       session.selectedCell = { row: 3, col: 3 };
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -330,7 +332,7 @@ describe('SudokuGrid Component', () => {
     it('should handle all number keys 1-9', async () => {
       const session = createMockSession();
       session.selectedCell = { row: 0, col: 0 };
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -346,7 +348,7 @@ describe('SudokuGrid Component', () => {
       const session = createMockSession();
       session.selectedCell = { row: 2, col: 2 };
       session.cells[2][2].value = 5;
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -359,7 +361,7 @@ describe('SudokuGrid Component', () => {
       const session = createMockSession();
       session.selectedCell = { row: 1, col: 1 };
       session.cells[1][1].value = 7;
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -373,7 +375,7 @@ describe('SudokuGrid Component', () => {
       session.selectedCell = { row: 0, col: 0 };
       session.cells[0][0].isClue = true;
       session.cells[0][0].value = 5;
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -384,7 +386,7 @@ describe('SudokuGrid Component', () => {
     it('should do nothing when no cell is selected', async () => {
       const session = createMockSession();
       session.selectedCell = null;
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -397,7 +399,7 @@ describe('SudokuGrid Component', () => {
   describe('Grid Layout', () => {
     it('should have responsive grid with minimum 44px cells', () => {
       const session = createMockSession();
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -410,7 +412,7 @@ describe('SudokuGrid Component', () => {
 
     it('should maintain aspect ratio', () => {
       const session = createMockSession();
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -423,7 +425,7 @@ describe('SudokuGrid Component', () => {
 
     it('should have border around entire grid', () => {
       const session = createMockSession();
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -438,7 +440,7 @@ describe('SudokuGrid Component', () => {
   describe('Accessibility', () => {
     it('should have grid structure for screen readers', () => {
       const session = createMockSession();
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 
@@ -450,7 +452,7 @@ describe('SudokuGrid Component', () => {
     it('should support keyboard-only interaction', async () => {
       const session = createMockSession();
       session.selectedCell = { row: 4, col: 4 };
-      mockSession.set(session);
+      gameStore.session = session;
 
       render(SudokuGrid);
 

@@ -164,7 +164,7 @@
     font-size: 0.75rem;
     font-weight: 600;
     font-family: monospace;
-    color: #666;
+    color: #ffffff;
     min-width: 1.5rem;
   }
 

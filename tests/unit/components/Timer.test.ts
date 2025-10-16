@@ -9,50 +9,50 @@ import * as gameStoreModule from '../../../src/lib/stores/gameStore.svelte';
 
 // Mock the gameStore module
 vi.mock('../../../src/lib/stores/gameStore.svelte', () => {
-  const { writable } = require('svelte/store');
-
-  const mockSession = writable(null);
-  const mockFormattedTime = writable('00:00');
-
   return {
-    session: mockSession,
-    formattedTime: mockFormattedTime,
     gameStore: {
+      session: null as any,
+      formattedTime: '00:00',
+      isLoading: false,
+      error: null,
+      currentTime: Date.now(),
       updateTime: vi.fn(),
     },
   };
 });
 
+import { gameStore } from '../../../src/lib/stores/gameStore.svelte';
+
 describe('Timer Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    gameStoreModule.session.set(null);
-    gameStoreModule.formattedTime.set('00:00');
+    gameStore.session = null;
+    gameStore.formattedTime = '00:00';
   });
 
   it('should render formatted time', () => {
-    gameStoreModule.formattedTime.set('05:23');
+    gameStore.formattedTime = '05:23';
     render(Timer);
 
     expect(screen.getByText('05:23')).toBeInTheDocument();
   });
 
   it('should show paused indicator when game is paused', () => {
-    gameStoreModule.session.set({ isPaused: true } as any);
+    gameStore.session = { isPaused: true } as any;
     render(Timer);
 
-    expect(screen.getByText('⏸ Paused')).toBeInTheDocument();
+    expect(screen.getByText('⏸')).toBeInTheDocument();
   });
 
   it('should not show paused indicator when game is active', () => {
-    gameStoreModule.session.set({ isPaused: false } as any);
+    gameStore.session = { isPaused: false } as any;
     render(Timer);
 
-    expect(screen.queryByText('⏸ Paused')).not.toBeInTheDocument();
+    expect(screen.queryByText('⏸')).not.toBeInTheDocument();
   });
 
   it('should display time in MM:SS format', () => {
-    gameStoreModule.formattedTime.set('12:45');
+    gameStore.formattedTime = '12:45';
     render(Timer);
 
     const display = screen.getByText('12:45');
@@ -60,7 +60,7 @@ describe('Timer Component', () => {
   });
 
   it('should display time in HH:MM:SS format for long games', () => {
-    gameStoreModule.formattedTime.set('01:23:45');
+    gameStore.formattedTime = '01:23:45';
     render(Timer);
 
     expect(screen.getByText('01:23:45')).toBeInTheDocument();
