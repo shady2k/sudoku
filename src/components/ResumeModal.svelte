@@ -30,9 +30,8 @@
   // Auto-show difficulty selector for new game modal
   $effect(() => {
     if (!showResumeOption) {
+      // For new game modal, always show difficulty selector directly
       showDifficultySelector = true;
-    } else {
-      showDifficultySelector = false;
     }
   });
 
@@ -70,16 +69,12 @@
 {#if isOpen}
   <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal" onclick={(e) => e.stopPropagation()}>
-      {#if !showDifficultySelector}
-        <h2 id="modal-title">{showResumeOption ? 'Welcome Back!' : 'New Game'}</h2>
-        {#if showResumeOption}
+      {#if showResumeOption}
+        {#if !showDifficultySelector}
+          <h2 id="modal-title">Welcome Back!</h2>
           <p class="info">You have a game in progress. Would you like to continue?</p>
-        {:else}
-          <p class="info">Choose your difficulty level to start a new game.</p>
-        {/if}
 
-        <div class="modal-actions">
-          {#if showResumeOption}
+          <div class="modal-actions">
             <button
               type="button"
               class="btn btn-primary"
@@ -87,28 +82,61 @@
             >
               Resume Game
             </button>
-          {/if}
 
-          <button
-            type="button"
-            class="btn btn-{showResumeOption ? 'secondary' : 'primary'}"
-            onclick={handleShowNewGame}
-          >
-            {showResumeOption ? 'Start New Game' : 'Choose Difficulty'}
-          </button>
-        </div>
-      {:else}
-        <h2 id="modal-title">New Game</h2>
-        {#if showResumeOption}
-          <p class="warning">⚠️ Starting a new game will replace your saved progress.</p>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick={handleShowNewGame}
+            >
+              Start New Game
+            </button>
+          </div>
         {:else}
-          <p class="info">Select your preferred difficulty level.</p>
+          <h2 id="modal-title">New Game</h2>
+          <p class="warning">⚠️ Starting a new game will replace your saved progress.</p>
+
+          <div class="difficulty-selector">
+            <label for="resume-difficulty">Difficulty: {selectedDifficulty}%</label>
+            <input
+              id="resume-difficulty"
+              type="range"
+              min="0"
+              max="100"
+              bind:value={selectedDifficulty}
+            />
+            <div class="difficulty-labels">
+              <span class="label-left">Easiest (0%)</span>
+              <span class="label-right">Hardest (100%)</span>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn btn-primary"
+              onclick={handleStartNewGame}
+            >
+              Start New Game
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick={handleBack}
+            >
+              Back
+            </button>
+          </div>
         {/if}
+      {:else}
+        <!-- New Game modal - always show difficulty selector directly -->
+        <h2 id="modal-title">New Game</h2>
+        <p class="info">Select your preferred difficulty level.</p>
 
         <div class="difficulty-selector">
-          <label for="resume-difficulty">Difficulty: {selectedDifficulty}%</label>
+          <label for="new-game-difficulty">Difficulty: {selectedDifficulty}%</label>
           <input
-            id="resume-difficulty"
+            id="new-game-difficulty"
             type="range"
             min="0"
             max="100"
@@ -128,16 +156,6 @@
           >
             Start New Game
           </button>
-
-          {#if showResumeOption}
-            <button
-              type="button"
-              class="btn btn-secondary"
-              onclick={handleBack}
-            >
-              Back
-            </button>
-          {/if}
         </div>
       {/if}
     </div>

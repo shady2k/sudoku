@@ -88,6 +88,12 @@
       }
     }
 
+    // 'G' or 'g' - New Game
+    if (event.key === 'g' || event.key === 'G') {
+      handleNewGame();
+      event.preventDefault();
+    }
+
     // 'Z' or 'z' - Undo (if implemented)
     if (event.key === 'z' || event.key === 'Z') {
       // Undo functionality not yet implemented (Phase 11)
@@ -142,7 +148,7 @@
   </div>
 
   <footer>
-    <p>Use arrow keys to navigate • Number keys (1-9) to fill • Backspace to clear</p>
+    <p>Use arrow keys to navigate • Number keys (1-9) to fill • Backspace to clear • Press G for new game</p>
   </footer>
 </main>
 

@@ -81,11 +81,11 @@
       class="btn btn-primary"
       onclick={onNewGame}
       disabled={gameStore.isLoading}
-      title="New Game (Ctrl+N)"
+      title="New Game (G)"
     >
       <span class="btn-text">{gameStore.isLoading ? 'Generating...' : 'New Game'}</span>
       {#if !gameStore.isLoading}
-        <span class="hotkey">Ctrl+N</span>
+        <span class="hotkey">G</span>
       {/if}
     </button>
 
