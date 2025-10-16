@@ -17,14 +17,16 @@
 
   const { cell, showAutoCandidates }: Props = $props();
 
-  // Compute candidates
-  const manualCandidates = cell.manualCandidates;
-  const autoCandidates = showAutoCandidates && cell.autoCandidates
-    ? Array.from(cell.autoCandidates)
-    : [];
-  const allCandidates = [...new Set([...Array.from(manualCandidates), ...autoCandidates])].sort();
-  const hasCandidates = allCandidates.length > 0;
-  const isEmpty = cell.value === 0 && !cell.isClue;
+  // Compute candidates reactively
+  const manualCandidates = $derived(cell.manualCandidates);
+  const autoCandidates = $derived(
+    showAutoCandidates && cell.autoCandidates
+      ? Array.from(cell.autoCandidates)
+      : []
+  );
+  const allCandidates = $derived([...new Set([...Array.from(manualCandidates), ...autoCandidates])].sort());
+  const hasCandidates = $derived(allCandidates.length > 0);
+  const isEmpty = $derived(cell.value === 0 && !cell.isClue);
 </script>
 
 {#if isEmpty}
