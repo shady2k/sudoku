@@ -1,0 +1,82 @@
+/**
+ * Statistics Component Tests
+ */
+
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen } from '@testing-library/svelte';
+import Statistics from '../../../src/components/Statistics.svelte';
+import { gameStore } from '../../../src/lib/stores/gameStore.svelte.ts';
+
+vi.mock('../../../src/lib/stores/gameStore.svelte.ts', () => ({
+  gameStore: {
+    session: null,
+  },
+}));
+
+describe('Statistics Component', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    gameStore.session = null;
+  });
+
+  it('should not render when no session exists', () => {
+    const { container } = render(Statistics);
+    expect(container.querySelector('.stats')).not.toBeInTheDocument();
+  });
+
+  it('should display difficulty level', () => {
+    gameStore.session = {
+      difficultyLevel: 7,
+      errorCount: 0,
+      isCompleted: false,
+    } as any;
+
+    render(Statistics);
+    expect(screen.getByText('7/10')).toBeInTheDocument();
+  });
+
+  it('should display error count', () => {
+    gameStore.session = {
+      difficultyLevel: 5,
+      errorCount: 3,
+      isCompleted: false,
+    } as any;
+
+    render(Statistics);
+    expect(screen.getByText('3')).toBeInTheDocument();
+  });
+
+  it('should highlight errors when count is greater than zero', () => {
+    gameStore.session = {
+      difficultyLevel: 5,
+      errorCount: 5,
+      isCompleted: false,
+    } as any;
+
+    render(Statistics);
+    const errorValue = screen.getByText('5');
+    expect(errorValue).toHaveClass('has-errors');
+  });
+
+  it('should show completion message when game is completed', () => {
+    gameStore.session = {
+      difficultyLevel: 5,
+      errorCount: 0,
+      isCompleted: true,
+    } as any;
+
+    render(Statistics);
+    expect(screen.getByText('🎉 Completed!')).toBeInTheDocument();
+  });
+
+  it('should not show completion message when game is in progress', () => {
+    gameStore.session = {
+      difficultyLevel: 5,
+      errorCount: 0,
+      isCompleted: false,
+    } as any;
+
+    render(Statistics);
+    expect(screen.queryByText('🎉 Completed!')).not.toBeInTheDocument();
+  });
+});
