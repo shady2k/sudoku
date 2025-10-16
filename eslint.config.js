@@ -6,7 +6,21 @@ import svelteParser from 'svelte-eslint-parser';
 
 export default [
   {
-    ignores: ['dist/', 'build/', '.svelte-kit/', 'node_modules/', 'coverage/', 'playwright-report/', 'test-results/', '.vite/', 'specs/']
+    ignores: [
+      'node_modules/',
+      'dist/',
+      'build/',
+      'coverage/',
+      '*.min.js',
+      '*.log',
+      '.env*',
+      '.vite/',
+      '.svelte-kit/',
+      'test-results/',
+      'playwright-report/',
+      'playwright/.cache/',
+      'specs/'
+    ]
   },
   js.configs.recommended,
   {
