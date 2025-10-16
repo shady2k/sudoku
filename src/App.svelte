@@ -178,6 +178,8 @@
     flex-direction: column;
     gap: 2rem;
     align-items: center;
+    justify-content: center;
+    min-height: 500px;
   }
 
   .right-panel {
@@ -274,8 +276,9 @@
       display: grid;
       grid-template-columns: auto auto;
       gap: 2.5rem;
-      align-items: start;
+      align-items: center;
       justify-content: center;
+      min-height: auto;
     }
 
     .right-panel {

@@ -236,7 +236,7 @@
     border: 2px solid #3b82f6;
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     color: #3b82f6;
-    font-size: 0.875rem;
+    font-size: 1.125rem;
     font-weight: 800;
     border-radius: 0.375rem;
     cursor: pointer;
@@ -319,7 +319,7 @@
     .num-btn {
       min-width: 38px;
       min-height: 38px;
-      font-size: 1rem;
+      font-size: 1.375rem;
     }
 
     .clear-btn {
