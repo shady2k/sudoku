@@ -219,10 +219,10 @@ This document provides a dependency-ordered task list for implementing the offli
 
 #### Candidate Logic (TDD)
 
-- [ ] T081 [P] [US4] TEST: Write candidate generation tests in tests/unit/services/GameValidator.test.ts
-- [ ] T082 [US4] Implement generateCandidates() in GameValidator.ts per game-api.ts contract
-- [ ] T083 [US4] Implement setManualCandidates() in gameStore per game-api.ts contract
-- [ ] T084 [US4] Implement toggleAutoCandidates() in gameStore with auto-update logic per FR-012
+- [X] T081 [P] [US4] TEST: Write candidate generation tests in tests/unit/services/GameValidator.test.ts
+- [X] T082 [US4] Implement generateCandidates() in GameValidator.ts per game-api.ts contract
+- [X] T083 [US4] Implement setManualCandidates() in gameStore per game-api.ts contract
+- [X] T084 [US4] Implement toggleAutoCandidates() in gameStore with auto-update logic per FR-012
 
 #### UI Components
 

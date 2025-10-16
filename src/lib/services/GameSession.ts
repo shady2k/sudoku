@@ -18,12 +18,14 @@ import type {
   CellValue,
   SudokuNumber,
   ActionHistory,
-  SetValueAction
+  SetValueAction,
+  SetCandidatesAction
 } from '../models/types';
 import { success, failure } from '../models/types';
 import { generatePuzzle } from './PuzzleGenerator';
 import { isValidMove } from '../utils/validation';
 import { getCell, setCell } from '../utils/gridHelpers';
+import { generateCandidates } from './GameValidator';
 
 /**
  * Creates a new game session with a freshly generated puzzle
@@ -256,7 +258,7 @@ export function isPuzzleCompleted(session: GameSession): boolean {
  */
 function addActionToHistory(
   history: ActionHistory,
-  action: SetValueAction
+  action: SetValueAction | SetCandidatesAction
 ): ActionHistory {
   const actions = [...history.actions.slice(0, history.currentIndex), action];
 
@@ -273,12 +275,115 @@ function addActionToHistory(
 }
 
 /**
- * Toggles auto-candidate display
+ * Manually sets candidate numbers for a cell
+ *
+ * @param session - Current game session
+ * @param position - Cell to modify
+ * @param candidates - Set of candidate numbers (1-9)
+ * @returns Updated game session
+ */
+export function setManualCandidates(
+  session: GameSession,
+  position: CellPosition,
+  candidates: Set<SudokuNumber>
+): Result<GameSession> {
+  const { row, col } = position;
+
+  // Validate position
+  if (row < 0 || row > 8 || col < 0 || col > 8) {
+    return failure('INVALID_CELL_POSITION', `Invalid position: (${row}, ${col})`);
+  }
+
+  const cell = session.cells[row]?.[col];
+  if (!cell) {
+    return failure('INVALID_CELL_POSITION', `Cell not found at (${row}, ${col})`);
+  }
+
+  // Cannot set candidates on clue cells or filled cells
+  if (cell.isClue || cell.value !== 0) {
+    return failure('INVALID_MOVE', 'Cannot set candidates on clue or filled cells');
+  }
+
+  // Validate candidates (must be numbers 1-9)
+  for (const candidate of candidates) {
+    if (candidate < 1 || candidate > 9) {
+      return failure('INVALID_CANDIDATES', `Invalid candidate: ${candidate}`);
+    }
+  }
+
+  // Create new session (immutable update)
+  const newSession = { ...session };
+  newSession.board = session.board.map(r => [...r]);
+  newSession.cells = session.cells.map(r => r.map(c => ({ ...c })));
+  newSession.lastActivityAt = Date.now();
+
+  // Update cell candidates
+  const cellRow = newSession.cells[row];
+  if (!cellRow) {
+    return failure('INVALID_CELL_POSITION', `Cell row ${row} not found`);
+  }
+  const newCell = cellRow[col];
+  if (!newCell) {
+    return failure('INVALID_CELL_POSITION', `Cell [${row}, ${col}] not found`);
+  }
+
+  const previousCandidates = Array.from(newCell.manualCandidates);
+  newCell.manualCandidates = new Set(candidates);
+
+  // Update action history
+  const action: SetCandidatesAction = {
+    type: 'SET_CANDIDATES',
+    cell: position,
+    previousCandidates,
+    newCandidates: Array.from(candidates),
+    timestamp: Date.now()
+  };
+
+  newSession.history = addActionToHistory(session.history, action);
+
+  return success(newSession);
+}
+
+
+/**
+ * Toggles auto-candidate display with auto-update logic
  */
 export function toggleAutoCandidates(session: GameSession): GameSession {
-  return {
-    ...session,
-    showAutoCandidates: !session.showAutoCandidates,
-    lastActivityAt: Date.now()
-  };
+  const newShowAutoCandidates = !session.showAutoCandidates;
+
+  // Create new session (immutable update)
+  const newSession = { ...session };
+  newSession.board = session.board.map(r => [...r]);
+  newSession.cells = session.cells.map(r => r.map(c => ({ ...c })));
+  newSession.lastActivityAt = Date.now();
+  newSession.showAutoCandidates = newShowAutoCandidates;
+
+  // Generate or clear auto-candidates for all empty cells
+  if (newShowAutoCandidates) {
+    // Generate auto-candidates using the validation service
+    const allCandidates = generateCandidates(newSession.board);
+
+    // Update each empty cell with auto-candidates
+    for (let row = 0; row < 9; row++) {
+      for (let col = 0; col < 9; col++) {
+        const cell = newSession.cells[row]?.[col];
+        if (cell && !cell.isClue && cell.value === 0) {
+          const key = `${row},${col}`;
+          cell.autoCandidates = allCandidates.get(key) || null;
+        }
+      }
+    }
+  } else {
+    // Clear all auto-candidates
+    for (let row = 0; row < 9; row++) {
+      for (let col = 0; col < 9; col++) {
+        const cell = newSession.cells[row]?.[col];
+        if (cell) {
+          cell.autoCandidates = null;
+        }
+      }
+    }
+  }
+
+  return newSession;
 }

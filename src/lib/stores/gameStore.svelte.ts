@@ -8,7 +8,7 @@
  */
 
 import type { GameSession, CellPosition, CellValue, DifficultyLevel } from '../models/types';
-import { createGameSession, makeMove, selectCell, toggleAutoCandidates } from '../services/GameSession';
+import { createGameSession, makeMove, selectCell, toggleAutoCandidates, setManualCandidates } from '../services/GameSession';
 import { updateTimer, pauseTimer, resumeTimer, shouldAutoPause, formatTime } from '../services/TimerService';
 import { saveGameSession, loadGameSession, hasSavedGame } from '../services/StorageService';
 
@@ -110,6 +110,19 @@ class GameStore {
     if (!this.session) return;
     this.session = toggleAutoCandidates(this.session);
     this.throttledSave(); // Auto-save after toggle
+  }
+
+  setManualCandidates(position: CellPosition, candidates: Set<number>): void {
+    if (!this.session) return;
+
+    const result = setManualCandidates(this.session, position, candidates as Set<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9>);
+
+    if (result.success) {
+      this.session = result.data;
+      this.throttledSave(); // Auto-save after setting candidates
+    } else {
+      this.error = result.error.message;
+    }
   }
 
   pauseGame(): void {
