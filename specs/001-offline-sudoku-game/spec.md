@@ -30,6 +30,7 @@
 - Q: When the modal appears (no saved game or after completing a game), should it have a "Cancel" button, or must the player start a new game? → A: No "Cancel" button when no saved game exists - player must create a new game to use the app
 - Q: When a player completes a game, what happens immediately after the completion message is shown? → A: Automatically show New Game modal (no Cancel button) after dismissing completion message
 - Q: Should the Escape key close the New Game modal (when "Cancel" button is shown for active games)? → A: Yes, Escape key closes modal (same as clicking "Cancel" when available)
+- Q: Where should the number pad be positioned and on which devices should it appear? → A: Number pad positioned to the right of grid on desktop; no number pad on mobile (users interact directly via touch)
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -91,7 +92,7 @@ A player can choose to play using only the keyboard, only the mouse, or a combin
 7. **Given** the player is playing the game, **When** they press 'Space' key, **Then** the timer is paused/resumed
 8. **Given** the player is on any screen, **When** they press 'Ctrl+N' key, **Then** the New Game modal dialog is opened with difficulty slider, "Start New Game" button, and "Cancel" button (with warning if active game exists)
 9. **Given** the player is viewing the puzzle, **When** they click on any cell with the mouse, **Then** that cell becomes selected
-10. **Given** the player has selected a cell with the mouse, **When** they click on a number in a number pad interface, **Then** that number is entered into the cell
+10. **Given** the player is on desktop with a selected cell, **When** they click on a number in the number pad (positioned to the right of the grid), **Then** that number is entered into the cell
 11. **Given** the player is using mixed input, **When** they switch between keyboard and mouse at any time, **Then** the game responds correctly to both input methods without conflict
 
 ---
@@ -207,7 +208,7 @@ Players can view a history of their completed games, including completion time, 
 - **FR-005**: System MUST validate each number entry in real-time and immediately indicate when a number violates Sudoku rules
 - **FR-006**: System MUST provide visual highlighting of the selected cell's row, column, and 3x3 square
 - **FR-007**: System MUST support keyboard-only operation with hotkeys for all controls: arrow keys (cell navigation), 1-9 (number entry), Delete/Backspace (clear cell), N (toggle Notes Mode), C (toggle Show/Hide Candidates), Z/Ctrl+Z (Undo), Space (Pause/Resume timer), Ctrl+N (open New Game modal with difficulty slider and warning if active game exists)
-- **FR-008**: System MUST support mouse/touch input for all game interactions including cell selection and number entry via on-screen number pad (number pad buttons do not display keyboard hints as they are for mouse/touch users only)
+- **FR-008**: System MUST support mouse/touch input for all game interactions including cell selection; on desktop, system MUST display an on-screen number pad positioned to the right of the grid for mouse-based number entry (number pad buttons do not display keyboard hints as they are for mouse users only); on mobile devices, number pad MUST NOT be displayed as users interact directly with cells via touch
 - **FR-009**: System MUST track and display elapsed game time in MM:SS or HH:MM:SS format with pause indicator icon positioned immediately to the left of the timer text when paused (e.g., "⏸ 05:23")
 - **FR-010**: System MUST track and display the count of errors made during the game (an error is counted only when an invalid entry remains in a cell when the player moves selection to another cell)
 - **FR-011**: System MUST provide a toggleable "Notes Mode" (via button and 'N' key) that switches between entering final numbers and entering candidate numbers (notes/pencil marks) in empty cells; when active, number entries add/remove candidates instead of final values
@@ -220,7 +221,7 @@ Players can view a history of their completed games, including completion time, 
 - **FR-017**: System MUST track the timestamp of the last user interaction and auto-pause the timer at that timestamp after 3 minutes of inactivity
 - **FR-018**: System MUST auto-resume the timer when the user interacts with the game after an idle pause
 - **FR-019**: System MUST persist game state when the browser is closed and restore it when reopened
-- **FR-020**: System MUST provide a modern, responsive user interface that works on desktop and mobile devices with static layout where UI elements maintain fixed positions and sizes regardless of state changes (no layout shifts when content updates); all interactive buttons MUST display their keyboard shortcut hints in labels or tooltips (e.g., "Notes (N)", "Undo (Z)")
+- **FR-020**: System MUST provide a modern, responsive user interface that works on desktop and mobile devices with static layout where UI elements maintain fixed positions and sizes regardless of state changes (no layout shifts when content updates); on desktop, the layout MUST position the Sudoku grid on the left with the number pad to its right; on mobile, the number pad is omitted; all interactive buttons MUST display their keyboard shortcut hints in labels or tooltips (e.g., "Notes (N)", "Undo (Z)")
 - **FR-021**: System MUST allow players to customize difficulty using a percentage scale (0-100%, where 0% is hardest and 100% is easiest) that adjusts the number of pre-filled clues rather than fixed presets
 - **FR-022**: System MUST provide an undo function (via button and Z/Ctrl+Z keys) to revert the last action, including both final number entries and manual candidate/note changes (preserving up to 50 steps of history)
 - **FR-023**: System MUST pause the timer when the page loses focus and keep it paused until the user explicitly interacts with the game (does not auto-resume on focus)

@@ -9,6 +9,13 @@
   }
 
   let { cell, isSelected, isRelated, onSelect }: Props = $props();
+
+  // Touch event handling for mobile devices (T079)
+  function handleTouchEnd(event: TouchEvent): void {
+    // Prevent default to avoid double-triggering with click event
+    event.preventDefault();
+    onSelect();
+  }
 </script>
 
 <button
@@ -19,6 +26,7 @@
   class:related={isRelated}
   class:error={cell.isError}
   onclick={onSelect}
+  ontouchend={handleTouchEnd}
   data-row={cell.row}
   data-col={cell.col}
   style="min-width: 44px; min-height: 44px;"
@@ -56,6 +64,8 @@
     font-weight: 500;
     padding: 0;
     transition: background-color 0.1s, border-color 0.1s;
+    touch-action: manipulation; /* Prevents double-tap zoom on mobile */
+    -webkit-tap-highlight-color: transparent; /* Removes tap highlight on iOS */
   }
 
   .cell:hover:not(.clue) {

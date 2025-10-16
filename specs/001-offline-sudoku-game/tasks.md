@@ -3,7 +3,7 @@
 **Feature**: Offline Sudoku Game
 **Branch**: `001-offline-sudoku-game`
 **Date**: 2025-10-16
-**Total Tasks**: 147
+**Total Tasks**: 149
 
 This document provides a dependency-ordered task list for implementing the offline Sudoku game. Tasks are organized by user story (P1, P2, P3) following the Test-Driven Development (TDD) approach mandated by Constitution Principle III.
 
@@ -183,24 +183,29 @@ This document provides a dependency-ordered task list for implementing the offli
 
 #### Keyboard Navigation (TDD)
 
-- [ ] T071 [P] [US3] TEST: Write keyboard handler tests in tests/unit/components/SudokuGrid.test.ts
-- [ ] T072 [US3] Implement arrow key navigation (↑ ↓ ← →) in SudokuGrid.svelte
-- [ ] T073 [US3] Implement number key entry (1-9) in SudokuGrid.svelte
-- [ ] T074 [US3] Implement Delete/Backspace key to clear cells in SudokuGrid.svelte
-- [ ] T075 [US3] Add focus management to ensure keyboard events work correctly
+- [X] T071 [P] [US3] TEST: Write keyboard handler tests in tests/unit/components/SudokuGrid.test.ts
+- [X] T072 [US3] Implement arrow key navigation (↑ ↓ ← →) in SudokuGrid.svelte
+- [X] T073 [US3] Implement number key entry (1-9) in SudokuGrid.svelte
+- [X] T074 [US3] Implement Delete/Backspace key to clear cells in SudokuGrid.svelte
+- [X] T075 [US3] Add focus management to ensure keyboard events work correctly
 
 #### Mouse/Touch Input
 
-- [ ] T076 [P] [US3] TEST: Write click handler tests in tests/unit/components/Cell.test.ts
-- [ ] T077 [US3] Implement click-to-select in Cell.svelte
-- [ ] T078 [US3] Implement number pad UI in src/components/Controls.svelte for mouse number entry
-- [ ] T079 [US3] Add touch event support for mobile devices
+- [X] T076 [P] [US3] TEST: Write click handler tests in tests/unit/components/Cell.test.ts
+- [X] T077 [US3] Implement click-to-select in Cell.svelte
+- [X] T078 [US3] Implement number pad UI in src/components/Controls.svelte positioned to right of grid on desktop (hidden on mobile per clarification 2025-10-16)
+- [X] T079 [US3] Add touch event support for mobile devices (touch-action: manipulation, -webkit-tap-highlight-color: transparent)
 
 #### E2E Tests
 
-- [ ] T080 [US3] Implement E2E test for keyboard-only gameplay in tests/e2e/keyboard.spec.ts per spec.md acceptance scenarios
+- [X] T080 [US3] Implement E2E test for keyboard-only gameplay in tests/e2e/keyboard.spec.ts per spec.md acceptance scenarios
 
-**Deliverable**: Full keyboard-only and mouse-only gameplay support with hybrid input.
+#### Layout Refinement (Critical for FR-020 compliance)
+
+- [X] T080a [US3] Hide number pad on mobile (<768px) using CSS media query in Controls.svelte - add display:none for .number-pad on mobile
+- [X] T080b [US3] Update App.svelte layout to position Sudoku grid on left and number pad on right using flexbox/grid on desktop (≥768px) per FR-020 clarification
+
+**Deliverable**: Full keyboard-only and mouse-only gameplay support with hybrid input, with number pad positioned to right of grid on desktop.
 
 ---
 
@@ -260,18 +265,18 @@ This document provides a dependency-ordered task list for implementing the offli
 
 ## Phase 8: User Story 6 - Number Highlighting for Pattern Recognition (P2) (4 tasks)
 
-**Goal**: Implement number highlighting per FR-013.
+**Goal**: Implement number highlighting per FR-013 - when user clicks on a cell containing a number, all cells with that same number are highlighted.
 
-**Independent Test Criteria**: Click on number, verify all matching numbers highlighted, click elsewhere, verify highlights removed.
+**Independent Test Criteria**: Click on cell with number, verify all matching numbers highlighted with distinct visual style, click elsewhere, verify highlights removed.
 
 ### Tasks
 
-- [ ] T096 [P] [US6] TEST: Write number highlighting tests in tests/unit/components/SudokuGrid.test.ts
-- [ ] T097 [US6] Implement number click handler in Cell.svelte to highlight all matching numbers
-- [ ] T098 [US6] Add visual highlighting styles in app.css
-- [ ] T099 [US6] Update gameStore to track highlighted number state
+- [ ] T096 [P] [US6] TEST: Write number highlighting tests in tests/unit/components/SudokuGrid.test.ts - test click on cell with number, verify all matching cells get 'highlighted-number' class
+- [ ] T097 [US6] Add highlightedNumber state to gameStore.svelte.ts - track currently highlighted number (1-9 or null)
+- [ ] T098 [US6] Update Cell.svelte to add click handler that sets highlightedNumber in gameStore when cell contains a value
+- [ ] T099 [US6] Add CSS styles for highlighted-number class in app.css - distinct background color (e.g., light yellow #fff9c4) different from selected/related highlights
 
-**Deliverable**: Number highlighting for pattern recognition.
+**Deliverable**: Number highlighting for pattern recognition - clicking any number highlights all instances of that number throughout the grid.
 
 ---
 
@@ -547,7 +552,7 @@ Phase 15: Mobile ← depends on all previous phases (final optimization)
 ## Format Validation
 
 ✅ All tasks follow checklist format: `- [ ] [TaskID] [P?] [Story?] Description with file path`
-✅ Task IDs sequential: T001-T146
+✅ Task IDs sequential: T001-T146 (plus T080a and T080b for layout refinement)
 ✅ [P] markers on parallelizable tasks only
 ✅ [Story] labels on user story phase tasks only (US1-US8)
 ✅ Clear file paths in all task descriptions
@@ -556,10 +561,10 @@ Phase 15: Mobile ← depends on all previous phases (final optimization)
 
 ---
 
-**Total Tasks**: 147
+**Total Tasks**: 149 (T001-T146 + T080a + T080b)
 **MVP Tasks**: 47 (Phases 1-3)
-**P1 Tasks**: 71 (Phases 1-5)
-**P2 Tasks**: 90 (Phases 1-8)
-**P3 Tasks**: 123 (Phases 1-10)
+**P1 Tasks**: 73 (Phases 1-5, including T080a and T080b)
+**P2 Tasks**: 92 (Phases 1-8)
+**P3 Tasks**: 125 (Phases 1-10)
 
 **Estimated Timeline**: 6-8 weeks full implementation, 2 weeks MVP

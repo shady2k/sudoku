@@ -76,6 +76,18 @@ export async function createGameSession(
     maxSize: 50
   };
 
+  // Auto-select first non-clue cell for keyboard-only gameplay (T080)
+  let selectedCell: CellPosition | null = null;
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      if (!puzzle.clues[row]?.[col]) {
+        selectedCell = { row, col };
+        break;
+      }
+    }
+    if (selectedCell) break;
+  }
+
   const session: GameSession = {
     sessionId: `session-${now}-${Math.random().toString(36).substring(7)}`,
     puzzle,
@@ -89,7 +101,7 @@ export async function createGameSession(
     errorCount: 0,
     isCompleted: false,
     lastActivityAt: now,
-    selectedCell: null,
+    selectedCell,
     showAutoCandidates: false,
     history
   };

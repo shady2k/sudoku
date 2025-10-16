@@ -18,10 +18,12 @@
 </script>
 
 <div class="timer">
-  <div class="time-display">{gameStore.formattedTime}</div>
-  {#if gameStore.session?.isPaused}
-    <div class="paused-indicator">⏸ Paused</div>
-  {/if}
+  <div class="time-display">
+    {#if gameStore.session?.isPaused}
+      <span class="pause-icon">⏸</span>
+    {/if}
+    {gameStore.formattedTime}
+  </div>
 </div>
 
 <style>
@@ -29,19 +31,20 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
   }
 
   .time-display {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     color: #333;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
-  .paused-indicator {
-    font-size: 0.875rem;
+  .pause-icon {
     color: #ff9800;
-    font-weight: 600;
+    font-size: 1.5rem;
   }
 </style>

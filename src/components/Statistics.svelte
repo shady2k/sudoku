@@ -25,26 +25,26 @@
 <style>
   .stats {
     display: flex;
-    gap: 2rem;
+    gap: 1.5rem;
     justify-content: center;
+    align-items: center;
     flex-wrap: wrap;
   }
 
   .stat {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
+    align-items: baseline;
+    gap: 0.5rem;
   }
 
   .label {
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     color: #666;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .value {
-    font-size: 1.5rem;
+    font-size: 1rem;
     font-weight: 700;
     color: #333;
   }
