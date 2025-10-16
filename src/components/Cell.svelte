@@ -97,8 +97,45 @@
   }
 
   .cell.error {
-    background-color: #ffebee;
-    color: #d32f2f;
+    background-color: #fee2e2;
+    color: #dc2626;
+    position: relative;
+    animation: shake 0.5s ease-in-out;
+  }
+
+  .cell.error::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(220, 38, 38, 0.1) 0%, transparent 70%);
+    animation: pulse-red 1s ease-in-out;
+  }
+
+  @keyframes shake {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+      transform: translateX(-2px);
+    }
+    20%, 40%, 60%, 80% {
+      transform: translateX(2px);
+    }
+  }
+
+  @keyframes pulse-red {
+    0% {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.2);
+    }
   }
 
   .value {

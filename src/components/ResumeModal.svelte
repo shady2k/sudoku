@@ -12,14 +12,29 @@
 
   interface Props {
     isOpen: boolean;
-    onResume: () => void;
+    onResume?: () => void;
     onNewGame: (difficulty: DifficultyLevel) => void;
+    showResumeOption?: boolean;
   }
 
-  let { isOpen = $bindable(false), onResume, onNewGame }: Props = $props();
+  let {
+    isOpen = $bindable(false),
+    onResume,
+    onNewGame,
+    showResumeOption = true
+  }: Props = $props();
 
   let showDifficultySelector = $state(false);
   let selectedDifficulty: DifficultyLevel = $state(50); // 50% = medium
+
+  // Auto-show difficulty selector for new game modal
+  $effect(() => {
+    if (!showResumeOption) {
+      showDifficultySelector = true;
+    } else {
+      showDifficultySelector = false;
+    }
+  });
 
   function handleResumeClick() {
     onResume();
@@ -56,29 +71,39 @@
   <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal" onclick={(e) => e.stopPropagation()}>
       {#if !showDifficultySelector}
-        <h2 id="modal-title">Welcome Back!</h2>
-        <p class="info">You have a game in progress. Would you like to continue?</p>
+        <h2 id="modal-title">{showResumeOption ? 'Welcome Back!' : 'New Game'}</h2>
+        {#if showResumeOption}
+          <p class="info">You have a game in progress. Would you like to continue?</p>
+        {:else}
+          <p class="info">Choose your difficulty level to start a new game.</p>
+        {/if}
 
         <div class="modal-actions">
-          <button
-            type="button"
-            class="btn btn-primary"
-            onclick={handleResumeClick}
-          >
-            Resume Game
-          </button>
+          {#if showResumeOption}
+            <button
+              type="button"
+              class="btn btn-primary"
+              onclick={handleResumeClick}
+            >
+              Resume Game
+            </button>
+          {/if}
 
           <button
             type="button"
-            class="btn btn-secondary"
+            class="btn btn-{showResumeOption ? 'secondary' : 'primary'}"
             onclick={handleShowNewGame}
           >
-            Start New Game
+            {showResumeOption ? 'Start New Game' : 'Choose Difficulty'}
           </button>
         </div>
       {:else}
         <h2 id="modal-title">New Game</h2>
-        <p class="warning">⚠️ Starting a new game will replace your saved progress.</p>
+        {#if showResumeOption}
+          <p class="warning">⚠️ Starting a new game will replace your saved progress.</p>
+        {:else}
+          <p class="info">Select your preferred difficulty level.</p>
+        {/if}
 
         <div class="difficulty-selector">
           <label for="resume-difficulty">Difficulty: {selectedDifficulty}%</label>
@@ -104,13 +129,15 @@
             Start New Game
           </button>
 
-          <button
-            type="button"
-            class="btn btn-secondary"
-            onclick={handleBack}
-          >
-            Back
-          </button>
+          {#if showResumeOption}
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick={handleBack}
+            >
+              Back
+            </button>
+          {/if}
         </div>
       {/if}
     </div>

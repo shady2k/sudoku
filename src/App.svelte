@@ -1,18 +1,26 @@
 <script lang="ts">
   import SudokuGrid from './components/SudokuGrid.svelte';
-  import Timer from './components/Timer.svelte';
-  import Statistics from './components/Statistics.svelte';
+    import Statistics from './components/Statistics.svelte';
   import Controls from './components/Controls.svelte';
   import ResumeModal from './components/ResumeModal.svelte';
   import { gameStore } from './lib/stores/gameStore.svelte';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { hasSavedGame } from './lib/services/StorageService';
   import type { DifficultyLevel } from './lib/models/types';
 
   // State for resume modal (T066: Resume or New Game modal)
   let showResumeModal = $state(false);
+  let showNewGameModal = $state(false);
+
+  // Timer interval
+  let intervalId: ReturnType<typeof setInterval> | null = null;
 
   onMount(async () => {
+    // Start timer interval
+    intervalId = setInterval(() => {
+      gameStore.updateTime();
+    }, 100);
+
     // T065: Check if there's a saved game
     const hasGame = hasSavedGame();
 
@@ -25,6 +33,12 @@
     }
   });
 
+  onDestroy(() => {
+    if (intervalId) {
+      clearInterval(intervalId);
+    }
+  });
+
   async function handleResume() {
     showResumeModal = false;
     await gameStore.loadSavedGame();
@@ -32,6 +46,15 @@
 
   async function handleNewGameFromResume(difficulty: DifficultyLevel) {
     showResumeModal = false;
+    await gameStore.newGame(difficulty);
+  }
+
+  async function handleNewGame() {
+    showNewGameModal = true;
+  }
+
+  async function handleNewGameFromModal(difficulty: DifficultyLevel) {
+    showNewGameModal = false;
     await gameStore.newGame(difficulty);
   }
 
@@ -107,7 +130,7 @@
             </div>
           {/if}
         </div>
-        <Controls />
+        <Controls onNewGame={handleNewGame} />
       </div>
     </div>
 
@@ -128,6 +151,14 @@
   bind:isOpen={showResumeModal}
   onResume={handleResume}
   onNewGame={handleNewGameFromResume}
+  showResumeOption={true}
+/>
+
+<!-- New Game modal without resume option -->
+<ResumeModal
+  bind:isOpen={showNewGameModal}
+  onNewGame={handleNewGameFromModal}
+  showResumeOption={false}
 />
 
 <style>
@@ -194,7 +225,7 @@
   .stats-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 0.625rem;
+    gap: 0.75rem;
     padding: 0;
     max-width: 340px;
   }
@@ -203,38 +234,70 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.125rem;
-    padding: 0.5rem 0.375rem;
-    background: #f8f9fa;
-    border-radius: 0.5rem;
+    gap: 0.25rem;
+    padding: 0.75rem 0.5rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border-radius: 0.75rem;
     border: 2px solid #e9ecef;
-    transition: all 0.2s ease;
-  }
-
-  .stat-item:hover {
-    border-color: #dee2e6;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   }
 
+  .stat-item::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.02) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .stat-item:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .stat-item:hover::before {
+    opacity: 1;
+  }
+
   .stat-label {
-    font-size: 0.6875rem;
-    color: #7f8c8d;
+    font-size: 0.625rem;
+    color: #64748b;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 600;
+    letter-spacing: 0.75px;
+    font-weight: 700;
     order: -1;
+    position: relative;
+    z-index: 1;
   }
 
   .stat-value {
-    font-size: 1.375rem;
-    font-weight: 800;
-    color: #2c3e50;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #1e293b;
     font-variant-numeric: tabular-nums;
     line-height: 1.1;
+    position: relative;
+    z-index: 1;
+    transition: color 0.3s ease;
   }
 
   .stat-value.error {
-    color: #e74c3c;
+    color: #dc2626;
+    animation: pulse-red 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-red {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
   }
 
   .error-message {

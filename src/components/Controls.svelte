@@ -2,12 +2,11 @@
   import { gameStore } from '../lib/stores/gameStore.svelte';
   import type { CellValue } from '../lib/models/types';
 
-  function handleNewGame(): void {
-    // Open New Game modal with difficulty selection (Ctrl+N equivalent)
-    // For now, start a new game with default difficulty
-    // TODO: Implement modal trigger instead of direct game creation
-    gameStore.newGame(50); // 50% = medium difficulty default
+  interface Props {
+    onNewGame: () => void;
   }
+
+  let { onNewGame }: Props = $props();
 
   function handlePause(): void {
     if (gameStore.session?.isPaused) {
@@ -80,7 +79,7 @@
     <button
       type="button"
       class="btn btn-primary"
-      onclick={handleNewGame}
+      onclick={onNewGame}
       disabled={gameStore.isLoading}
       title="New Game (Ctrl+N)"
     >
@@ -126,12 +125,13 @@
   }
 
   .buttons {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 0.75rem;
   }
 
   .btn {
+    width: 100%;
     padding: 0.875rem 1.25rem;
     border: 2px solid #e5e7eb;
     background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
@@ -146,6 +146,8 @@
     gap: 0.5rem;
     justify-content: center;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    min-height: 44px;
   }
 
   .btn-text {
@@ -238,28 +240,47 @@
     color: #3b82f6;
     font-size: 1.125rem;
     font-weight: 800;
-    border-radius: 0.375rem;
+    border-radius: 0.5rem;
     cursor: pointer;
-    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .num-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    border-radius: inherit;
   }
 
   .num-btn:hover:not(:disabled) {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
     border-color: #2563eb;
   }
 
+  .num-btn:hover:not(:disabled)::before {
+    opacity: 0.1;
+  }
+
   .num-btn:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+    transition: all 0.1s ease;
+  }
+
+  .num-btn:active:not(:disabled)::before {
+    opacity: 0.2;
   }
 
   .num-btn:disabled {
