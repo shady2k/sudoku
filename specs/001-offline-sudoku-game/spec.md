@@ -15,6 +15,21 @@
 - Q: Should the timer automatically resume when the page regains focus after being unfocused? → A: No, keep paused until user interacts
 - Q: Should players be able to manually add/edit their own notes or pencil marks in cells? → A: Yes, manual notes/candidates supported alongside auto-fill candidates feature
 - Q: How should auto-pause idle timeout work? → A: Track timestamp of last user interaction; if no interaction for 3 minutes, pause timer at the last interaction timestamp
+- Q: How should players enter "note/candidate mode" to add pencil marks versus entering a final number in a cell? → A: Toggle mode via dedicated button (click "Notes Mode" button, then all number entries are notes until toggled off) with keyboard hotkey support
+- Q: What specific keyboard hotkey should toggle Notes Mode? → A: 'N' key
+- Q: What should happen if puzzle generation fails (e.g., algorithm timeout or unable to create valid puzzle)? → A: Display error message asking user to try again manually
+- Q: Should the game provide an undo function that also reverses candidate/note changes, or only final number entries? → A: Undo reverses both final number entries AND manual candidate/note changes
+- Q: How should the difficulty scale be presented to users (what range/units)? → A: Percentage scale 0-100% (0% = hardest, 100% = easiest)
+- Q: What keyboard hotkeys should be assigned to the main game control buttons (Show/Hide Candidates, Undo, New Game, Pause/Resume)? → A: C (Candidates toggle), Z/Ctrl+Z (Undo), Space (Pause/Resume), Ctrl+N (New Game)
+- Q: Where exactly should the pause indicator icon be positioned relative to the timer display? → A: Icon immediately to the left of timer text (e.g., "⏸ 05:23")
+- Q: What specific UI layout constraint is meant by "static layout - we don't move elements"? → A: UI elements maintain fixed positions and sizes regardless of state changes (e.g., buttons don't shift when text changes, timer doesn't resize container)
+- Q: Should all button labels display their keyboard shortcut hints in the UI (e.g., "Notes (N)", "Undo (Z)")? → A: Yes, all buttons show their hotkey in the label or tooltip (e.g., "Notes (N)")
+- Q: Should the number pad interface (for mouse input) also display keyboard hints for numbers 1-9? → A: No, number pad is for mouse/touch only; keyboard users type 1-9 directly without needing the visual pad
+- Q: When a player has an active game and presses Ctrl+N (or New Game button), what options should appear in the modal dialog? → A: Difficulty slider + "Start New Game" button + "Cancel" button (with warning that current game will be lost)
+- Q: Should the app show a modal when loading with a saved game, or automatically resume the saved game? → A: Automatically resume the saved game immediately; modal only appears when no saved game exists or when player explicitly requests new game via Ctrl+N
+- Q: When the modal appears (no saved game or after completing a game), should it have a "Cancel" button, or must the player start a new game? → A: No "Cancel" button when no saved game exists - player must create a new game to use the app
+- Q: When a player completes a game, what happens immediately after the completion message is shown? → A: Automatically show New Game modal (no Cancel button) after dismissing completion message
+- Q: Should the Escape key close the New Game modal (when "Cancel" button is shown for active games)? → A: Yes, Escape key closes modal (same as clicking "Cancel" when available)
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -28,11 +43,13 @@ A player opens the game, selects a difficulty level, and starts playing. As they
 
 **Acceptance Scenarios**:
 
-1. **Given** the player opens the game, **When** they select a difficulty level, **Then** a new Sudoku puzzle is generated and displayed with the timer starting at 00:00
-2. **Given** the player is viewing the puzzle, **When** they click or navigate to a cell, **Then** that cell is highlighted along with all cells in the same row, column, and 3x3 square
-3. **Given** the player has selected a cell, **When** they enter a number that violates Sudoku rules, **Then** the incorrect cell is immediately marked with a visual indicator (e.g., red highlight or icon)
-4. **Given** the player has selected a cell, **When** they enter a correct number, **Then** the number is placed in the cell with no error indication
-5. **Given** the player completes the puzzle correctly, **When** the last cell is filled, **Then** the game displays a completion message with final time and error count
+1. **Given** the player opens the game for the first time (or after completing a game), **When** the application loads, **Then** a modal dialog appears with a difficulty slider (0-100%) and "Start New Game" button (no "Cancel" button since no game exists to return to)
+2. **Given** the player adjusts the difficulty slider in the modal, **When** they click "Start New Game", **Then** a new Sudoku puzzle is generated and displayed with the timer starting at 00:00 and the modal closes
+3. **Given** the player is viewing the puzzle, **When** they click or navigate to a cell, **Then** that cell is highlighted along with all cells in the same row, column, and 3x3 square
+4. **Given** the player has selected a cell, **When** they enter a number that violates Sudoku rules, **Then** the incorrect cell is immediately marked with a visual indicator (e.g., red highlight or icon)
+5. **Given** the player has selected a cell, **When** they enter a correct number, **Then** the number is placed in the cell with no error indication
+6. **Given** the player completes the puzzle correctly, **When** the last cell is filled, **Then** the game displays a completion message with final time and error count
+7. **Given** the player sees the completion message, **When** they dismiss it, **Then** the New Game modal automatically appears with difficulty slider and "Start New Game" button (no "Cancel" button)
 
 ---
 
@@ -47,10 +64,11 @@ A player can interrupt their game at any moment by closing the browser tab or wi
 **Acceptance Scenarios**:
 
 1. **Given** the player is in the middle of a game, **When** they close the browser tab or window, **Then** the current game state (puzzle, progress, timer value, error count) is automatically saved to local storage
-2. **Given** the player has a saved game in progress, **When** they open the game in the browser, **Then** they are automatically presented with the option to resume the saved game or start a new one
-3. **Given** the player chooses to resume, **When** the game loads, **Then** the puzzle, all entered numbers, timer value, and error count are restored exactly as they were
-4. **Given** the player was idle when they closed the browser, **When** they resume the game, **Then** the timer remains paused until they interact with the game
-5. **Given** the player has a saved game, **When** they choose to start a new game instead, **Then** they are warned that the current game will be lost and can confirm or cancel the action
+2. **Given** the player has a saved game in progress, **When** they open the game in the browser, **Then** the saved game is automatically loaded and displayed with all progress restored (puzzle, entered numbers, timer value, error count)
+3. **Given** the player was idle when they closed the browser, **When** the saved game auto-loads, **Then** the timer remains paused until they interact with the game
+4. **Given** the player has an active game, **When** they press Ctrl+N or click "New Game" button, **Then** a modal appears with difficulty slider, "Start New Game" button, "Cancel" button, and warning that current game will be lost
+5. **Given** the new game modal is open with active game, **When** they click "Cancel" or press Escape key, **Then** the modal closes and they return to their current game
+6. **Given** the new game modal is open with no active game (first load or after completion), **When** they press Escape key, **Then** the modal closes and they return to their current game (Escape acts as Cancel even when Cancel button not shown)
 
 ---
 
@@ -67,9 +85,14 @@ A player can choose to play using only the keyboard, only the mouse, or a combin
 1. **Given** the player is viewing the puzzle, **When** they use arrow keys (↑ ↓ ← →), **Then** the cell selection moves in the corresponding direction
 2. **Given** the player has selected a cell with keyboard navigation, **When** they press a number key (1-9), **Then** that number is entered into the cell
 3. **Given** the player has selected a cell, **When** they press the Delete or Backspace key, **Then** the cell is cleared
-4. **Given** the player is viewing the puzzle, **When** they click on any cell with the mouse, **Then** that cell becomes selected
-5. **Given** the player has selected a cell with the mouse, **When** they click on a number in a number pad interface, **Then** that number is entered into the cell
-6. **Given** the player is using mixed input, **When** they switch between keyboard and mouse at any time, **Then** the game responds correctly to both input methods without conflict
+4. **Given** the player is playing the game, **When** they press 'N' key, **Then** Notes Mode is toggled on/off
+5. **Given** the player is playing the game, **When** they press 'C' key, **Then** the Show/Hide Candidates feature is toggled
+6. **Given** the player is playing the game, **When** they press 'Z' or 'Ctrl+Z' key, **Then** the last action is undone
+7. **Given** the player is playing the game, **When** they press 'Space' key, **Then** the timer is paused/resumed
+8. **Given** the player is on any screen, **When** they press 'Ctrl+N' key, **Then** the New Game modal dialog is opened with difficulty slider, "Start New Game" button, and "Cancel" button (with warning if active game exists)
+9. **Given** the player is viewing the puzzle, **When** they click on any cell with the mouse, **Then** that cell becomes selected
+10. **Given** the player has selected a cell with the mouse, **When** they click on a number in a number pad interface, **Then** that number is entered into the cell
+11. **Given** the player is using mixed input, **When** they switch between keyboard and mouse at any time, **Then** the game responds correctly to both input methods without conflict
 
 ---
 
@@ -83,12 +106,14 @@ A player can manually enter candidate numbers (pencil marks/notes) in empty cell
 
 **Acceptance Scenarios**:
 
-1. **Given** the player has selected an empty cell, **When** they enter note/candidate mode and type numbers 1-9, **Then** those numbers appear as small candidate marks in the cell
-2. **Given** the player has manually entered candidate numbers in a cell, **When** they edit or remove individual candidates, **Then** only the specified candidates are modified while others remain
-3. **Given** the player is in the middle of a game with some cells filled, **When** they click the "Show Candidates" button, **Then** all empty cells display small auto-generated numbers (1-9) representing valid possibilities based on Sudoku rules
-4. **Given** auto-generated candidates are showing, **When** the player enters a number in a cell, **Then** the auto-generated candidates in related cells (same row, column, and square) are automatically updated to remove that number, but manual candidates remain unchanged
-5. **Given** auto-generated candidates are showing, **When** they click the "Hide Candidates" button, **Then** all auto-generated candidates are removed from the display but manual candidates remain visible
-6. **Given** a cell has candidate numbers (manual or auto), **When** the player enters a final number in that cell, **Then** the candidate numbers are replaced by the entered number
+1. **Given** the player is viewing the game, **When** they click the "Notes Mode" button or press the 'N' key, **Then** the game enters note/candidate mode and the button shows an active state
+2. **Given** the player is in note/candidate mode with an empty cell selected, **When** they type numbers 1-9 (keyboard) or click numbers on the number pad (mouse), **Then** those numbers appear as small candidate marks in the cell
+3. **Given** the player is in note/candidate mode, **When** they click the "Notes Mode" button again or press the hotkey, **Then** the mode is toggled off and subsequent number entries are treated as final numbers
+4. **Given** the player has manually entered candidate numbers in a cell, **When** they enter note mode and type the same numbers again (or click them), **Then** those candidates are removed (toggle behavior)
+5. **Given** the player is in the middle of a game with some cells filled, **When** they click the "Show Candidates" button or press 'C' key, **Then** all empty cells display small auto-generated numbers (1-9) representing valid possibilities based on Sudoku rules
+6. **Given** auto-generated candidates are showing, **When** the player enters a number in a cell, **Then** the auto-generated candidates in related cells (same row, column, and square) are automatically updated to remove that number, but manual candidates remain unchanged
+7. **Given** auto-generated candidates are showing, **When** they click the "Hide Candidates" button or press 'C' key again, **Then** all auto-generated candidates are removed from the display but manual candidates remain visible
+8. **Given** a cell has candidate numbers (manual or auto), **When** the player (not in note mode) enters a final number in that cell, **Then** the candidate numbers are replaced by the entered number
 
 ---
 
@@ -102,9 +127,9 @@ Instead of fixed difficulty presets, players can customize their game difficulty
 
 **Acceptance Scenarios**:
 
-1. **Given** the player is on the new game screen, **When** they view difficulty options, **Then** they see a slider or input for adjusting difficulty level with a visual scale (e.g., 1-10 or percentage)
-2. **Given** the player adjusts the difficulty slider, **When** they start a new game, **Then** the puzzle generated has a number of pre-filled cells and complexity matching the selected difficulty
-3. **Given** the player has played games at different difficulties, **When** they view their game history, **Then** each game shows the difficulty level it was played at for accurate comparison
+1. **Given** the player is on the new game screen, **When** they view difficulty options, **Then** they see a slider for adjusting difficulty level with a percentage scale from 0% (hardest) to 100% (easiest)
+2. **Given** the player adjusts the difficulty slider, **When** they start a new game, **Then** the puzzle generated has a number of pre-filled clues corresponding to the selected percentage (higher percentage = more clues = easier)
+3. **Given** the player has played games at different difficulties, **When** they view their game history, **Then** each game shows the difficulty percentage it was played at for accurate comparison
 
 ---
 
@@ -135,8 +160,8 @@ When a player stops interacting with the game for an extended period, the timer 
 
 **Acceptance Scenarios**:
 
-1. **Given** the player is in an active game, **When** they have not clicked, typed, or moved the mouse for 3 minutes, **Then** the timer pauses at the timestamp of the last user interaction and a "Paused (idle)" indicator is displayed
-2. **Given** the game is auto-paused due to idle, **When** the player clicks anywhere, presses any key, or moves the mouse over the game area, **Then** the timer automatically resumes and the pause indicator disappears
+1. **Given** the player is in an active game, **When** they have not clicked, typed, or moved the mouse for 3 minutes, **Then** the timer pauses at the timestamp of the last user interaction and a pause icon appears to the left of the timer (e.g., "⏸ 05:23")
+2. **Given** the game is auto-paused due to idle, **When** the player clicks anywhere, presses any key, or moves the mouse over the game area, **Then** the timer automatically resumes and the pause icon disappears
 3. **Given** the game is auto-paused, **When** the player closes the browser tab or window, **Then** the game state is saved with the paused time
 
 ---
@@ -169,49 +194,50 @@ Players can view a history of their completed games, including completion time, 
 - What happens when the device runs out of local storage space? (The game handles the storage quota error gracefully, informing the user and potentially archiving older game history)
 - What happens when the player navigates away from the game page without closing the tab? (The game state is saved, and the timer is paused when the page loses focus and remains paused until explicit user interaction)
 - What happens when the player has been away for days or weeks and returns to a saved game? (The game loads normally with the timer still paused at the saved value, ready to resume)
+- What happens when puzzle generation fails due to algorithm timeout or inability to create a valid puzzle? (The system displays a clear error message explaining the failure and provides a "Try Again" button for the user to manually retry puzzle generation)
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: System MUST generate valid Sudoku puzzles with configurable difficulty levels based on user selection, where difficulty is controlled by the number of pre-filled clues (more clues = easier), and every puzzle MUST be solvable using logic without guessing
+- **FR-001**: System MUST generate valid Sudoku puzzles with configurable difficulty levels based on user selection, where difficulty is controlled by the number of pre-filled clues (more clues = easier), and every puzzle MUST be solvable using logic without guessing; if generation fails, system MUST display an error message with a "Try Again" button for manual retry
 - **FR-002**: System MUST store all game state (current puzzle, progress, timer, errors) in browser local storage after every user action
-- **FR-003**: System MUST automatically restore the most recent saved game when the application loads
-- **FR-004**: System MUST provide an option to start a new game or resume the saved game when a saved game exists
+- **FR-003**: System MUST automatically load and display the most recent saved game immediately when the application loads (if saved game exists)
+- **FR-004**: System MUST display a New Game modal dialog ONLY when: (a) no saved game exists on initial load, OR (b) player explicitly triggers new game via Ctrl+N or New Game button; modal contains difficulty slider and "Start New Game" button; "Cancel" button is included ONLY when an active game exists (to prevent accidental loss), not shown when no game to return to; Escape key closes modal (same behavior as "Cancel" button when present)
 - **FR-005**: System MUST validate each number entry in real-time and immediately indicate when a number violates Sudoku rules
 - **FR-006**: System MUST provide visual highlighting of the selected cell's row, column, and 3x3 square
-- **FR-007**: System MUST support keyboard-only navigation using arrow keys for cell selection and number keys (1-9) for entry
-- **FR-008**: System MUST support mouse/touch input for all game interactions including cell selection and number entry
-- **FR-009**: System MUST track and display elapsed game time in MM:SS or HH:MM:SS format
+- **FR-007**: System MUST support keyboard-only operation with hotkeys for all controls: arrow keys (cell navigation), 1-9 (number entry), Delete/Backspace (clear cell), N (toggle Notes Mode), C (toggle Show/Hide Candidates), Z/Ctrl+Z (Undo), Space (Pause/Resume timer), Ctrl+N (open New Game modal with difficulty slider and warning if active game exists)
+- **FR-008**: System MUST support mouse/touch input for all game interactions including cell selection and number entry via on-screen number pad (number pad buttons do not display keyboard hints as they are for mouse/touch users only)
+- **FR-009**: System MUST track and display elapsed game time in MM:SS or HH:MM:SS format with pause indicator icon positioned immediately to the left of the timer text when paused (e.g., "⏸ 05:23")
 - **FR-010**: System MUST track and display the count of errors made during the game (an error is counted only when an invalid entry remains in a cell when the player moves selection to another cell)
-- **FR-011**: System MUST allow players to manually enter, edit, and remove candidate numbers (notes/pencil marks) in empty cells
-- **FR-011a**: System MUST provide a "Show Candidates" feature that automatically fills empty cells with all possible valid numbers
+- **FR-011**: System MUST provide a toggleable "Notes Mode" (via button and 'N' key) that switches between entering final numbers and entering candidate numbers (notes/pencil marks) in empty cells; when active, number entries add/remove candidates instead of final values
+- **FR-011a**: System MUST provide a "Show Candidates" feature (via button and 'C' key) that automatically fills empty cells with all possible valid numbers
 - **FR-012**: System MUST automatically update auto-generated candidate numbers when the player enters values that eliminate possibilities (manual notes are not auto-updated)
 - **FR-013**: System MUST highlight all instances of a selected number throughout the puzzle grid
-- **FR-014**: System MUST detect puzzle completion and display a summary screen with final time and error count
+- **FR-014**: System MUST detect puzzle completion, display a summary screen with final time and error count, and automatically show the New Game modal (without "Cancel" button) after the completion message is dismissed
 - **FR-015**: System MUST save completed game records to local storage including date, time, errors, and difficulty
 - **FR-016**: System MUST provide a history view showing all previously completed games with sorting and filtering options
 - **FR-017**: System MUST track the timestamp of the last user interaction and auto-pause the timer at that timestamp after 3 minutes of inactivity
 - **FR-018**: System MUST auto-resume the timer when the user interacts with the game after an idle pause
 - **FR-019**: System MUST persist game state when the browser is closed and restore it when reopened
-- **FR-020**: System MUST provide a modern, responsive user interface that works on desktop and mobile devices
-- **FR-021**: System MUST allow players to customize difficulty using a continuous scale that adjusts the number of pre-filled clues rather than fixed presets
-- **FR-022**: System MUST provide an undo function to revert the last move (preserving up to 50 steps of history)
+- **FR-020**: System MUST provide a modern, responsive user interface that works on desktop and mobile devices with static layout where UI elements maintain fixed positions and sizes regardless of state changes (no layout shifts when content updates); all interactive buttons MUST display their keyboard shortcut hints in labels or tooltips (e.g., "Notes (N)", "Undo (Z)")
+- **FR-021**: System MUST allow players to customize difficulty using a percentage scale (0-100%, where 0% is hardest and 100% is easiest) that adjusts the number of pre-filled clues rather than fixed presets
+- **FR-022**: System MUST provide an undo function (via button and Z/Ctrl+Z keys) to revert the last action, including both final number entries and manual candidate/note changes (preserving up to 50 steps of history)
 - **FR-023**: System MUST pause the timer when the page loses focus and keep it paused until the user explicitly interacts with the game (does not auto-resume on focus)
 
 ### Key Entities
 
 - **Game Session**: Represents a single playthrough of a Sudoku puzzle. Attributes include: unique identifier, start time, current elapsed time, pause state, difficulty level, error count, completion status, current board state, and last modified timestamp.
 
-- **Puzzle**: Represents the Sudoku grid with initial clues and solution. Attributes include: 9x9 grid of cells, initial pre-filled cells (clues), solution grid, difficulty rating (represented by number of clues provided), guarantee of logical solvability without guessing.
+- **Puzzle**: Represents the Sudoku grid with initial clues and solution. Attributes include: 9x9 grid of cells, initial pre-filled cells (clues), solution grid, difficulty rating (percentage 0-100%, mapped to number of clues provided), guarantee of logical solvability without guessing.
 
 - **Cell**: Represents a single position in the 9x9 grid. Attributes include: row position (0-8), column position (0-8), current value (1-9 or empty), whether it's a pre-filled clue or user-entered, error state (valid/invalid), manual candidate numbers (user pencil marks), auto-generated candidate numbers (if shown).
 
-- **Game Record**: Represents a completed game stored in history. Attributes include: completion date/time, total elapsed time, total error count, difficulty level, puzzle identifier (for potential replay), personal best flags.
+- **Game Record**: Represents a completed game stored in history. Attributes include: completion date/time, total elapsed time, total error count, difficulty level (percentage), puzzle identifier (for potential replay), personal best flags.
 
-- **User Preferences**: Represents player settings and preferences. Attributes include: preferred difficulty level, candidate mode (auto/manual/off), theme/appearance settings, keyboard shortcuts configuration, history display preferences (sort order, filters), auto-pause timeout setting.
+- **User Preferences**: Represents player settings and preferences. Attributes include: preferred difficulty level (percentage), notes mode state (toggled on/off), candidate display mode (auto-show/manual/off), theme/appearance settings, keyboard shortcuts configuration (including notes mode hotkey), history display preferences (sort order, filters), auto-pause timeout setting.
 
-- **Action History**: Represents the undo/redo stack for game moves. Attributes include: sequence of actions (cell, previous value, new value, timestamp), current position in history, maximum history size (50 steps).
+- **Action History**: Represents the undo/redo stack for game actions. Attributes include: sequence of actions (cell, action type [final number entry or candidate change], previous state, new state, timestamp), current position in history, maximum history size (50 steps).
 
 ## Success Criteria *(mandatory)*
 
@@ -220,7 +246,7 @@ Players can view a history of their completed games, including completion time, 
 - **SC-001**: Players can start and complete a Sudoku game entirely offline without any network requests after initial page load
 - **SC-002**: Game state is automatically saved and restored within 1 second of browser restart, allowing players to resume seamlessly
 - **SC-003**: Invalid number entries are visually indicated within 100 milliseconds of entry, providing immediate feedback
-- **SC-004**: Players can complete all game actions (navigation, entry, mode switching) using only keyboard controls without requiring mouse input
+- **SC-004**: Players can complete all game actions (navigation, entry, mode switching, undo, pause, new game) using only keyboard controls without requiring mouse input, with all buttons accessible via defined hotkeys
 - **SC-005**: The game interface is fully responsive and playable on screens ranging from 320px mobile devices to 4K desktop displays
 - **SC-006**: Game history can store and retrieve at least 1000 completed games without noticeable performance degradation
 - **SC-007**: Puzzle generation completes within 2 seconds for any difficulty level, ensuring players don't wait

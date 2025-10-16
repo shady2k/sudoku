@@ -73,7 +73,12 @@ export class SeededRandom {
     for (let i = array.length - 1; i > 0; i--) {
       const j = this.nextInt(i + 1);
       // Swap elements i and j
-      [array[i], array[j]] = [array[j]!, array[i]!];
+      const temp = array[i];
+      const elemJ = array[j];
+      if (temp !== undefined && elemJ !== undefined) {
+        array[i] = elemJ;
+        array[j] = temp;
+      }
     }
     return array;
   }
@@ -90,7 +95,11 @@ export class SeededRandom {
     }
 
     const index = this.nextInt(array.length);
-    return array[index]!;
+    const element = array[index];
+    if (element === undefined) {
+      throw new Error(`Array element at index ${index} is undefined`);
+    }
+    return element;
   }
 
   /**

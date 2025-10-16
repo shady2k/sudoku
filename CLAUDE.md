@@ -4,6 +4,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-16
 
 ## Active Technologies
 - TypeScript 5.x with strict mode enabled + Svelte 5, Vite 7, Custom puzzle generation (backtracking + seed transformation) (001-offline-sudoku-game)
+- TypeScript 5.x with strict mode enabled + Svelte 5 (UI framework), Vite 7 (build tool) (001-offline-sudoku-game)
+- Browser LocalStorage (offline-first, no server) (001-offline-sudoku-game)
 
 ## Project Structure
 ```
@@ -19,6 +21,7 @@ npm test && npm run lint
 TypeScript 5.x with strict mode enabled: Follow standard conventions
 
 ## Recent Changes
+- 001-offline-sudoku-game: Added TypeScript 5.x with strict mode enabled + Svelte 5 (UI framework), Vite 7 (build tool)
 - 001-offline-sudoku-game: Added TypeScript 5.x with strict mode enabled + Svelte 5, Vite 7, Custom puzzle generation (backtracking + seed transformation)
 
 <!-- MANUAL ADDITIONS START -->

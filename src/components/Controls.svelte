@@ -40,7 +40,7 @@
     <button
       type="button"
       class="btn btn-primary"
-      on:click={handleNewGame}
+      onclick={handleNewGame}
       disabled={$isLoading}
     >
       {$isLoading ? 'Generating...' : 'New Game'}
@@ -50,7 +50,7 @@
       <button
         type="button"
         class="btn"
-        on:click={handlePause}
+        onclick={handlePause}
         disabled={$session.isCompleted}
       >
         {$session.isPaused ? 'Resume' : 'Pause'}
@@ -59,7 +59,7 @@
       <button
         type="button"
         class="btn"
-        on:click={handleToggleCandidates}
+        onclick={handleToggleCandidates}
         class:active={$session.showAutoCandidates}
       >
         {$session.showAutoCandidates ? 'Hide' : 'Show'} Candidates

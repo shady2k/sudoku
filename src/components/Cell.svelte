@@ -21,6 +21,7 @@
   onclick={onSelect}
   data-row={cell.row}
   data-col={cell.col}
+  style="min-width: 44px; min-height: 44px;"
 >
   {#if cell.value !== 0}
     <span class="value">{cell.value}</span>

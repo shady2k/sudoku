@@ -3,10 +3,8 @@ import {
   isValidMove,
   getRelatedCells,
   getBoxIndex,
-  createValidator,
-  type FastValidator
+  createValidator
 } from '../../../src/lib/utils/validation';
-import type { CellPosition } from '../../../src/lib/models/types';
 
 describe('validation utilities', () => {
   describe('getBoxIndex', () => {

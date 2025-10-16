@@ -23,6 +23,7 @@ import type {
 import { success, failure } from '../models/types';
 import { generatePuzzle } from './PuzzleGenerator';
 import { isValidMove } from '../utils/validation';
+import { getCell, setCell } from '../utils/gridHelpers';
 
 /**
  * Creates a new game session with a freshly generated puzzle
@@ -50,12 +51,12 @@ export async function createGameSession(
   // Initialize cells
   const cells: Cell[][] = [];
   for (let row = 0; row < 9; row++) {
-    cells[row] = [];
+    const cellRow: Cell[] = [];
     for (let col = 0; col < 9; col++) {
-      const value = puzzle.grid[row]![col]!;
-      const isClue = puzzle.clues[row]![col]!;
+      const value = getCell(puzzle.grid, row, col);
+      const isClue = getCell(puzzle.clues as readonly (readonly number[])[], row, col) !== 0;
 
-      cells[row]![col] = {
+      cellRow.push({
         row,
         col,
         value,
@@ -63,8 +64,9 @@ export async function createGameSession(
         isError: false,
         manualCandidates: new Set(),
         autoCandidates: null
-      };
+      });
     }
+    cells.push(cellRow);
   }
 
   // Initialize action history
@@ -139,8 +141,15 @@ export function makeMove(
   newSession.lastActivityAt = Date.now();
 
   // Update cell value
-  newSession.board[row]![col] = value;
-  const newCell = newSession.cells[row]![col]!;
+  setCell(newSession.board, row, col, value);
+  const cellRow = newSession.cells[row];
+  if (!cellRow) {
+    return failure('INTERNAL_ERROR', `Cell row ${row} not found`);
+  }
+  const newCell = cellRow[col];
+  if (!newCell) {
+    return failure('INTERNAL_ERROR', `Cell [${row}, ${col}] not found`);
+  }
   newCell.value = value;
 
   // Validate move and mark error
@@ -212,7 +221,7 @@ export function isPuzzleCompleted(session: GameSession): boolean {
   // Check all cells filled
   for (let row = 0; row < 9; row++) {
     for (let col = 0; col < 9; col++) {
-      if (session.board[row]![col] === 0) {
+      if (getCell(session.board, row, col) === 0) {
         return false;
       }
     }
@@ -221,7 +230,7 @@ export function isPuzzleCompleted(session: GameSession): boolean {
   // Check matches solution
   for (let row = 0; row < 9; row++) {
     for (let col = 0; col < 9; col++) {
-      if (session.board[row]![col] !== session.puzzle.solution[row]![col]) {
+      if (getCell(session.board, row, col) !== getCell(session.puzzle.solution, row, col)) {
         return false;
       }
     }

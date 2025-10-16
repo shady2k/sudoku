@@ -128,7 +128,7 @@ describe('GameStore', () => {
       await gameStore.newGame(5);
 
       expect(GameSessionService.createGameSession).toHaveBeenCalledWith(5, undefined);
-      expect(gameStore.session).toBe(mockSession);
+      expect(gameStore.session).toStrictEqual(mockSession);
       expect(gameStore.isLoading).toBe(false);
       expect(gameStore.error).toBeNull();
     });
@@ -198,7 +198,7 @@ describe('GameStore', () => {
         { row: 0, col: 0 },
         5
       );
-      expect(gameStore.session).toBe(updatedSession);
+      expect(gameStore.session).toStrictEqual(updatedSession);
       expect(gameStore.error).toBeNull();
     });
 
@@ -215,7 +215,7 @@ describe('GameStore', () => {
       gameStore.makeMove({ row: 0, col: 0 }, 5);
 
       expect(gameStore.error).toBe('Invalid move: cell is a clue');
-      expect(gameStore.session).toBe(currentSession); // Unchanged
+      expect(gameStore.session).toStrictEqual(currentSession); // Unchanged
     });
   });
 
@@ -241,7 +241,7 @@ describe('GameStore', () => {
         currentSession,
         { row: 0, col: 0 }
       );
-      expect(gameStore.session).toBe(updatedSession);
+      expect(gameStore.session).toStrictEqual(updatedSession);
     });
 
     it('should support deselecting cell with null', () => {
@@ -255,7 +255,7 @@ describe('GameStore', () => {
       gameStore.selectCell(null);
 
       expect(GameSessionService.selectCell).toHaveBeenCalledWith(currentSession, null);
-      expect(gameStore.session).toBe(updatedSession);
+      expect(gameStore.session).toStrictEqual(updatedSession);
     });
   });
 
@@ -278,7 +278,7 @@ describe('GameStore', () => {
       gameStore.toggleCandidates();
 
       expect(GameSessionService.toggleAutoCandidates).toHaveBeenCalledWith(currentSession);
-      expect(gameStore.session).toBe(updatedSession);
+      expect(gameStore.session).toStrictEqual(updatedSession);
     });
   });
 
@@ -295,7 +295,7 @@ describe('GameStore', () => {
       gameStore.pauseGame();
 
       expect(TimerService.pauseTimer).toHaveBeenCalledWith(currentSession, expect.any(Number));
-      expect(gameStore.session).toBe(pausedSession);
+      expect(gameStore.session).toStrictEqual(pausedSession);
     });
 
     it('should resume game timer', () => {
@@ -310,7 +310,7 @@ describe('GameStore', () => {
       gameStore.resumeGame();
 
       expect(TimerService.resumeTimer).toHaveBeenCalledWith(currentSession, expect.any(Number));
-      expect(gameStore.session).toBe(resumedSession);
+      expect(gameStore.session).toStrictEqual(resumedSession);
     });
 
     it('should do nothing when pausing without session', () => {
@@ -376,7 +376,7 @@ describe('GameStore', () => {
 
       expect(TimerService.shouldAutoPause).toHaveBeenCalledWith(currentSession, expect.any(Number));
       expect(TimerService.pauseTimer).toHaveBeenCalledWith(currentSession, currentSession.lastActivityAt);
-      expect(gameStore.session).toBe(pausedSession);
+      expect(gameStore.session).toStrictEqual(pausedSession);
     });
 
     it('should update timer when active and not idle', () => {
@@ -399,7 +399,7 @@ describe('GameStore', () => {
 
       expect(TimerService.shouldAutoPause).toHaveBeenCalledWith(currentSession, expect.any(Number));
       expect(TimerService.updateTimer).toHaveBeenCalledWith(currentSession, expect.any(Number));
-      expect(gameStore.session).toBe(updatedSession);
+      expect(gameStore.session).toStrictEqual(updatedSession);
       expect(gameStore.currentTime).toBeGreaterThan(0);
     });
   });

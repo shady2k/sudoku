@@ -5,27 +5,48 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
+import { writable } from 'svelte/store';
 import Controls from '../../../src/components/Controls.svelte';
-import { gameStore } from '../../../src/lib/stores/gameStore.svelte.ts';
 
-vi.mock('../../../src/lib/stores/gameStore.svelte.ts', () => ({
-  gameStore: {
-    session: null,
-    isLoading: false,
-    newGame: vi.fn(),
-    pauseGame: vi.fn(),
-    resumeGame: vi.fn(),
-    toggleCandidates: vi.fn(),
-  },
-}));
+// Mock the gameStore module with factory function
+vi.mock('../../../src/lib/stores/gameStore', () => {
+  // Create mock stores and functions inside the factory
+  const mockSession = writable<any>(null);
+  const mockIsLoading = writable(false);
+
+  const mockNewGame = vi.fn();
+  const mockPauseGame = vi.fn();
+  const mockResumeGame = vi.fn();
+  const mockToggleCandidates = vi.fn();
+
+  return {
+    session: mockSession,
+    isLoading: mockIsLoading,
+    gameStore: {
+      newGame: mockNewGame,
+      pauseGame: mockPauseGame,
+      resumeGame: mockResumeGame,
+      toggleCandidates: mockToggleCandidates,
+    },
+  };
+});
+
+// Import the mocked stores and gameStore after the mock is set up
+import { session as mockSession, isLoading as mockIsLoading, gameStore } from '../../../src/lib/stores/gameStore';
+
+// Extract mocks for testing
+const mockNewGame = gameStore.newGame as ReturnType<typeof vi.fn>;
+const mockPauseGame = gameStore.pauseGame as ReturnType<typeof vi.fn>;
+const mockResumeGame = gameStore.resumeGame as ReturnType<typeof vi.fn>;
+const mockToggleCandidates = gameStore.toggleCandidates as ReturnType<typeof vi.fn>;
 
 describe('Controls Component', () => {
   const user = userEvent.setup();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    gameStore.session = null;
-    gameStore.isLoading = false;
+    mockSession.set(null);
+    mockIsLoading.set(false);
   });
 
   describe('Difficulty Selector', () => {
@@ -45,7 +66,7 @@ describe('Controls Component', () => {
     });
 
     it('should disable slider when loading', () => {
-      gameStore.isLoading = true;
+      mockIsLoading.set(true);
       render(Controls);
 
       const slider = screen.getByLabelText('Difficulty:');
@@ -64,18 +85,18 @@ describe('Controls Component', () => {
       const button = screen.getByRole('button', { name: /New Game/i });
       await user.click(button);
 
-      expect(gameStore.newGame).toHaveBeenCalled();
+      expect(mockNewGame).toHaveBeenCalled();
     });
 
     it('should show "Generating..." when loading', () => {
-      gameStore.isLoading = true;
+      mockIsLoading.set(true);
       render(Controls);
 
       expect(screen.getByText('Generating...')).toBeInTheDocument();
     });
 
     it('should disable button when loading', () => {
-      gameStore.isLoading = true;
+      mockIsLoading.set(true);
       render(Controls);
 
       const button = screen.getByRole('button', { name: /Generating/i });
@@ -91,41 +112,41 @@ describe('Controls Component', () => {
     });
 
     it('should show "Pause" button when game is active', () => {
-      gameStore.session = { isPaused: false, isCompleted: false } as any;
+      mockSession.set({ isPaused: false, isCompleted: false } as any);
       render(Controls);
 
       expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
     });
 
     it('should show "Resume" button when game is paused', () => {
-      gameStore.session = { isPaused: true, isCompleted: false } as any;
+      mockSession.set({ isPaused: true, isCompleted: false } as any);
       render(Controls);
 
       expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument();
     });
 
     it('should call pauseGame when clicking Pause', async () => {
-      gameStore.session = { isPaused: false, isCompleted: false } as any;
+      mockSession.set({ isPaused: false, isCompleted: false } as any);
       render(Controls);
 
       const button = screen.getByRole('button', { name: 'Pause' });
       await user.click(button);
 
-      expect(gameStore.pauseGame).toHaveBeenCalled();
+      expect(mockPauseGame).toHaveBeenCalled();
     });
 
     it('should call resumeGame when clicking Resume', async () => {
-      gameStore.session = { isPaused: true, isCompleted: false } as any;
+      mockSession.set({ isPaused: true, isCompleted: false } as any);
       render(Controls);
 
       const button = screen.getByRole('button', { name: 'Resume' });
       await user.click(button);
 
-      expect(gameStore.resumeGame).toHaveBeenCalled();
+      expect(mockResumeGame).toHaveBeenCalled();
     });
 
     it('should disable pause button when game is completed', () => {
-      gameStore.session = { isPaused: false, isCompleted: true } as any;
+      mockSession.set({ isPaused: false, isCompleted: true } as any);
       render(Controls);
 
       const button = screen.getByRole('button', { name: 'Pause' });
@@ -140,31 +161,31 @@ describe('Controls Component', () => {
     });
 
     it('should show "Show Candidates" when candidates are hidden', () => {
-      gameStore.session = { showAutoCandidates: false, isCompleted: false } as any;
+      mockSession.set({ showAutoCandidates: false, isCompleted: false } as any);
       render(Controls);
 
       expect(screen.getByRole('button', { name: 'Show Candidates' })).toBeInTheDocument();
     });
 
     it('should show "Hide Candidates" when candidates are visible', () => {
-      gameStore.session = { showAutoCandidates: true, isCompleted: false } as any;
+      mockSession.set({ showAutoCandidates: true, isCompleted: false } as any);
       render(Controls);
 
       expect(screen.getByRole('button', { name: 'Hide Candidates' })).toBeInTheDocument();
     });
 
     it('should call toggleCandidates when clicked', async () => {
-      gameStore.session = { showAutoCandidates: false, isCompleted: false } as any;
+      mockSession.set({ showAutoCandidates: false, isCompleted: false } as any);
       render(Controls);
 
       const button = screen.getByRole('button', { name: 'Show Candidates' });
       await user.click(button);
 
-      expect(gameStore.toggleCandidates).toHaveBeenCalled();
+      expect(mockToggleCandidates).toHaveBeenCalled();
     });
 
     it('should have active class when candidates are shown', () => {
-      gameStore.session = { showAutoCandidates: true, isCompleted: false } as any;
+      mockSession.set({ showAutoCandidates: true, isCompleted: false } as any);
       render(Controls);
 
       const button = screen.getByRole('button', { name: 'Hide Candidates' });

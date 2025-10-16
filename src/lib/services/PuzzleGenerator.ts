@@ -14,6 +14,7 @@ import type { Puzzle, Result, DifficultyLevel } from '../models/types';
 import { success, failure, isDifficultyLevel } from '../models/types';
 import { SeededRandom } from '../utils/seededRandom';
 import { difficultyToClues } from '../utils/validation';
+import { getCell, setCell } from '../utils/gridHelpers';
 
 /**
  * Generates a complete valid Sudoku grid
@@ -57,14 +58,14 @@ function fillGrid(grid: number[][], rng: SeededRandom): boolean {
 
   for (const num of numbers) {
     if (isValidPlacement(grid, row, col, num)) {
-      grid[row]![col] = num;
+      setCell(grid, row, col, num);
 
       if (fillGrid(grid, rng)) {
         return true;
       }
 
       // Backtrack
-      grid[row]![col] = 0;
+      setCell(grid, row, col, 0);
     }
   }
 
@@ -77,7 +78,7 @@ function fillGrid(grid: number[][], rng: SeededRandom): boolean {
 function findEmptyCell(grid: readonly (readonly number[])[]): { row: number; col: number } | null {
   for (let row = 0; row < 9; row++) {
     for (let col = 0; col < 9; col++) {
-      if (grid[row]![col] === 0) {
+      if (getCell(grid, row, col) === 0) {
         return { row, col };
       }
     }
@@ -96,12 +97,12 @@ function isValidPlacement(
 ): boolean {
   // Check row
   for (let c = 0; c < 9; c++) {
-    if (grid[row]![c] === num) return false;
+    if (getCell(grid, row, c) === num) return false;
   }
 
   // Check column
   for (let r = 0; r < 9; r++) {
-    if (grid[r]![col] === num) return false;
+    if (getCell(grid, r, col) === num) return false;
   }
 
   // Check 3x3 box
@@ -109,7 +110,7 @@ function isValidPlacement(
   const boxCol = Math.floor(col / 3) * 3;
   for (let r = boxRow; r < boxRow + 3; r++) {
     for (let c = boxCol; c < boxCol + 3; c++) {
-      if (grid[r]![c] === num) return false;
+      if (getCell(grid, r, c) === num) return false;
     }
   }
 
@@ -206,7 +207,7 @@ function removeCells(
     if (removed >= targetRemovals) break;
 
     // Remove cell
-    puzzle[pos.row]![pos.col] = 0;
+    setCell(puzzle, pos.row, pos.col, 0);
     removed++;
   }
 
@@ -242,19 +243,19 @@ export function hasUniqueSolution(puzzle: readonly (readonly number[])[]): boole
 
     for (let num = 1; num <= 9; num++) {
       if (isValidPlacement(grid, row, col, num)) {
-        grid[row]![col] = num;
+        setCell(grid, row, col, num);
 
         if (!solve()) {
-          grid[row]![col] = 0;
+          setCell(grid, row, col, 0);
           continue;
         }
 
         if (solutionCount > 1) {
-          grid[row]![col] = 0;
+          setCell(grid, row, col, 0);
           return true;
         }
 
-        grid[row]![col] = 0;
+        setCell(grid, row, col, 0);
       }
     }
 

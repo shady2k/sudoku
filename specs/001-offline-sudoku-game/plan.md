@@ -7,64 +7,57 @@
 
 ## Summary
 
-Build a fully offline Sudoku game with real-time error validation, flexible difficulty levels, keyboard/mouse support, auto-save/resume functionality, and performance tracking. The game will be deployed as a static web application using GitHub Pages with CI/CD via GitHub Actions.
+Build an offline-first Sudoku game in the browser with real-time feedback, complete keyboard accessibility, flexible difficulty levels (0-100% scale), and automatic game state persistence. The game must provide immediate error validation (<100ms), support both keyboard-only and mouse/touch input, auto-pause on idle, track game history, and maintain a static UI layout with no element shifting during state changes.
 
 ## Technical Context
 
 **Language/Version**: TypeScript 5.x with strict mode enabled
-**Primary Dependencies**: Svelte 5, Vite 7, Custom puzzle generation (backtracking + seed transformation)
-**Storage**: Browser Local Storage (for game state, history, preferences)
-**Testing**: Vitest for unit/integration tests, Playwright for E2E tests
-**Target Platform**: Modern web browsers (Chrome, Firefox, Safari, Edge - latest 2 versions)
-**Project Type**: Single-page web application (frontend only, no backend)
-**Performance Goals**: Puzzle generation <500ms, move validation <10ms, UI interactions 60fps (16ms), solution checking <100ms
-**Constraints**: Fully offline-capable (works without network after initial load), puzzle solvability guaranteed (no guessing required), responsive design (320px mobile to 4K desktop)
-**Scale/Scope**: Single-user local gameplay, 1000+ game history storage, 50 undo steps per game
-**CI/CD**: GitHub Actions for automated testing, building, and deployment to GitHub Pages
-**Deployment**: Static site hosting on GitHub Pages with automated deploys on main branch commits
+**Primary Dependencies**: Svelte 5 (UI framework), Vite 7 (build tool)
+**Storage**: Browser LocalStorage (offline-first, no server)
+**Testing**: Vitest (unit/integration), Playwright (E2E)
+**Target Platform**: Modern browsers (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+)
+**Project Type**: Single-page web application
+**Performance Goals**: Puzzle generation <2s, move validation <10ms, UI interactions <16ms (60fps), solution checking <100ms
+**Constraints**: Offline-capable, zero network requests post-load, <500ms state persistence, <1s game restore, strict keyboard accessibility
+**Scale/Scope**: Single-player game, 1000+ game history storage, 50-step undo/redo, supports 320px mobile to 4K desktop
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-### Principle I: Game Logic Integrity ✅
-- **Status**: PASS
-- **Evidence**: Feature spec requires valid, uniquely-solvable puzzles (FR-001), deterministic difficulty, and real-time validation (FR-005)
-- **Implementation Plan**: Custom puzzle generator with backtracking algorithm, solution validator enforcing row/column/box constraints, automated testing for puzzle solvability
+### Principle I: Game Logic Integrity ✅ PASS
+- **Requirement**: Puzzle generation must produce valid, uniquely-solvable Sudoku puzzles
+- **Spec alignment**: FR-001 requires puzzles solvable using logic without guessing, with difficulty controlled by pre-filled clues
+- **Test approach**: TDD with puzzle validation tests before implementation
+- **Status**: Requirements aligned with principle
 
-### Principle II: Performance & Responsiveness ✅
-- **Status**: PASS
-- **Evidence**: Technical context specifies strict performance budgets matching constitution requirements (puzzle generation <500ms, validation <10ms, 60fps UI)
-- **Implementation Plan**: Performance benchmarks in test suite, optimization-focused puzzle generation, efficient state management with Svelte 5's runes
+### Principle II: Performance & Responsiveness ✅ PASS
+- **Requirement**: Puzzle generation <500ms, move validation <10ms, UI <16ms, solution checking <100ms
+- **Spec alignment**: SC-007 (generation <2s), SC-003 (validation <100ms), SC-009 (UI feedback <50ms)
+- **Status**: Spec targets meet or exceed constitution requirements
 
-### Principle III: Test-First Development ✅
-- **Status**: PASS
-- **Evidence**: Vitest + Playwright specified for comprehensive testing, constitution mandates TDD
-- **Implementation Plan**: RED-GREEN-REFACTOR cycle for all game logic, 100% coverage for puzzle generation/validation, 80%+ for UI, tests written before implementation
+### Principle III: Test-First Development ✅ PASS
+- **Requirement**: TDD mandatory for game logic, 100% coverage for core, 80%+ for UI
+- **Spec alignment**: User stories provide acceptance scenarios that translate to tests
+- **Test approach**: Contract tests → Unit tests → Integration tests → E2E tests
+- **Status**: Ready for TDD workflow
 
-### Principle IV: User Experience First ✅
-- **Status**: PASS
-- **Evidence**: Feature spec prioritizes user scenarios (P1: core gameplay, immediate feedback, state persistence), keyboard/mouse accessibility (FR-007, FR-008), visual highlighting (FR-006, FR-013)
-- **Implementation Plan**: User-centric design with immediate visual feedback (<100ms per FR-005), intuitive keyboard shortcuts, responsive design 320px-4K
+### Principle IV: User Experience First ✅ PASS
+- **Requirement**: Intuitive UI, immediate feedback, accessibility (keyboard navigation)
+- **Spec alignment**: FR-007 (complete keyboard support), FR-020 (static layout), all hotkeys defined
+- **Status**: Comprehensive UX requirements specified
 
-### Principle V: Maintainability & Simplicity ✅
-- **Status**: PASS
-- **Evidence**: Single-page app architecture (no unnecessary backend), clear separation of concerns (puzzle logic, UI, storage), TypeScript strict mode for self-documenting code
-- **Implementation Plan**: Modular architecture (models, services, components), YAGNI approach (no premature features), complex algorithms documented with rationale
+### Principle V: Maintainability & Simplicity ✅ PASS
+- **Requirement**: Simple, readable code; clear separation of concerns; YAGNI
+- **Spec alignment**: Svelte 5 provides reactive simplicity, TypeScript strict mode enforces clarity
+- **Status**: Tech stack supports maintainability goals
 
-### Principle VI: Type Safety & TypeScript Standards ✅
-- **Status**: PASS
-- **Evidence**: TypeScript 5.x strict mode specified, no `any` type allowed per constitution
-- **Implementation Plan**: Strict tsconfig.json, explicit types for all functions/parameters, discriminated unions for game state, ESLint enforcing type safety rules
+### Principle VI: Type Safety & TypeScript Standards ✅ PASS
+- **Requirement**: No `any` type, strict mode, explicit types, zero lint warnings
+- **Spec alignment**: TypeScript 5.x with strict mode explicitly chosen
+- **Status**: Constitution-compliant type safety enforced
 
-### Quality Gates ✅
-- **Testing**: Vitest (unit/integration) + Playwright (E2E) configured
-- **Type Checking**: TypeScript strict mode + tsc --noEmit in CI
-- **Linting**: ESLint with TypeScript rules, zero warnings policy
-- **CI/CD**: GitHub Actions will enforce all quality gates on every commit
-- **Performance**: Benchmark tests for constitution-mandated time budgets
-
-**Gate Result**: ✅ APPROVED - All principles satisfied, proceed to Phase 0 research
+**Overall Gate Status**: ✅ **PASS** - All principles aligned, no violations requiring justification
 
 ## Project Structure
 
@@ -73,114 +66,74 @@ Build a fully offline Sudoku game with real-time error validation, flexible diff
 ```
 specs/001-offline-sudoku-game/
 ├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (completed)
-├── data-model.md        # Phase 1 output (completed)
-├── quickstart.md        # Phase 1 output (completed)
-├── contracts/           # Phase 1 output (completed)
-│   ├── game-api.ts      # Game session operations
-│   ├── puzzle-api.ts    # Puzzle generation/validation
-│   └── storage-api.ts   # LocalStorage persistence
+├── research.md          # Phase 0 output (/speckit.plan command)
+├── data-model.md        # Phase 1 output (/speckit.plan command)
+├── quickstart.md        # Phase 1 output (/speckit.plan command)
+├── contracts/           # Phase 1 output (/speckit.plan command)
 └── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
 
 ```
-sudoku/
+# Single-page web application structure
+frontend/
 ├── src/
 │   ├── lib/
-│   │   ├── models/
-│   │   │   ├── GameSession.ts       # Game state model
-│   │   │   ├── Puzzle.ts            # Puzzle structure
-│   │   │   ├── Cell.ts              # Cell data model
-│   │   │   └── GameRecord.ts        # History record
-│   │   ├── services/
-│   │   │   ├── PuzzleGenerator.ts   # Puzzle generation algorithm
-│   │   │   ├── PuzzleSolver.ts      # Constraint propagation solver
-│   │   │   ├── GameValidator.ts     # Real-time move validation
-│   │   │   ├── StorageService.ts    # LocalStorage wrapper
-│   │   │   └── TimerService.ts      # Game timer with auto-pause
-│   │   ├── stores/
-│   │   │   ├── gameStore.svelte.ts  # Game session state (Svelte 5 runes)
-│   │   │   ├── historyStore.svelte.ts # Game history state
-│   │   │   └── preferencesStore.svelte.ts # User preferences
-│   │   └── utils/
-│   │       ├── validation.ts        # Bitwise validation helpers
-│   │       ├── serialization.ts     # JSON serialization helpers
-│   │       └── seededRandom.ts      # Seeded RNG for reproducibility
-│   ├── components/
-│   │   ├── SudokuGrid.svelte        # Main 9×9 grid component
-│   │   ├── Cell.svelte              # Individual cell component
-│   │   ├── CandidateNumbers.svelte  # Candidate number display
-│   │   ├── Controls.svelte          # Game controls (new, pause, undo)
-│   │   ├── Timer.svelte             # Timer display
-│   │   ├── Statistics.svelte        # Error count, difficulty display
-│   │   ├── DifficultySelector.svelte # Difficulty slider
-│   │   ├── History.svelte           # Game history list
-│   │   └── Modal.svelte             # Reusable modal component
-│   ├── routes/
-│   │   ├── +page.svelte             # Main game page
-│   │   ├── +layout.svelte           # Root layout
-│   │   └── history/
-│   │       └── +page.svelte         # History view page
-│   ├── app.html                     # HTML template
-│   ├── app.css                      # Global styles
-│   └── main.ts                      # App entry point
-│
+│   │   ├── game/                  # Core game logic
+│   │   │   ├── puzzle-generator.ts
+│   │   │   ├── validator.ts
+│   │   │   ├── solver.ts
+│   │   │   └── difficulty.ts
+│   │   ├── state/                 # State management
+│   │   │   ├── game-session.ts
+│   │   │   ├── persistence.ts
+│   │   │   └── undo-redo.ts
+│   │   ├── types/                 # TypeScript types
+│   │   │   ├── game.ts
+│   │   │   ├── cell.ts
+│   │   │   └── history.ts
+│   │   └── utils/                 # Utilities
+│   │       ├── timer.ts
+│   │       └── storage.ts
+│   ├── components/                # Svelte components
+│   │   ├── Grid.svelte
+│   │   ├── Cell.svelte
+│   │   ├── ControlPanel.svelte
+│   │   ├── NewGameModal.svelte
+│   │   ├── Timer.svelte
+│   │   ├── NumberPad.svelte
+│   │   └── History.svelte
+│   ├── App.svelte                 # Root component
+│   ├── main.ts                    # Entry point
+│   └── app.css                    # Global styles
 ├── tests/
-│   ├── unit/
-│   │   ├── models/                  # Model tests
-│   │   ├── services/                # Service tests (PuzzleGenerator, Validator)
-│   │   └── stores/                  # Store tests
-│   ├── integration/
-│   │   ├── game-session.test.ts     # Complete game session flow
-│   │   ├── storage.test.ts          # LocalStorage persistence
-│   │   └── puzzle-generation.test.ts # End-to-end puzzle generation
-│   ├── e2e/
-│   │   ├── gameplay.spec.ts         # User Story 1: Play game
-│   │   ├── persistence.spec.ts      # User Story 2: Resume game
-│   │   ├── keyboard.spec.ts         # User Story 3: Keyboard navigation
-│   │   ├── candidates.spec.ts       # User Story 4: Candidate numbers
-│   │   └── history.spec.ts          # User Story 8: Game history
-│   ├── performance/
-│   │   ├── puzzle-generation.bench.ts # Benchmark puzzle generation
-│   │   └── validation.bench.ts      # Benchmark move validation
-│   └── setup.ts                     # Test configuration
-│
-├── public/
-│   ├── favicon.ico
-│   ├── robots.txt
-│   └── manifest.json                # PWA manifest (optional)
-│
-├── .github/
-│   └── workflows/
-│       └── ci-cd.yml                # GitHub Actions workflow
-│
-├── vite.config.ts                   # Vite configuration
-├── tsconfig.json                    # TypeScript configuration
-├── playwright.config.ts             # Playwright E2E configuration
-├── vitest.config.ts                 # Vitest test configuration
-├── eslint.config.js                 # ESLint configuration
-├── package.json                     # Dependencies and scripts
-└── README.md                        # Project documentation
+│   ├── unit/                      # Unit tests
+│   │   ├── puzzle-generator.test.ts
+│   │   ├── validator.test.ts
+│   │   ├── solver.test.ts
+│   │   ├── timer.test.ts
+│   │   └── persistence.test.ts
+│   ├── integration/               # Integration tests
+│   │   ├── game-flow.test.ts
+│   │   ├── keyboard-nav.test.ts
+│   │   └── state-persistence.test.ts
+│   └── e2e/                       # End-to-end tests
+│       ├── full-game.spec.ts
+│       ├── keyboard-only.spec.ts
+│       └── save-restore.spec.ts
+├── public/                        # Static assets
+│   ├── index.html
+│   └── favicon.ico
+├── vite.config.ts
+├── tsconfig.json
+├── vitest.config.ts
+├── playwright.config.ts
+└── package.json
 ```
 
-**Structure Decision**: Single-page web application structure
-
-- **Selected**: Option 1 (Single project) - Frontend-only Svelte 5 application
-- **Rationale**:
-  - No backend required (fully offline, LocalStorage only)
-  - Svelte 5 with runes for state management
-  - Clear separation: models, services, stores, components
-  - Test-first approach with comprehensive test structure
-  - CI/CD pipeline for automated testing and GitHub Pages deployment
+**Structure Decision**: Single-page web application structure selected. The game is entirely client-side with no backend, making a simple `frontend/` directory with `src/` for source code and `tests/` for all test types the clearest organization. Game logic is isolated in `lib/game/`, state management in `lib/state/`, and UI components in `components/` for clean separation of concerns per Constitution Principle V.
 
 ## Complexity Tracking
 
-*Fill ONLY if Constitution Check has violations that must be justified*
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
-
+*No violations - this section intentionally left empty. All constitution principles are satisfied by the chosen architecture.*

@@ -28,7 +28,7 @@ class GameStore {
   );
 
   canUndo = $derived(
-    this.session?.history.currentIndex ?? 0 > 0
+    (this.session?.history.currentIndex ?? 0) > 0
   );
 
   // Actions

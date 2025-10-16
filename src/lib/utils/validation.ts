@@ -183,9 +183,9 @@ export function createValidator(board: readonly (readonly number[])[]): FastVali
         const bit = 1 << (val - 1);
         const box = getBoxIndexFlat(r, c);
 
-        rowMasks[r]! |= bit;
-        colMasks[c]! |= bit;
-        boxMasks[box]! |= bit;
+        if (r < 9) rowMasks[r] = (rowMasks[r] ?? 0) | bit;
+        if (c < 9) colMasks[c] = (colMasks[c] ?? 0) | bit;
+        if (box < 9) boxMasks[box] = (boxMasks[box] ?? 0) | bit;
       }
     }
   }
@@ -198,9 +198,9 @@ export function createValidator(board: readonly (readonly number[])[]): FastVali
       // Check if bit is already set in any of the masks
       // If any mask has the bit set, the move is invalid
       return !(
-        (rowMasks[row]! & bit) ||
-        (colMasks[col]! & bit) ||
-        (boxMasks[box]! & bit)
+        ((rowMasks[row] ?? 0) & bit) ||
+        ((colMasks[col] ?? 0) & bit) ||
+        ((boxMasks[box] ?? 0) & bit)
       );
     },
 
@@ -211,18 +211,18 @@ export function createValidator(board: readonly (readonly number[])[]): FastVali
       if (oldVal >= 1 && oldVal <= 9) {
         const oldBit = 1 << (oldVal - 1);
         // Use bitwise AND with NOT to clear the bit
-        rowMasks[row]! &= ~oldBit;
-        colMasks[col]! &= ~oldBit;
-        boxMasks[box]! &= ~oldBit;
+        if (row < 9) rowMasks[row] = (rowMasks[row] ?? 0) & ~oldBit;
+        if (col < 9) colMasks[col] = (colMasks[col] ?? 0) & ~oldBit;
+        if (box < 9) boxMasks[box] = (boxMasks[box] ?? 0) & ~oldBit;
       }
 
       // Set new value if present
       if (newVal >= 1 && newVal <= 9) {
         const newBit = 1 << (newVal - 1);
         // Use bitwise OR to set the bit
-        rowMasks[row]! |= newBit;
-        colMasks[col]! |= newBit;
-        boxMasks[box]! |= newBit;
+        if (row < 9) rowMasks[row] = (rowMasks[row] ?? 0) | newBit;
+        if (col < 9) colMasks[col] = (colMasks[col] ?? 0) | newBit;
+        if (box < 9) boxMasks[box] = (boxMasks[box] ?? 0) | newBit;
       }
     },
 
