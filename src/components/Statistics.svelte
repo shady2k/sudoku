@@ -1,20 +1,20 @@
 <script lang="ts">
-  import { session } from '../lib/stores/gameStore';
+  import { gameStore } from '../lib/stores/gameStore.svelte';
 </script>
 
-{#if $session}
+{#if gameStore.session}
   <div class="stats">
     <div class="stat">
       <span class="label">Difficulty:</span>
-      <span class="value">{$session.difficultyLevel}/10</span>
+      <span class="value">{gameStore.session.difficultyLevel}%</span>
     </div>
     <div class="stat">
       <span class="label">Errors:</span>
-      <span class="value" class:has-errors={$session.errorCount > 0}>
-        {$session.errorCount}
+      <span class="value" class:has-errors={gameStore.session.errorCount > 0}>
+        {gameStore.session.errorCount}
       </span>
     </div>
-    {#if $session.isCompleted}
+    {#if gameStore.session.isCompleted}
       <div class="stat completed">
         <span class="label">🎉 Completed!</span>
       </div>

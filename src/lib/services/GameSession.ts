@@ -54,7 +54,7 @@ export async function createGameSession(
     const cellRow: Cell[] = [];
     for (let col = 0; col < 9; col++) {
       const value = getCell(puzzle.grid, row, col);
-      const isClue = getCell(puzzle.clues as readonly (readonly number[])[], row, col) !== 0;
+      const isClue = puzzle.clues[row]?.[col] === true;
 
       cellRow.push({
         row,
@@ -144,11 +144,11 @@ export function makeMove(
   setCell(newSession.board, row, col, value);
   const cellRow = newSession.cells[row];
   if (!cellRow) {
-    return failure('INTERNAL_ERROR', `Cell row ${row} not found`);
+    return failure('INVALID_CELL_POSITION', `Cell row ${row} not found`);
   }
   const newCell = cellRow[col];
   if (!newCell) {
-    return failure('INTERNAL_ERROR', `Cell [${row}, ${col}] not found`);
+    return failure('INVALID_CELL_POSITION', `Cell [${row}, ${col}] not found`);
   }
   newCell.value = value;
 

@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { session, formattedTime } from '../lib/stores/gameStore';
-  import { gameStore } from '../lib/stores/gameStore';
+  import { gameStore } from '../lib/stores/gameStore.svelte';
   import { onMount, onDestroy } from 'svelte';
 
   let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -19,8 +18,8 @@
 </script>
 
 <div class="timer">
-  <div class="time-display">{$formattedTime}</div>
-  {#if $session?.isPaused}
+  <div class="time-display">{gameStore.formattedTime}</div>
+  {#if gameStore.session?.isPaused}
     <div class="paused-indicator">⏸ Paused</div>
   {/if}
 </div>

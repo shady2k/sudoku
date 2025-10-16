@@ -86,7 +86,7 @@ export interface GameSession {
   /** Timestamp when timer was paused (null if not paused) */
   pausedAt: number | null;
 
-  /** Difficulty level (1-10 scale mapped to clue count) */
+  /** Difficulty level (0-100% scale, 0% = easiest, 100% = hardest) */
   difficultyLevel: number;
 
   /** Count of errors made (only counts persistent invalid entries per FR-010) */
@@ -185,7 +185,7 @@ export interface GameRecord {
   /** Total errors made during game */
   errorCount: number;
 
-  /** Difficulty level (1-10) */
+  /** Difficulty level (0-100%, 0% = easiest, 100% = hardest) */
   difficultyLevel: number;
 
   /** Puzzle identifier (for potential replay) */
@@ -202,7 +202,7 @@ export interface GameRecord {
  * User preferences and settings
  */
 export interface UserPreferences {
-  /** Preferred difficulty level (1-10) */
+  /** Preferred difficulty level (0-100%, 0% = easiest, 100% = hardest) */
   defaultDifficulty: number;
 
   /** Candidate mode preference */
@@ -307,9 +307,10 @@ export type CellValue = 0 | SudokuNumber;
 export type GridIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 /**
- * Difficulty level (1-10)
+ * Difficulty level (0-100%, where 0% = easiest, 100% = hardest)
+ * Internally represented as an integer percentage
  */
-export type DifficultyLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+export type DifficultyLevel = number;
 
 // ============================================================================
 // Helper Functions
@@ -337,10 +338,10 @@ export function isGridIndex(value: number): value is GridIndex {
 }
 
 /**
- * Type guard to check if a value is a valid DifficultyLevel
+ * Type guard to check if a value is a valid DifficultyLevel (0-100%)
  */
 export function isDifficultyLevel(value: number): value is DifficultyLevel {
-  return Number.isInteger(value) && value >= 1 && value <= 10;
+  return Number.isInteger(value) && value >= 0 && value <= 100;
 }
 
 /**

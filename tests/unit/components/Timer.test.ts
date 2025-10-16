@@ -5,10 +5,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import Timer from '../../../src/components/Timer.svelte';
-import * as gameStoreModule from '../../../src/lib/stores/gameStore';
+import * as gameStoreModule from '../../../src/lib/stores/gameStore.svelte';
 
 // Mock the gameStore module
-vi.mock('../../../src/lib/stores/gameStore', () => {
+vi.mock('../../../src/lib/stores/gameStore.svelte', () => {
   const { writable } = require('svelte/store');
 
   const mockSession = writable(null);

@@ -13,7 +13,7 @@ import SudokuGrid from '../../../src/components/SudokuGrid.svelte';
 import type { GameSession, Cell as CellType } from '../../../src/lib/models/types';
 
 // Mock the gameStore module
-vi.mock('../../../src/lib/stores/gameStore', () => {
+vi.mock('../../../src/lib/stores/gameStore.svelte', () => {
   // Create mock stores and functions inside the factory
   const mockSession = writable<any>(null);
 
@@ -30,7 +30,7 @@ vi.mock('../../../src/lib/stores/gameStore', () => {
 });
 
 // Import the mocked stores and gameStore after the mock is set up
-import { session as mockSession, gameStore } from '../../../src/lib/stores/gameStore';
+import { session as mockSession, gameStore } from '../../../src/lib/stores/gameStore.svelte';
 
 // Extract mocks for testing
 const mockSelectCell = gameStore.selectCell as ReturnType<typeof vi.fn>;

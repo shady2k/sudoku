@@ -3,14 +3,37 @@
   import Timer from './components/Timer.svelte';
   import Statistics from './components/Statistics.svelte';
   import Controls from './components/Controls.svelte';
-  import { error } from './lib/stores/gameStore';
-  import { gameStore } from './lib/stores/gameStore';
+  import ResumeModal from './components/ResumeModal.svelte';
+  import { gameStore } from './lib/stores/gameStore.svelte';
   import { onMount } from 'svelte';
+  import { hasSavedGame } from './lib/services/StorageService';
+  import type { DifficultyLevel } from './lib/models/types';
 
-  onMount(() => {
-    // Start with a medium difficulty game
-    gameStore.newGame(5);
+  // State for resume modal (T066: Resume or New Game modal)
+  let showResumeModal = $state(false);
+
+  onMount(async () => {
+    // T065: Check if there's a saved game
+    const hasGame = hasSavedGame();
+
+    if (hasGame) {
+      // Show modal with Resume or New Game options (FR-004)
+      showResumeModal = true;
+    } else {
+      // No saved game, start with a medium difficulty game (50% difficulty)
+      await gameStore.newGame(50);
+    }
   });
+
+  async function handleResume() {
+    showResumeModal = false;
+    await gameStore.loadSavedGame();
+  }
+
+  async function handleNewGameFromResume(difficulty: DifficultyLevel) {
+    showResumeModal = false;
+    await gameStore.newGame(difficulty);
+  }
 </script>
 
 <main>
@@ -29,9 +52,9 @@
 
     <Controls />
 
-    {#if $error}
+    {#if gameStore.error}
       <div class="error-message">
-        <p>⚠️ {$error}</p>
+        <p>⚠️ {gameStore.error}</p>
       </div>
     {/if}
   </div>
@@ -40,6 +63,13 @@
     <p>Use arrow keys to navigate • Number keys (1-9) to fill • Backspace to clear</p>
   </footer>
 </main>
+
+<!-- T066: Resume or New Game modal (FR-004) -->
+<ResumeModal
+  bind:isOpen={showResumeModal}
+  onResume={handleResume}
+  onNewGame={handleNewGameFromResume}
+/>
 
 <style>
   main {

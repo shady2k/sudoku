@@ -241,20 +241,20 @@ export function createValidator(board: readonly (readonly number[])[]): FastVali
 }
 
 /**
- * Maps difficulty level (1-10) to number of clues (17-50)
+ * Maps difficulty percentage (0-100%) to number of clues (17-50)
  *
- * Difficulty 1 (easiest): 50 clues
- * Difficulty 10 (hardest): 17 clues (proven minimum for unique solution)
+ * 0% (easiest): 50 clues (more pre-filled = easier)
+ * 100% (hardest): 17 clues (proven minimum for unique solution)
  *
- * Linear interpolation: clues = 50 - (difficulty - 1) * (33 / 9)
+ * Linear interpolation: clues = 50 - (percentage / 100) * 33
  */
-export function difficultyToClues(difficulty: number): number {
-  if (difficulty < 1 || difficulty > 10) {
-    throw new Error(`Invalid difficulty: ${difficulty}. Must be 1-10.`);
+export function difficultyToClues(difficultyPercent: number): number {
+  if (difficultyPercent < 0 || difficultyPercent > 100) {
+    throw new Error(`Invalid difficulty: ${difficultyPercent}%. Must be 0-100.`);
   }
 
-  // Linear interpolation from 50 (easy) to 17 (hard)
-  const clues = Math.round(50 - ((difficulty - 1) * 33) / 9);
+  // Linear interpolation from 50 (0%) to 17 (100%)
+  const clues = Math.round(50 - (difficultyPercent / 100) * 33);
 
   // Clamp to valid range
   return Math.max(17, Math.min(50, clues));

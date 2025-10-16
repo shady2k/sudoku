@@ -1,29 +1,28 @@
 <script lang="ts">
   import Cell from './Cell.svelte';
-  import { session } from '../lib/stores/gameStore';
-  import { gameStore } from '../lib/stores/gameStore';
+  import { gameStore } from '../lib/stores/gameStore.svelte';
   import { getRelatedCells } from '../lib/utils/validation';
   import type { CellPosition } from '../lib/models/types';
 
   function handleCellSelect(row: number, col: number): void {
-    const cell = $session?.cells[row]?.[col];
+    const cell = gameStore.session?.cells[row]?.[col];
     if (!cell) return;
 
     gameStore.selectCell({ row, col });
   }
 
   function isRelatedToSelected(row: number, col: number): boolean {
-    if (!$session?.selectedCell) return false;
+    if (!gameStore.session?.selectedCell) return false;
 
-    const related = getRelatedCells($session.selectedCell);
+    const related = getRelatedCells(gameStore.session.selectedCell);
     return related.some(pos => pos.row === row && pos.col === col);
   }
 
   function handleKeyDown(event: KeyboardEvent): void {
-    if (!$session?.selectedCell) return;
+    if (!gameStore.session?.selectedCell) return;
 
-    const { row, col } = $session.selectedCell;
-    const cell = $session.cells[row]?.[col];
+    const { row, col } = gameStore.session.selectedCell;
+    const cell = gameStore.session.cells[row]?.[col];
     if (!cell) return;
 
     // Number keys 1-9
@@ -76,9 +75,9 @@
 <svelte:window on:keydown={handleKeyDown} />
 
 <div class="grid-container">
-  {#if $session}
+  {#if gameStore.session}
     <div class="grid">
-      {#each $session.cells as row, rowIndex}
+      {#each gameStore.session.cells as row, rowIndex}
         {#each row as cell, colIndex}
           <div
             class="cell-wrapper"
@@ -87,8 +86,8 @@
           >
             <Cell
               {cell}
-              isSelected={$session.selectedCell?.row === rowIndex &&
-                         $session.selectedCell?.col === colIndex}
+              isSelected={gameStore.session.selectedCell?.row === rowIndex &&
+                         gameStore.session.selectedCell?.col === colIndex}
               isRelated={isRelatedToSelected(rowIndex, colIndex)}
               onSelect={() => handleCellSelect(rowIndex, colIndex)}
             />

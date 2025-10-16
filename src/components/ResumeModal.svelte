@@ -1,0 +1,265 @@
+<script lang="ts">
+  /**
+   * Resume Modal Component
+   *
+   * T066: Resume or New Game modal per FR-004
+   * Shows when returning to a saved game with options to:
+   * - Resume existing game
+   * - Start a new game (with difficulty selection)
+   */
+
+  import type { DifficultyLevel } from '../lib/models/types';
+
+  interface Props {
+    isOpen: boolean;
+    onResume: () => void;
+    onNewGame: (difficulty: DifficultyLevel) => void;
+  }
+
+  let { isOpen = $bindable(false), onResume, onNewGame }: Props = $props();
+
+  let showDifficultySelector = $state(false);
+  let selectedDifficulty: DifficultyLevel = $state(50); // 50% = medium
+
+  function handleResumeClick() {
+    onResume();
+    isOpen = false;
+  }
+
+  function handleShowNewGame() {
+    showDifficultySelector = true;
+  }
+
+  function handleStartNewGame() {
+    onNewGame(selectedDifficulty);
+    isOpen = false;
+    showDifficultySelector = false;
+  }
+
+  function handleBack() {
+    showDifficultySelector = false;
+  }
+
+  // Handle Escape key
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      if (showDifficultySelector) {
+        handleBack();
+      }
+    }
+  }
+</script>
+
+<svelte:window on:keydown={handleKeydown} />
+
+{#if isOpen}
+  <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal" onclick={(e) => e.stopPropagation()}>
+      {#if !showDifficultySelector}
+        <h2 id="modal-title">Welcome Back!</h2>
+        <p class="info">You have a game in progress. Would you like to continue?</p>
+
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="btn btn-primary"
+            onclick={handleResumeClick}
+          >
+            Resume Game
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick={handleShowNewGame}
+          >
+            Start New Game
+          </button>
+        </div>
+      {:else}
+        <h2 id="modal-title">New Game</h2>
+        <p class="warning">⚠️ Starting a new game will replace your saved progress.</p>
+
+        <div class="difficulty-selector">
+          <label for="resume-difficulty">Difficulty: {selectedDifficulty}%</label>
+          <input
+            id="resume-difficulty"
+            type="range"
+            min="0"
+            max="100"
+            bind:value={selectedDifficulty}
+          />
+          <div class="difficulty-labels">
+            <span class="label-left">Easiest (0%)</span>
+            <span class="label-right">Hardest (100%)</span>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="btn btn-primary"
+            onclick={handleStartNewGame}
+          >
+            Start New Game
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick={handleBack}
+          >
+            Back
+          </button>
+        </div>
+      {/if}
+    </div>
+  </div>
+{/if}
+
+<style>
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+  }
+
+  .modal {
+    background: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  h2 {
+    margin: 0 0 1rem;
+    font-size: 2rem;
+    color: #333;
+    text-align: center;
+  }
+
+  .info {
+    text-align: center;
+    color: #666;
+    margin-bottom: 2rem;
+    font-size: 1.125rem;
+  }
+
+  .warning {
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    color: #856404;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .difficulty-selector {
+    margin-bottom: 2rem;
+  }
+
+  .difficulty-selector label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #333;
+    text-align: center;
+    font-size: 1.125rem;
+  }
+
+  .difficulty-selector input[type="range"] {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right, #4caf50 0%, #ffeb3b 50%, #f44336 100%);
+    outline: none;
+    -webkit-appearance: none;
+  }
+
+  .difficulty-selector input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #2196f3;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .difficulty-selector input[type="range"]::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #2196f3;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    border: none;
+  }
+
+  .difficulty-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: #666;
+  }
+
+  .modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  .btn {
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+
+  .btn-primary {
+    background: #2196f3;
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: #1976d2;
+  }
+
+  .btn-secondary {
+    background: #e0e0e0;
+    color: #333;
+  }
+
+  .btn-secondary:hover {
+    background: #bdbdbd;
+  }
+
+  @media (max-width: 480px) {
+    .modal {
+      padding: 1.5rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+    }
+  }
+</style>

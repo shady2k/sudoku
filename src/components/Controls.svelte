@@ -1,16 +1,15 @@
 <script lang="ts">
-  import { session, isLoading } from '../lib/stores/gameStore';
-  import { gameStore } from '../lib/stores/gameStore';
+  import { gameStore } from '../lib/stores/gameStore.svelte';
   import type { DifficultyLevel } from '../lib/models/types';
 
-  let selectedDifficulty: DifficultyLevel = 5;
+  let selectedDifficulty: DifficultyLevel = 50; // 50% = medium difficulty
 
   function handleNewGame(): void {
     gameStore.newGame(selectedDifficulty);
   }
 
   function handlePause(): void {
-    if ($session?.isPaused) {
+    if (gameStore.session?.isPaused) {
       gameStore.resumeGame();
     } else {
       gameStore.pauseGame();
@@ -28,12 +27,12 @@
     <input
       id="difficulty"
       type="range"
-      min="1"
-      max="10"
+      min="0"
+      max="100"
       bind:value={selectedDifficulty}
-      disabled={$isLoading}
+      disabled={gameStore.isLoading}
     />
-    <span class="difficulty-value">{selectedDifficulty}</span>
+    <span class="difficulty-value">{selectedDifficulty}%</span>
   </div>
 
   <div class="buttons">
@@ -41,28 +40,28 @@
       type="button"
       class="btn btn-primary"
       onclick={handleNewGame}
-      disabled={$isLoading}
+      disabled={gameStore.isLoading}
     >
-      {$isLoading ? 'Generating...' : 'New Game'}
+      {gameStore.isLoading ? 'Generating...' : 'New Game'}
     </button>
 
-    {#if $session}
+    {#if gameStore.session}
       <button
         type="button"
         class="btn"
         onclick={handlePause}
-        disabled={$session.isCompleted}
+        disabled={gameStore.session.isCompleted}
       >
-        {$session.isPaused ? 'Resume' : 'Pause'}
+        {gameStore.session.isPaused ? 'Resume' : 'Pause'}
       </button>
 
       <button
         type="button"
         class="btn"
         onclick={handleToggleCandidates}
-        class:active={$session.showAutoCandidates}
+        class:active={gameStore.session.showAutoCandidates}
       >
-        {$session.showAutoCandidates ? 'Hide' : 'Show'} Candidates
+        {gameStore.session.showAutoCandidates ? 'Hide' : 'Show'} Candidates
       </button>
     {/if}
   </div>

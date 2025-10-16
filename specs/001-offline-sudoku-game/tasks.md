@@ -144,30 +144,30 @@ This document provides a dependency-ordered task list for implementing the offli
 
 #### Storage Service (TDD)
 
-- [ ] T056 [P] [US2] TEST: Write storage service tests in tests/unit/services/StorageService.test.ts (target: <500ms save, <1s load per SC-011, SC-002)
-- [ ] T057 [US2] Implement TypedStorage wrapper class in src/lib/services/StorageService.ts with Zod validation
-- [ ] T058 [US2] Implement saveGameSession() per storage-api.ts contract with throttling (2-3 second interval)
-- [ ] T059 [US2] Implement loadGameSession() with schema validation and migration support
-- [ ] T060 [US2] Implement deleteGameSession() and hasSavedGame() functions
-- [ ] T061 [US2] Implement serializeGameSession() converting Sets to Arrays
-- [ ] T062 [US2] Implement deserializeGameSession() converting Arrays back to Sets
-- [ ] T063 [US2] Add QuotaExceededError handling with auto-prune fallback
+- [X] T056 [P] [US2] TEST: Write storage service tests in tests/unit/services/StorageService.test.ts (target: <500ms save, <1s load per SC-011, SC-002)
+- [X] T057 [US2] Implement TypedStorage wrapper class in src/lib/services/StorageService.ts with Zod validation
+- [X] T058 [US2] Implement saveGameSession() per storage-api.ts contract with throttling (2-3 second interval)
+- [X] T059 [US2] Implement loadGameSession() with schema validation and migration support
+- [X] T060 [US2] Implement deleteGameSession() and hasSavedGame() functions
+- [X] T061 [US2] Implement serializeGameSession() converting Sets to Arrays
+- [X] T062 [US2] Implement deserializeGameSession() converting Arrays back to Sets
+- [X] T063 [US2] Add QuotaExceededError handling with auto-prune fallback
 
 #### Integration with Game Store
 
-- [ ] T064 [US2] Add auto-save logic to gameStore after every user action using throttle (not debounce)
-- [ ] T065 [US2] Implement auto-resume on app load in src/main.ts
-- [ ] T066 [US2] Implement "Resume or New Game" modal in src/components/Modal.svelte per FR-004
+- [X] T064 [US2] Add auto-save logic to gameStore after every user action using throttle (not debounce)
+- [X] T065 [US2] Implement auto-resume on app load in src/main.ts
+- [X] T066 [US2] Implement "Resume or New Game" modal in src/components/Modal.svelte per FR-004
 
 #### Page Focus/Blur Handling
 
-- [ ] T067 [US2] Implement page visibility listener in src/main.ts to pause timer on focus loss per FR-023
-- [ ] T068 [US2] Implement beforeunload event listener to save state before browser close per FR-019
+- [X] T067 [US2] Implement page visibility listener in src/main.ts to pause timer on focus loss per FR-023
+- [X] T068 [US2] Implement beforeunload event listener to save state before browser close per FR-019
 
 #### E2E Tests
 
-- [ ] T069 [P] [US2] TEST: Write integration tests for storage in tests/integration/storage.test.ts
-- [ ] T070 [US2] Implement E2E test for persistence and resume in tests/e2e/persistence.spec.ts
+- [X] T069 [P] [US2] TEST: Write integration tests for storage in tests/integration/storage.test.ts
+- [X] T070 [US2] Implement E2E test for persistence and resume in tests/e2e/persistence.spec.ts
 
 **Deliverable**: Full offline game state persistence with seamless resume after browser closure.
 

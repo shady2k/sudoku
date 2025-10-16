@@ -120,7 +120,7 @@ function isValidPlacement(
 /**
  * Generates a Sudoku puzzle with specified difficulty
  *
- * @param difficulty - Difficulty level (1-10)
+ * @param difficulty - Difficulty level (0-100%, where 0% = easiest, 100% = hardest)
  * @param seed - Optional seed for reproducibility
  * @returns Puzzle with clues, solution, and metadata
  *
@@ -131,7 +131,7 @@ export async function generatePuzzle(
   seed?: number
 ): Promise<Result<Puzzle>> {
   if (!isDifficultyLevel(difficulty)) {
-    return failure('INVALID_DIFFICULTY', `Invalid difficulty: ${difficulty}. Must be 1-10.`);
+    return failure('INVALID_DIFFICULTY', `Invalid difficulty: ${difficulty}%. Must be 0-100.`);
   }
 
   const actualSeed = seed ?? Date.now();

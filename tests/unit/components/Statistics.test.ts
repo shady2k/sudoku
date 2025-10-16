@@ -8,7 +8,7 @@ import { writable } from 'svelte/store';
 import Statistics from '../../../src/components/Statistics.svelte';
 
 // Mock the gameStore module with factory function
-vi.mock('../../../src/lib/stores/gameStore', () => {
+vi.mock('../../../src/lib/stores/gameStore.svelte', () => {
   // Create mock stores inside the factory
   const mockSession = writable<any>(null);
 
@@ -18,7 +18,7 @@ vi.mock('../../../src/lib/stores/gameStore', () => {
 });
 
 // Import the mocked stores after the mock is set up
-import { session as mockSession } from '../../../src/lib/stores/gameStore';
+import { session as mockSession } from '../../../src/lib/stores/gameStore.svelte';
 
 describe('Statistics Component', () => {
   beforeEach(() => {
@@ -39,7 +39,7 @@ describe('Statistics Component', () => {
     } as any);
 
     render(Statistics);
-    expect(screen.getByText('7/10')).toBeInTheDocument();
+    expect(screen.getByText('7%')).toBeInTheDocument();
   });
 
   it('should display error count', () => {

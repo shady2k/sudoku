@@ -153,7 +153,7 @@ test.describe('Full Gameplay Flow', () => {
 
     // Change difficulty slider
     const difficultySlider = page.locator('input[type="range"]');
-    await difficultySlider.fill('8');
+    await difficultySlider.fill('80');
 
     // Click "New Game"
     await page.getByRole('button', { name: 'New Game' }).click();
@@ -163,7 +163,7 @@ test.describe('Full Gameplay Flow', () => {
 
     // Verify difficulty was changed (check displayed value)
     const difficultyValue = await page.locator('.difficulty-value').textContent();
-    expect(difficultyValue).toBe('8');
+    expect(difficultyValue).toBe('80%');
 
     // Verify a new puzzle was generated (at least some cells should be different)
     // Note: This is probabilistic, but very likely to be true

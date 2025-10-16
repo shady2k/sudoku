@@ -5,34 +5,32 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { writable } from 'svelte/store';
 import Controls from '../../../src/components/Controls.svelte';
 
 // Mock the gameStore module with factory function
-vi.mock('../../../src/lib/stores/gameStore', () => {
-  // Create mock stores and functions inside the factory
-  const mockSession = writable<any>(null);
-  const mockIsLoading = writable(false);
-
+vi.mock('../../../src/lib/stores/gameStore.svelte', () => {
   const mockNewGame = vi.fn();
   const mockPauseGame = vi.fn();
   const mockResumeGame = vi.fn();
   const mockToggleCandidates = vi.fn();
 
+  const gameStore = {
+    session: null as any,
+    isLoading: false,
+    error: null as string | null,
+    newGame: mockNewGame,
+    pauseGame: mockPauseGame,
+    resumeGame: mockResumeGame,
+    toggleCandidates: mockToggleCandidates,
+  };
+
   return {
-    session: mockSession,
-    isLoading: mockIsLoading,
-    gameStore: {
-      newGame: mockNewGame,
-      pauseGame: mockPauseGame,
-      resumeGame: mockResumeGame,
-      toggleCandidates: mockToggleCandidates,
-    },
+    gameStore: gameStore,
   };
 });
 
-// Import the mocked stores and gameStore after the mock is set up
-import { session as mockSession, isLoading as mockIsLoading, gameStore } from '../../../src/lib/stores/gameStore';
+// Import after mock is set up
+import { gameStore } from '../../../src/lib/stores/gameStore.svelte';
 
 // Extract mocks for testing
 const mockNewGame = gameStore.newGame as ReturnType<typeof vi.fn>;
@@ -45,8 +43,8 @@ describe('Controls Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSession.set(null);
-    mockIsLoading.set(false);
+    gameStore.session = null;
+    gameStore.isLoading = false;
   });
 
   describe('Difficulty Selector', () => {
@@ -55,8 +53,8 @@ describe('Controls Component', () => {
       const slider = screen.getByLabelText('Difficulty:');
       expect(slider).toBeInTheDocument();
       expect(slider).toHaveAttribute('type', 'range');
-      expect(slider).toHaveAttribute('min', '1');
-      expect(slider).toHaveAttribute('max', '10');
+      expect(slider).toHaveAttribute('min', '0');
+      expect(slider).toHaveAttribute('max', '100');
     });
 
     it('should display current difficulty value', () => {
@@ -66,7 +64,7 @@ describe('Controls Component', () => {
     });
 
     it('should disable slider when loading', () => {
-      mockIsLoading.set(true);
+      gameStore.isLoading = true;
       render(Controls);
 
       const slider = screen.getByLabelText('Difficulty:');
@@ -89,14 +87,14 @@ describe('Controls Component', () => {
     });
 
     it('should show "Generating..." when loading', () => {
-      mockIsLoading.set(true);
+      gameStore.isLoading = true;
       render(Controls);
 
       expect(screen.getByText('Generating...')).toBeInTheDocument();
     });
 
     it('should disable button when loading', () => {
-      mockIsLoading.set(true);
+      gameStore.isLoading = true;
       render(Controls);
 
       const button = screen.getByRole('button', { name: /Generating/i });
@@ -112,21 +110,21 @@ describe('Controls Component', () => {
     });
 
     it('should show "Pause" button when game is active', () => {
-      mockSession.set({ isPaused: false, isCompleted: false } as any);
+      gameStore.session = { isPaused: false, isCompleted: false } as any;
       render(Controls);
 
       expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
     });
 
     it('should show "Resume" button when game is paused', () => {
-      mockSession.set({ isPaused: true, isCompleted: false } as any);
+      gameStore.session = { isPaused: true, isCompleted: false } as any;
       render(Controls);
 
       expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument();
     });
 
     it('should call pauseGame when clicking Pause', async () => {
-      mockSession.set({ isPaused: false, isCompleted: false } as any);
+      gameStore.session = { isPaused: false, isCompleted: false } as any;
       render(Controls);
 
       const button = screen.getByRole('button', { name: 'Pause' });
@@ -136,7 +134,7 @@ describe('Controls Component', () => {
     });
 
     it('should call resumeGame when clicking Resume', async () => {
-      mockSession.set({ isPaused: true, isCompleted: false } as any);
+      gameStore.session = { isPaused: true, isCompleted: false } as any;
       render(Controls);
 
       const button = screen.getByRole('button', { name: 'Resume' });
@@ -146,7 +144,7 @@ describe('Controls Component', () => {
     });
 
     it('should disable pause button when game is completed', () => {
-      mockSession.set({ isPaused: false, isCompleted: true } as any);
+      gameStore.session = { isPaused: false, isCompleted: true } as any;
       render(Controls);
 
       const button = screen.getByRole('button', { name: 'Pause' });
@@ -161,21 +159,21 @@ describe('Controls Component', () => {
     });
 
     it('should show "Show Candidates" when candidates are hidden', () => {
-      mockSession.set({ showAutoCandidates: false, isCompleted: false } as any);
+      gameStore.session = { showAutoCandidates: false, isCompleted: false } as any;
       render(Controls);
 
       expect(screen.getByRole('button', { name: 'Show Candidates' })).toBeInTheDocument();
     });
 
     it('should show "Hide Candidates" when candidates are visible', () => {
-      mockSession.set({ showAutoCandidates: true, isCompleted: false } as any);
+      gameStore.session = { showAutoCandidates: true, isCompleted: false } as any;
       render(Controls);
 
       expect(screen.getByRole('button', { name: 'Hide Candidates' })).toBeInTheDocument();
     });
 
     it('should call toggleCandidates when clicked', async () => {
-      mockSession.set({ showAutoCandidates: false, isCompleted: false } as any);
+      gameStore.session = { showAutoCandidates: false, isCompleted: false } as any;
       render(Controls);
 
       const button = screen.getByRole('button', { name: 'Show Candidates' });
@@ -185,11 +183,41 @@ describe('Controls Component', () => {
     });
 
     it('should have active class when candidates are shown', () => {
-      mockSession.set({ showAutoCandidates: true, isCompleted: false } as any);
+      gameStore.session = { showAutoCandidates: true, isCompleted: false } as any;
       render(Controls);
 
       const button = screen.getByRole('button', { name: 'Hide Candidates' });
       expect(button).toHaveClass('active');
+    });
+  });
+
+  describe('New Game with Difficulty', () => {
+    it('should pass selected difficulty when creating new game', async () => {
+      render(Controls);
+
+      // Change difficulty slider to 75
+      const slider = screen.getByLabelText('Difficulty:') as HTMLInputElement;
+      // For range inputs, we can't use clear/type. Instead, directly set the value and trigger change event
+      slider.value = '75';
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+      slider.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // Click new game
+      const button = screen.getByRole('button', { name: /New Game/i });
+      await user.click(button);
+
+      // Should call newGame with the selected difficulty
+      expect(mockNewGame).toHaveBeenCalledWith(75);
+    });
+
+    it('should use default difficulty of 50% initially', async () => {
+      render(Controls);
+
+      const button = screen.getByRole('button', { name: /New Game/i });
+      await user.click(button);
+
+      // Should call newGame with default difficulty 50
+      expect(mockNewGame).toHaveBeenCalledWith(50);
     });
   });
 });

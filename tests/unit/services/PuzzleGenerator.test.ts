@@ -98,7 +98,7 @@ describe('PuzzleGenerator', () => {
 
   describe('generatePuzzle', () => {
     it('should generate puzzle with correct difficulty', async () => {
-      const result = await generatePuzzle(5); // Medium difficulty
+      const result = await generatePuzzle(50); // Medium difficulty (50%)
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -112,16 +112,16 @@ describe('PuzzleGenerator', () => {
           });
         });
 
-        // Difficulty 5 should have around 35-40 clues
-        expect(clueCount).toBeGreaterThan(30);
-        expect(clueCount).toBeLessThan(45);
+        // Difficulty 50% should have around 33-34 clues (50% between 17-50)
+        expect(clueCount).toBeGreaterThan(28);
+        expect(clueCount).toBeLessThan(38);
         expect(puzzle.difficultyRating).toBe(clueCount);
       }
     });
 
     it('should generate puzzle within time budget', async () => {
       const start = performance.now();
-      const result = await generatePuzzle(5);
+      const result = await generatePuzzle(50);
       const elapsed = performance.now() - start;
 
       expect(result.success).toBe(true);
@@ -130,7 +130,7 @@ describe('PuzzleGenerator', () => {
     });
 
     it('should generate valid puzzle (all clues follow Sudoku rules)', async () => {
-      const result = await generatePuzzle(5);
+      const result = await generatePuzzle(50);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -148,7 +148,7 @@ describe('PuzzleGenerator', () => {
     });
 
     it('should mark clues correctly', async () => {
-      const result = await generatePuzzle(5);
+      const result = await generatePuzzle(50);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -168,8 +168,8 @@ describe('PuzzleGenerator', () => {
 
     it('should generate reproducible puzzle with seed', async () => {
       const seed = 12345;
-      const result1 = await generatePuzzle(5, seed);
-      const result2 = await generatePuzzle(5, seed);
+      const result1 = await generatePuzzle(50, seed);
+      const result2 = await generatePuzzle(50, seed);
 
       expect(result1.success).toBe(true);
       expect(result2.success).toBe(true);
@@ -180,7 +180,7 @@ describe('PuzzleGenerator', () => {
     });
 
     it('should include solution grid', async () => {
-      const result = await generatePuzzle(5);
+      const result = await generatePuzzle(50);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -199,8 +199,8 @@ describe('PuzzleGenerator', () => {
       }
     });
 
-    it('should generate easier puzzle with difficulty 1', async () => {
-      const result = await generatePuzzle(1);
+    it('should generate easier puzzle with difficulty 0%', async () => {
+      const result = await generatePuzzle(0);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -213,13 +213,13 @@ describe('PuzzleGenerator', () => {
           });
         });
 
-        // Difficulty 1 should have ~50 clues (easiest)
+        // Difficulty 0% should have ~50 clues (easiest)
         expect(clueCount).toBeGreaterThan(45);
       }
     });
 
-    it('should generate harder puzzle with difficulty 10', async () => {
-      const result = await generatePuzzle(10);
+    it('should generate harder puzzle with difficulty 100%', async () => {
+      const result = await generatePuzzle(100);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -232,7 +232,7 @@ describe('PuzzleGenerator', () => {
           });
         });
 
-        // Difficulty 10 should have ~17 clues (hardest)
+        // Difficulty 100% should have ~17 clues (hardest)
         expect(clueCount).toBeLessThan(25);
       }
     });
