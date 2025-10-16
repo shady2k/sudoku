@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { Cell as CellType } from '../lib/models/types';
+  import CandidateNumbers from '../lib/components/CandidateNumbers.svelte';
+  import { gameStore } from '../lib/stores/gameStore.svelte.ts';
 
   interface Props {
     cell: CellType;
@@ -16,6 +18,9 @@
     event.preventDefault();
     onSelect();
   }
+
+  // Check if candidates should be shown (global setting from gameStore)
+  const showCandidates = $derived(gameStore.session?.showAutoCandidates ?? false);
 </script>
 
 <button
@@ -33,18 +38,8 @@
 >
   {#if cell.value !== 0}
     <span class="value">{cell.value}</span>
-  {:else if cell.manualCandidates.size > 0 || cell.autoCandidates}
-    <div class="candidates">
-      {#each Array.from({ length: 9 }, (_, i) => i + 1) as num}
-        {#if cell.manualCandidates.has(num) || cell.autoCandidates?.has(num)}
-          <span class="candidate" class:manual={cell.manualCandidates.has(num)}>
-            {num}
-          </span>
-        {:else}
-          <span class="candidate empty"></span>
-        {/if}
-      {/each}
-    </div>
+  {:else}
+    <CandidateNumbers {cell} showAutoCandidates={showCandidates} />
   {/if}
 </button>
 
@@ -139,33 +134,6 @@
   }
 
   .value {
-    font-size: 1.5rem;
-  }
-
-  .candidates {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    gap: 1px;
-    width: 100%;
-    height: 100%;
-    padding: 2px;
-  }
-
-  .candidate {
-    font-size: 0.6rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #666;
-  }
-
-  .candidate.manual {
-    color: #2196f3;
-    font-weight: 600;
-  }
-
-  .candidate.empty {
-    visibility: hidden;
+    font-size: 2rem;
   }
 </style>

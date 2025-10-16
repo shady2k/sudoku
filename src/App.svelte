@@ -148,7 +148,7 @@
   </div>
 
   <footer>
-    <p>Use arrow keys to navigate • Number keys (1-9) to fill • Backspace to clear • Press G for new game</p>
+    <p>Use arrow keys to navigate • Number keys (1-9) to fill • Shift/Alt+1-9 for candidates • Shift+Delete to clear candidates • Press C to toggle auto-candidates</p>
   </footer>
 </main>
 

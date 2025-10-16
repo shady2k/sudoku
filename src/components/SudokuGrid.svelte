@@ -18,6 +18,23 @@
     return related.some(pos => pos.row === row && pos.col === col);
   }
 
+  function toggleManualCandidate(row: number, col: number, value: number): void {
+    if (!gameStore.session) return;
+
+    const cell = gameStore.session.cells[row]?.[col];
+    if (!cell || cell.value !== 0 || cell.isClue) return;
+
+    const currentCandidates = new Set(cell.manualCandidates);
+
+    if (currentCandidates.has(value)) {
+      currentCandidates.delete(value);
+    } else {
+      currentCandidates.add(value);
+    }
+
+    gameStore.setManualCandidates({ row, col }, currentCandidates);
+  }
+
   function handleKeyDown(event: KeyboardEvent): void {
     if (!gameStore.session?.selectedCell) return;
 
@@ -25,18 +42,42 @@
     const cell = gameStore.session.cells[row]?.[col];
     if (!cell) return;
 
-    // Number keys 1-9
+    // Don't interfere with input elements
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+      return;
+    }
+
+    // Number keys 1-9 for normal entry
     if (event.key >= '1' && event.key <= '9') {
       if (cell.isClue) return; // Can't modify clue cells
+
       const value = parseInt(event.key);
-      gameStore.makeMove({ row, col }, value as any);
+
+      // If Shift or Alt key is pressed, toggle as candidate
+      if (event.shiftKey || event.altKey) {
+        if (cell.value === 0) { // Only allow candidates on empty cells
+          toggleManualCandidate(row, col, value as any);
+        }
+      } else {
+        // Normal cell value entry
+        gameStore.makeMove({ row, col }, value as any);
+      }
       event.preventDefault();
     }
 
     // Delete/Backspace to clear
     if (event.key === 'Delete' || event.key === 'Backspace') {
       if (cell.isClue) return; // Can't modify clue cells
-      gameStore.makeMove({ row, col }, 0);
+
+      if (event.shiftKey || event.altKey) {
+        // Clear all manual candidates
+        if (cell.value === 0) {
+          gameStore.setManualCandidates({ row, col }, new Set());
+        }
+      } else {
+        // Clear cell value
+        gameStore.makeMove({ row, col }, 0);
+      }
       event.preventDefault();
     }
 
@@ -116,10 +157,10 @@
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(9, minmax(44px, 1fr));
-    grid-template-rows: repeat(9, minmax(44px, 1fr));
+    grid-template-columns: repeat(9, minmax(60px, 1fr));
+    grid-template-rows: repeat(9, minmax(60px, 1fr));
     gap: 0;
-    max-width: 500px;
+    max-width: 600px;
     aspect-ratio: 1;
     border: 4px solid #1a1a1a;
     background-color: #1a1a1a;
@@ -188,7 +229,7 @@
 
   @media (min-width: 768px) {
     .grid {
-      max-width: 600px;
+      max-width: 700px;
     }
   }
 </style>
