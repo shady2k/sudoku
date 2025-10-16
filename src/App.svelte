@@ -168,7 +168,7 @@
     gap: 1.5rem;
     padding: 1.5rem 1rem;
     background: white;
-    border-radius: 1.5rem 1.5rem 0 0;
+    border-radius: 1.5rem;
     box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
   }
 
