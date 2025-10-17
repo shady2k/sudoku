@@ -169,10 +169,12 @@ interface SerializedSession {
   elapsedTime: number;
   isPaused: boolean;
   pausedAt: number | null;
+  isAutoPaused: boolean;
   difficultyLevel: number;
   errorCount: number;
   isCompleted: boolean;
   lastActivityAt: number;
+  lastTimerUpdate: number;
   selectedCell: { row: number; col: number } | null;
   highlightedNumber: number | null;
   showAutoCandidates: boolean;

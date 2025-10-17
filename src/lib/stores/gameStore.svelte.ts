@@ -215,6 +215,26 @@ class GameStore {
     this.throttledSave(); // Auto-save when resuming
   }
 
+  // Mark activity to prevent auto-pause (called by user interaction listeners)
+  markActivity(): void {
+    if (!this.session || this.session.isCompleted) return;
+
+    // If auto-paused, resume
+    if (this.session.isPaused) {
+      if (this.session.isAutoPaused) {
+        this.resumeGame();
+      }
+      // Don't update lastActivityAt if manually paused - wait for explicit resume
+      return;
+    }
+
+    // Update lastActivityAt to prevent auto-pause
+    this.session = {
+      ...this.session,
+      lastActivityAt: Date.now()
+    };
+  }
+
   // Timer update (called by interval)
   updateTime(): void {
     if (!this.session || this.session.isPaused || this.session.isCompleted) {
@@ -224,13 +244,23 @@ class GameStore {
     const now = Date.now();
     this.currentTime = now;
 
-    // Check for auto-pause
-    if (shouldAutoPause(this.session, now)) {
-      this.session = pauseTimer(this.session, this.session.lastActivityAt);
+    // Check for auto-pause (1 minute for testing, will be 3 minutes in production)
+    if (shouldAutoPause(this.session, now, 1)) {
+      // Auto-pause using the pauseTimer function
+      // Need to revert elapsed time before pausing
+      const timeSinceLastActivity = now - this.session.lastActivityAt;
+      const revertedSession = {
+        ...this.session,
+        elapsedTime: this.session.elapsedTime - timeSinceLastActivity
+      };
+
+      this.session = pauseTimer(revertedSession, now, true); // isAutoPause = true
       this.throttledSave(); // Save when auto-pausing
-    } else {
-      this.session = updateTimer(this.session, now);
+      return;
     }
+
+    // Update timer normally - keep counting until auto-pause triggers
+    this.session = updateTimer(this.session, now);
   }
 
   // Auto-save with throttling (max once per 2 seconds per task T058)

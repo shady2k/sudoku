@@ -86,6 +86,9 @@ export interface GameSession {
   /** Timestamp when timer was paused (null if not paused) */
   pausedAt: number | null;
 
+  /** Whether the pause was triggered by auto-pause (inactivity) */
+  isAutoPaused: boolean;
+
   /** Difficulty level (0-100% scale, 0% = easiest, 100% = hardest) */
   difficultyLevel: number;
 
@@ -97,6 +100,9 @@ export interface GameSession {
 
   /** Timestamp when last action occurred (for auto-pause detection) */
   lastActivityAt: number;
+
+  /** Timestamp when timer was last updated (for calculating elapsed time) */
+  lastTimerUpdate: number;
 
   /** Currently selected cell (null if none) */
   selectedCell: CellPosition | null;

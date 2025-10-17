@@ -358,24 +358,39 @@ describe('GameStore', () => {
 
   describe('updateTime Action - auto-pause', () => {
     it('should auto-pause when idle timeout reached', () => {
+      const now = Date.now();
+      const lastActivityTime = now - 6 * 60 * 1000; // 6 minutes ago
+
       const currentSession = {
         sessionId: 'test-1',
         isPaused: false,
         isCompleted: false,
-        lastActivityAt: Date.now() - 6 * 60 * 1000, // 6 minutes ago
+        lastActivityAt: lastActivityTime,
+        elapsedTime: 120000, // 2 minutes
       } as GameSession;
 
       const pausedSession = { ...currentSession, isPaused: true };
 
       gameStore.session = currentSession;
+      gameStore.currentTime = now;
 
       vi.mocked(TimerService.shouldAutoPause).mockReturnValue(true);
       vi.mocked(TimerService.pauseTimer).mockReturnValue(pausedSession);
 
       gameStore.updateTime();
 
-      expect(TimerService.shouldAutoPause).toHaveBeenCalledWith(currentSession, expect.any(Number));
-      expect(TimerService.pauseTimer).toHaveBeenCalledWith(currentSession, currentSession.lastActivityAt);
+      expect(TimerService.shouldAutoPause).toHaveBeenCalledWith(currentSession, expect.any(Number), 1);
+      // Expects a reverted session (elapsed time adjusted) and current time for pause
+      expect(TimerService.pauseTimer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: 'test-1',
+          lastActivityAt: lastActivityTime,
+          // elapsedTime should be reverted (reduced by time since last activity)
+          elapsedTime: expect.any(Number)
+        }),
+        expect.any(Number),
+        true
+      );
       expect(gameStore.session).toStrictEqual(pausedSession);
     });
 
@@ -397,7 +412,7 @@ describe('GameStore', () => {
 
       gameStore.updateTime();
 
-      expect(TimerService.shouldAutoPause).toHaveBeenCalledWith(currentSession, expect.any(Number));
+      expect(TimerService.shouldAutoPause).toHaveBeenCalledWith(currentSession, expect.any(Number), 1);
       expect(TimerService.updateTimer).toHaveBeenCalledWith(currentSession, expect.any(Number));
       expect(gameStore.session).toStrictEqual(updatedSession);
       expect(gameStore.currentTime).toBeGreaterThan(0);

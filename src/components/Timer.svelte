@@ -4,6 +4,11 @@
 
   let intervalId: ReturnType<typeof setInterval> | null = null;
 
+  // Derived: Check if pause was due to idle (auto-pause)
+  let isIdlePause = $derived(
+    gameStore.session?.isAutoPaused === true
+  );
+
   onMount(() => {
     intervalId = setInterval(() => {
       gameStore.updateTime();
@@ -24,6 +29,9 @@
     {/if}
     {gameStore.formattedTime}
   </div>
+  {#if isIdlePause}
+    <div class="idle-indicator">Paused (idle)</div>
+  {/if}
 </div>
 
 <style>
@@ -46,5 +54,13 @@
   .pause-icon {
     color: #ff9800;
     font-size: 1.5rem;
+  }
+
+  .idle-indicator {
+    font-size: 0.875rem;
+    color: #ff9800;
+    font-weight: 500;
+    margin-top: 0.25rem;
+    text-align: center;
   }
 </style>

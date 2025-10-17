@@ -335,21 +335,22 @@ This document provides a dependency-ordered task list for implementing the offli
 
 ## Phase 9: User Story 7 - Auto-Pause on Idle (P3) (5 tasks)
 
-**Goal**: Implement auto-pause after 5 minutes of inactivity per FR-017, FR-018.
+**Goal**: Implement auto-pause after 3 minutes of inactivity per FR-017, FR-018 (clarified 2025-10-16).
 
-**Independent Test Criteria**: Start game, wait 5 minutes idle, verify timer pauses, interact, verify timer resumes.
+**Independent Test Criteria**: Start game, wait 3 minutes idle, verify timer pauses, interact, verify timer resumes.
 
 ### Tasks
 
 #### Idle Detection (TDD)
 
-- [ ] T100 [P] [US7] TEST: Write idle detection tests in tests/unit/services/TimerService.test.ts
-- [ ] T101 [US7] Implement shouldAutoPause() in TimerService.ts per game-api.ts contract
-- [ ] T102 [US7] Add idle detection listeners (click, keypress, mousemove) in src/main.ts
-- [ ] T103 [US7] Implement auto-resume on user interaction
-- [ ] T104 [US7] Add "Paused (idle)" indicator to Timer.svelte
+- [X] T100 [P] [US7] TEST: Write idle detection tests in tests/unit/services/TimerService.test.ts
+- [X] T101 [US7] Implement shouldAutoPause() in TimerService.ts per game-api.ts contract
+- [X] T102 [US7] Add idle detection listeners (click, keypress, mousemove, touchstart) in src/main.ts
+- [X] T103 [US7] Implement auto-resume on user interaction (only for auto-pause, not manual pause)
+- [X] T104 [US7] Add "Paused (idle)" indicator to Timer.svelte
+- [X] T104a [US7] Enhance pause overlay with window focus detection for single-click resume (2025-10-17) - added blur/focus event listeners to automatically resume on first click when returning from another window or after auto-pause
 
-**Deliverable**: Automatic timer pause/resume on idle.
+**Deliverable**: Automatic timer pause/resume on idle after 3 minutes of inactivity, with single-click resume from pause overlay.
 
 ---
 

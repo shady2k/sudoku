@@ -23,12 +23,14 @@ export function updateTimer(session: GameSession, currentTime: number): GameSess
     return session;
   }
 
-  const delta = currentTime - session.lastActivityAt;
+  const delta = currentTime - session.lastTimerUpdate;
 
+  
   return {
     ...session,
     elapsedTime: session.elapsedTime + delta,
-    lastActivityAt: currentTime
+    lastTimerUpdate: currentTime // Update timer tracking timestamp only
+    // lastActivityAt remains unchanged - only updated by user actions
   };
 }
 
@@ -37,20 +39,26 @@ export function updateTimer(session: GameSession, currentTime: number): GameSess
  *
  * @param session - Current game session
  * @param pauseTime - Timestamp when paused
+ * @param isAutoPause - Whether this is an auto-pause (should not update elapsed time)
  * @returns Updated session with paused state
  */
-export function pauseTimer(session: GameSession, pauseTime: number): GameSession {
+export function pauseTimer(session: GameSession, pauseTime: number, isAutoPause = false): GameSession {
   if (session.isPaused) {
     return session; // Already paused
   }
 
-  // Update elapsed time before pausing
-  const updated = updateTimer(session, pauseTime);
+  // For auto-pause, don't update elapsed time - pause at lastActivityAt timestamp
+  // For manual pause, update elapsed time before pausing
+  const updated = isAutoPause ? session : updateTimer(session, pauseTime);
 
   return {
     ...updated,
     isPaused: true,
-    pausedAt: pauseTime
+    pausedAt: pauseTime,
+    isAutoPaused: isAutoPause,
+    // For manual pause, update lastActivityAt and lastTimerUpdate. For auto-pause, keep them unchanged.
+    lastActivityAt: isAutoPause ? session.lastActivityAt : pauseTime,
+    lastTimerUpdate: isAutoPause ? session.lastTimerUpdate : pauseTime
   };
 }
 
@@ -70,7 +78,9 @@ export function resumeTimer(session: GameSession, resumeTime: number): GameSessi
     ...session,
     isPaused: false,
     pausedAt: null,
-    lastActivityAt: resumeTime
+    isAutoPaused: false,
+    lastActivityAt: resumeTime,
+    lastTimerUpdate: resumeTime
   };
 }
 
@@ -97,7 +107,10 @@ export function shouldAutoPause(
   const inactiveTime = currentTime - session.lastActivityAt;
   const autoPauseThreshold = autoPauseMinutes * 60 * 1000; // Convert to milliseconds
 
-  return inactiveTime >= autoPauseThreshold;
+  const shouldPause = inactiveTime >= autoPauseThreshold;
+
+  
+  return shouldPause;
 }
 
 /**

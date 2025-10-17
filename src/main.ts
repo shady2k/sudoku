@@ -35,4 +35,27 @@ window.addEventListener('beforeunload', () => {
   // The auto-save throttling ensures state is saved within 2 seconds of last action
 });
 
+// T102: Idle detection listeners for auto-pause (FR-017, FR-018)
+// T103: Auto-resume on user interaction
+//
+// Strategy: Game actions (makeMove, selectCell, etc.) already update lastActivityAt
+// We only need to handle auto-resume from idle pause here
+const userActivityEvents = ['click', 'keypress', 'touchstart'] as const;
+
+function handleUserActivity(): void {
+  // Only handle auto-resume, don't update lastActivityAt
+  // (game actions will update lastActivityAt themselves)
+  if (gameStore.session?.isPaused) {
+    const wasAutoPaused = gameStore.session.pausedAt === gameStore.session.lastActivityAt;
+    if (wasAutoPaused) {
+      gameStore.resumeGame();
+    }
+  }
+}
+
+// Register listeners for auto-resume only
+userActivityEvents.forEach((eventType) => {
+  document.addEventListener(eventType, handleUserActivity, { passive: true });
+});
+
 export default app;

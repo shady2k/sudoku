@@ -76,6 +76,10 @@
   async function handleResume(): Promise<void> {
     showResumeModal = false;
     await gameStore.loadSavedGame();
+    // If loaded game is paused, resume it (user clicked "Resume Game")
+    if (gameStore.session?.isPaused) {
+      gameStore.resumeGame();
+    }
   }
 
   async function handleNewGameFromResume(difficulty: DifficultyLevel): Promise<void> {
@@ -112,6 +116,11 @@
     return !!(gameStore.session && !gameStore.session.isCompleted);
   }
 
+  // Check if game is paused (manual or auto)
+  let isPaused = $derived(
+    gameStore.session?.isPaused === true
+  );
+
   function handleCandidateToggle(event: KeyboardEvent): void {
     if (event.key === 'c' || event.key === 'C') {
       if (canInteractWithGame()) {
@@ -124,6 +133,7 @@
   function handlePauseResume(event: KeyboardEvent): void {
     if (event.key === ' ') {
       if (canInteractWithGame() && gameStore.session) {
+        // Toggle pause/resume
         if (gameStore.session.isPaused) {
           gameStore.resumeGame();
         } else {
@@ -152,11 +162,74 @@
   function handleGlobalKeyboard(event: KeyboardEvent): void {
     if (shouldIgnoreKeyboardEvent(event)) return;
 
+    // Resume game if paused (any key resumes)
+    if (isPaused) {
+      gameStore.resumeGame();
+      event.preventDefault();
+      return;
+    }
+
     handleCandidateToggle(event);
     handlePauseResume(event);
     handleNewGameShortcut(event);
     handleUndoShortcut(event);
   }
+
+  // Handle pause overlay interaction to resume
+  function handlePauseOverlayClick(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (gameStore.session?.isPaused) {
+      gameStore.resumeGame();
+    }
+  }
+
+  // Auto-resume on window focus (when returning from another window)
+  let pauseOverlayRef = $state<HTMLDivElement | null>(null);
+  let wasWindowBlurred = false;
+  let hadFirstInteraction = false;
+
+  $effect(() => {
+    if (isPaused) {
+      hadFirstInteraction = false; // Reset when pause overlay appears
+
+      // Focus the overlay when it first appears
+      if (pauseOverlayRef) {
+        setTimeout((): void => {
+          pauseOverlayRef?.focus();
+        }, 10);
+      }
+
+      // Track when window loses focus (user switched away)
+      const handleWindowBlur = (): void => {
+        wasWindowBlurred = true;
+      };
+
+      // When window regains focus, resume if user had switched away
+      const handleWindowFocus = (): void => {
+        // If window was blurred OR this is the first interaction with the pause overlay
+        if ((wasWindowBlurred || !hadFirstInteraction) && gameStore.session?.isPaused) {
+          // User clicked back on the window - resume immediately
+          gameStore.resumeGame();
+          wasWindowBlurred = false;
+          hadFirstInteraction = true;
+        } else {
+          // Just focus the overlay for regular interactions
+          pauseOverlayRef?.focus();
+        }
+      };
+
+      window.addEventListener('blur', handleWindowBlur);
+      window.addEventListener('focus', handleWindowFocus);
+
+      return (): void => {
+        window.removeEventListener('blur', handleWindowBlur);
+        window.removeEventListener('focus', handleWindowFocus);
+        wasWindowBlurred = false;
+        hadFirstInteraction = false;
+      };
+    }
+  });
 </script>
 
 <svelte:window on:keydown={handleGlobalKeyboard} />
@@ -167,7 +240,7 @@
     <p class="subtitle">Offline Puzzle Game</p>
   </header>
 
-  <div class="game-container">
+  <div class="game-container" class:auto-paused={isPaused}>
     <!-- T080b: Desktop layout with grid on left and number pad on right -->
     <div class="game-layout">
       <div class="left-panel">
@@ -208,6 +281,31 @@
       </div>
     {/if}
   </div>
+
+  <!-- Pause overlay to prevent interaction and provide visual feedback -->
+  {#if isPaused}
+    <div
+      bind:this={pauseOverlayRef}
+      class="auto-pause-overlay"
+      role="button"
+      tabindex="0"
+      onclick={handlePauseOverlayClick}
+      onmousedown={handlePauseOverlayClick}
+      onkeydown={(e): void => { if (e.key === 'Enter' || e.key === ' ') handlePauseOverlayClick(e); }}
+    >
+      <div class="auto-pause-content">
+        <div class="auto-pause-icon">⏸</div>
+        <div class="auto-pause-message">
+          {#if gameStore.session?.isAutoPaused}
+            Game Paused (Idle)
+          {:else}
+            Game Paused
+          {/if}
+        </div>
+        <div class="auto-pause-hint">Click anywhere or press any key to resume</div>
+      </div>
+    </div>
+  {/if}
 
   <footer>
     <p>Use arrow keys to navigate • Number keys (1-9) to fill • Shift/Alt+1-9 for candidates • Shift+Delete to clear candidates • Press C to toggle auto-candidates</p>
@@ -277,6 +375,13 @@
     background: white;
     border-radius: 1.5rem;
     box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
+    transition: filter 0.3s ease, transform 0.3s ease;
+  }
+
+  .game-container.auto-paused {
+    filter: blur(8px);
+    transform: scale(0.98);
+    pointer-events: none;
   }
 
   /* T080b: Game layout wrapper for grid + number pad positioning */
@@ -448,6 +553,73 @@
   @media (min-width: 1024px) {
     .game-layout {
       gap: 3rem;
+    }
+  }
+
+  /* Auto-pause overlay styles */
+  .auto-pause-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+    cursor: pointer;
+  }
+
+  .auto-pause-content {
+    background: white;
+    border-radius: 1.5rem;
+    padding: 2.5rem;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.4s ease;
+    max-width: 400px;
+    margin: 0 1rem;
+  }
+
+  .auto-pause-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+  }
+
+  .auto-pause-message {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+  }
+
+  .auto-pause-hint {
+    font-size: 1rem;
+    color: #64748b;
+    opacity: 0.8;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
     }
   }
 </style>
