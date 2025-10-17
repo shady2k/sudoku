@@ -40,7 +40,7 @@
   class:selected={isSelected}
   class:selected-notes-mode={shouldShowNotesMode}
   class:related={isRelated}
-  class:error={cell.isError}
+  class:mistake={cell.isMistake}
   class:highlighted-number={isHighlighted}
   onclick={onSelect}
   ontouchend={handleTouchEnd}
@@ -119,14 +119,14 @@
     background-color: #fff59d !important;
   }
 
-  .cell.error {
+  .cell.mistake {
     background-color: #fee2e2;
     color: #dc2626;
     position: relative;
     animation: shake 0.5s ease-in-out;
   }
 
-  .cell.error::before {
+  .cell.mistake::before {
     content: '';
     position: absolute;
     inset: 0;

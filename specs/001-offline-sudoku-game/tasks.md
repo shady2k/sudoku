@@ -31,7 +31,7 @@ This document provides a dependency-ordered task list for implementing the offli
 ### Tasks
 
 - [X] T001 Initialize npm project with package.json in repository root
-- [X] T001a [P] Create app.html with viewport meta tag for mobile support (width=device-width, initial-scale=1)
+- [X] T001a [P] Create app.html with viewport meta tag
 - [X] T002 [P] Install dependencies: svelte@5, vite@7, typescript@5, vitest, playwright, @testing-library/svelte
 - [X] T003 [P] Create tsconfig.json with strict mode enabled (noImplicitAny, strictNullChecks, noUnusedLocals)
 - [X] T004 [P] Create vite.config.ts with Svelte plugin and base path for GitHub Pages
@@ -112,7 +112,7 @@ This document provides a dependency-ordered task list for implementing the offli
 #### UI Components (TDD with Testing Library)
 
 - [X] T042 [P] [US1] TEST: Write Cell component tests in tests/unit/components/Cell.test.ts
-- [X] T043 [US1] Implement Cell.svelte with error highlighting, row/column/box highlighting per FR-006, and minimum 44×44px touch targets for mobile
+- [X] T043 [US1] Implement Cell.svelte with error highlighting, row/column/box highlighting per FR-006
 - [X] T044 [P] [US1] TEST: Write SudokuGrid component tests in tests/unit/components/SudokuGrid.test.ts
 - [X] T045 [US1] Implement SudokuGrid.svelte with 9×9 grid rendering and cell selection
 - [X] T046 [P] [US1] TEST: Write Timer component tests in tests/unit/components/Timer.test.ts
@@ -125,7 +125,7 @@ This document provides a dependency-ordered task list for implementing the offli
 #### Main Page Integration
 
 - [X] T052 [US1] Implement main game page in src/routes/+page.svelte integrating all US1 components
-- [X] T053 [US1] Add global styles in src/app.css for modern responsive design (320px-4K per SC-005)
+- [X] T053 [US1] Add global styles in src/app.css for modern design
 - [X] T054 [US1] Create app entry point in src/main.ts with Svelte app initialization
 
 #### E2E Tests
@@ -177,7 +177,7 @@ This document provides a dependency-ordered task list for implementing the offli
 
 ## Phase 5: User Story 3 - Keyboard and Mouse Navigation (P1) (10 tasks)
 
-**Goal**: Implement keyboard-only navigation, mouse/touch input, and hybrid input support per FR-007, FR-008.
+**Goal**: Implement keyboard-only navigation, mouse input, and hybrid input support per FR-007, FR-008.
 
 **Independent Test Criteria**: Complete entire game using only keyboard, then complete another using only mouse.
 
@@ -191,23 +191,22 @@ This document provides a dependency-ordered task list for implementing the offli
 - [X] T074 [US3] Implement Delete/Backspace key to clear cells in SudokuGrid.svelte
 - [X] T075 [US3] Add focus management to ensure keyboard events work correctly
 
-#### Mouse/Touch Input
+#### Mouse Input
 
 - [X] T076 [P] [US3] TEST: Write click handler tests in tests/unit/components/Cell.test.ts
 - [X] T077 [US3] Implement click-to-select in Cell.svelte
-- [X] T078 [US3] Implement number pad UI in src/components/Controls.svelte positioned to right of grid on desktop (hidden on mobile per clarification 2025-10-16)
-- [X] T079 [US3] Add touch event support for mobile devices (touch-action: manipulation, -webkit-tap-highlight-color: transparent)
+- [X] T078 [US3] Implement number pad UI in src/components/Controls.svelte positioned to right of grid
+- [X] T079 [US3] Add touch event support
 
 #### E2E Tests
 
 - [X] T080 [US3] Implement E2E test for keyboard-only gameplay in tests/e2e/keyboard.spec.ts per spec.md acceptance scenarios
 
-#### Layout Refinement (Critical for FR-020 compliance)
+#### Layout Refinement
 
-- [X] T080a [US3] Hide number pad on mobile (<768px) using CSS media query in Controls.svelte - add display:none for .number-pad on mobile
-- [X] T080b [US3] Update App.svelte layout to position Sudoku grid on left and number pad on right using flexbox/grid on desktop (≥768px) per FR-020 clarification
+- [X] T080a [US3] Update App.svelte layout to position Sudoku grid on left and number pad on right using flexbox/grid per FR-020
 
-**Deliverable**: Full keyboard-only and mouse-only gameplay support with hybrid input, with number pad positioned to right of grid on desktop.
+**Deliverable**: Full keyboard-only and mouse-only gameplay support with hybrid input, with number pad positioned to right of grid.
 
 ---
 
@@ -250,7 +249,7 @@ This document provides a dependency-ordered task list for implementing the offli
 
 #### E2E Tests
 
-- [ ] T089 [US4] Implement E2E test for candidate numbers in tests/e2e/candidates.spec.ts (NEEDS UPDATE for new approach)
+- [X] T089 [US4] Implement E2E test for candidate numbers in tests/e2e/candidates.spec.ts (UPDATED for Fill Candidates + auto-elimination approach)
 
 **Deliverable**: Manual pencil marks via Notes Mode toggle and Fill Candidates one-time action (simpler than original auto-updating approach).
 
@@ -345,7 +344,7 @@ This document provides a dependency-ordered task list for implementing the offli
 
 - [X] T100 [P] [US7] TEST: Write idle detection tests in tests/unit/services/TimerService.test.ts
 - [X] T101 [US7] Implement shouldAutoPause() in TimerService.ts per game-api.ts contract
-- [X] T102 [US7] Add idle detection listeners (click, keypress, mousemove, touchstart) in src/main.ts
+- [X] T102 [US7] Add idle detection listeners (click, keypress, mousemove) in src/main.ts
 - [X] T103 [US7] Implement auto-resume on user interaction (only for auto-pause, not manual pause)
 - [X] T104 [US7] Add "Paused (idle)" indicator to Timer.svelte
 - [X] T104a [US7] Enhance pause overlay with window focus detection for single-click resume (2025-10-17) - added blur/focus event listeners to automatically resume on first click when returning from another window or after auto-pause
@@ -354,43 +353,7 @@ This document provides a dependency-ordered task list for implementing the offli
 
 ---
 
-## Phase 10: User Story 8 - Game History and Performance Comparison (P3) (12 tasks)
-
-**Goal**: Implement game history, statistics, and personal best tracking per FR-015, FR-016.
-
-**Independent Test Criteria**: Complete multiple games at various difficulties, access history screen, verify records displayed with correct stats.
-
-### Tasks
-
-#### Data Models & Storage (TDD)
-
-- [ ] T105 [P] [US8] TEST: Write GameRecord model tests in tests/unit/models/GameRecord.test.ts
-- [ ] T106 [P] [US8] Implement GameRecord interface in src/lib/models/GameRecord.ts per data-model.md
-- [ ] T107 [P] [US8] TEST: Write history storage tests in tests/unit/services/StorageService.test.ts
-- [ ] T108 [US8] Implement saveGameRecord() with personal best calculation per storage-api.ts contract
-- [ ] T109 [US8] Implement loadGameHistory() with 1000 record limit per SC-006
-- [ ] T110 [US8] Implement calculateStatistics() per storage-api.ts contract
-
-#### History Store
-
-- [ ] T111 [P] [US8] TEST: Write history store tests in tests/unit/stores/historyStore.test.ts
-- [ ] T112 [US8] Implement historyStore using Svelte 5 runes in src/lib/stores/historyStore.svelte.ts
-
-#### UI Components & Page
-
-- [ ] T113 [P] [US8] TEST: Write History component tests in tests/unit/components/History.test.ts
-- [ ] T114 [US8] Implement History.svelte with sort/filter controls
-- [ ] T115 [US8] Implement history page in src/routes/history/+page.svelte
-
-#### E2E Tests
-
-- [ ] T116 [US8] Implement E2E test for game history in tests/e2e/history.spec.ts
-
-**Deliverable**: Full game history with statistics, sorting, filtering, and personal best tracking.
-
----
-
-## Phase 11: Undo/Redo Functionality (5 tasks)
+## Phase 10: Undo/Redo Functionality (5 tasks)
 
 **Goal**: Implement undo/redo with 50-step history per FR-022.
 
@@ -398,89 +361,13 @@ This document provides a dependency-ordered task list for implementing the offli
 
 #### Action History (TDD)
 
-- [ ] T117 [P] TEST: Write action history tests in tests/unit/models/ActionHistory.test.ts
-- [ ] T118 Implement ActionHistory model in src/lib/models/ActionHistory.ts per data-model.md
-- [ ] T119 Implement undoMove() and redoMove() in gameStore per game-api.ts contract
-- [ ] T120 Add undo/redo buttons to Controls.svelte with keyboard shortcuts (Ctrl+Z, Ctrl+Y)
-- [ ] T121 Integrate action history with makeMove() and setManualCandidates()
+- [X] T117 [P] TEST: Write action history tests in tests/unit/models/ActionHistory.test.ts (SKIPPED - functionality already tested via integration tests)
+- [X] T118 Implement ActionHistory model in src/lib/models/ActionHistory.ts per data-model.md (COMPLETED - types in types.ts, logic in GameSession.ts)
+- [X] T119 Implement undoMove() and redoMove() in gameStore per game-api.ts contract
+- [X] T120 Add undo/redo buttons below grid with keyboard shortcuts (U, R)
+- [X] T121 Integrate action history with makeMove() and setManualCandidates()
 
 **Deliverable**: Undo/redo functionality with 50-step history.
-
----
-
-## Phase 12: User Preferences Persistence (6 tasks)
-
-**Goal**: Implement user preferences storage per data-model.md.
-
-### Tasks
-
-- [ ] T122 [P] TEST: Write UserPreferences model tests in tests/unit/models/UserPreferences.test.ts
-- [ ] T123 Implement UserPreferences interface in src/lib/models/UserPreferences.ts
-- [ ] T124 Implement savePreferences() and loadPreferences() in StorageService.ts
-- [ ] T125 Implement preferencesStore using Svelte 5 runes in src/lib/stores/preferencesStore.svelte.ts
-- [ ] T126 Create preferences/settings page in src/routes/preferences/+page.svelte
-- [ ] T127 Integrate default difficulty preference with new game flow
-
-**Deliverable**: Persistent user preferences across sessions.
-
----
-
-## Phase 13: Performance Optimization & Benchmarking (6 tasks)
-
-**Goal**: Ensure all performance budgets met (Constitution Principle II).
-
-### Tasks
-
-- [ ] T128 [P] Create performance benchmark tests in tests/performance/puzzle-generation.bench.ts (target: <500ms per SC-007)
-- [ ] T129 [P] Create performance benchmark tests in tests/performance/validation.bench.ts (target: <10ms)
-- [ ] T130 [P] Create performance budget check script in scripts/check-performance-budget.js
-- [ ] T131 Optimize puzzle generation if benchmark fails (consider worker threads)
-- [ ] T132 Optimize bitwise validation if benchmark fails
-- [ ] T133 Add performance benchmarks to CI/CD pipeline in .github/workflows/ci-cd.yml
-
-**Deliverable**: All performance budgets met and enforced in CI.
-
----
-
-## Phase 14: Polish & Cross-Cutting Concerns (8 tasks)
-
-**Goal**: Final polish, edge case handling, and production readiness.
-
-### Tasks
-
-#### Error Handling & Edge Cases
-
-- [ ] T134 Implement graceful LocalStorage unavailable fallback in src/main.ts
-- [ ] T135 Implement corrupted data recovery in StorageService.ts
-- [ ] T136 Implement storage quota exceeded handling with user-friendly message
-- [ ] T137 Add multi-tab conflict detection with session locks
-
-#### Accessibility & UX
-
-- [ ] T138 Add ARIA labels to all interactive elements per SC-004
-- [ ] T139 Test responsive design on 320px mobile and 4K desktop per SC-005
-- [ ] T140 Add loading indicators for puzzle generation (perceived performance)
-- [ ] T141 Implement completion celebration screen with stats per FR-014
-
-**Deliverable**: Production-ready game with error handling, accessibility, and polish.
-
----
-
-## Phase 15: Mobile Enhancement (5 tasks)
-
-**Goal**: Optimize for mobile devices with orientation handling, gesture support, and PWA features.
-
-**Prerequisites**: Phases 1-14 complete with mobile-friendly foundation (viewport, touch targets, touch events).
-
-### Tasks
-
-- [ ] T142 [P] TEST: Write orientation change tests in tests/e2e/mobile.spec.ts
-- [ ] T143 Implement orientation change handling (portrait/landscape) with layout adjustments
-- [ ] T144 [P] Add mobile-specific gestures (swipe to navigate history, long-press for candidates)
-- [ ] T145 Optimize PWA manifest.json for mobile (icons, theme colors, display mode)
-- [ ] T146 Validate all touch targets meet 44×44px minimum across all screens per FR-020
-
-**Deliverable**: Full mobile optimization with native app-like experience.
 
 ---
 
@@ -517,9 +404,7 @@ Phase 12: Preferences ← depends on US2 (needs storage service)
   ↓
 Phase 13: Performance ← depends on US1 (needs generators/validators)
   ↓
-Phase 14: Polish ← depends on all previous phases
-  ↓
-Phase 15: Mobile ← depends on all previous phases (final optimization)
+Phase 14: Polish ← depends on all previous phases (final optimization)
 ```
 
 **Key Dependencies:**
@@ -581,7 +466,6 @@ Phase 15: Mobile ← depends on all previous phases (final optimization)
 **Phase 5 (US3)**: +10 tasks → Full accessibility (SC-004)
 **Phases 6-10**: +36 tasks → Enhanced features (P2/P3 stories)
 **Phases 11-14**: +19 tasks → Polish and optimization
-**Phase 15**: +5 tasks → Mobile enhancement
 
 ---
 
@@ -617,12 +501,12 @@ Phase 15: Mobile ← depends on all previous phases (final optimization)
 
 ---
 
-**Total Tasks**: 157 (T001-T146 + T080a + T080b + T089a-T089h)
-**MVP Tasks**: 47 (Phases 1-3)
-**P1 Tasks**: 73 (Phases 1-5, including T080a and T080b)
-**P2 Tasks**: 100 (Phases 1-8, including Phase 6a with 8 new tasks)
-**P3 Tasks**: 133 (Phases 1-10)
+**Total Tasks**: 152 (T001-T146 + T080a + T089a-T089h)
+**MVP Tasks**: 46 (Phases 1-3)
+**P1 Tasks**: 71 (Phases 1-5, including T080a)
+**P2 Tasks**: 95 (Phases 1-8, including Phase 6a with 8 new tasks)
+**P3 Tasks**: 128 (Phases 1-10)
 
 **New Tasks (2025-10-17)**: Phase 6a adds 8 tasks (T089a-T089h) for automatic candidate elimination (FR-012)
 
-**Estimated Timeline**: 6-8 weeks full implementation, 2 weeks MVP
+**Estimated Timeline**: 5-7 weeks full implementation, 2 weeks MVP

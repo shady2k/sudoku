@@ -9,7 +9,7 @@
 
 import type { GameSession, CellPosition, CellValue, DifficultyLevel, SudokuNumber } from '../models/types';
 import { isSudokuNumber } from '../models/types';
-import { createGameSession, makeMove, selectCell, fillCandidatesOnce, setManualCandidates, setHighlightedNumber } from '../services/GameSession';
+import { createGameSession, makeMove, selectCell, fillCandidatesOnce, setManualCandidates, setHighlightedNumber, undoMove, redoMove } from '../services/GameSession';
 import { updateTimer, pauseTimer, resumeTimer, shouldAutoPause, formatTime } from '../services/TimerService';
 import { saveGameSession, loadGameSession, hasSavedGame, loadPreferences, savePreferences } from '../services/StorageService';
 import { throttle } from 'lodash-es';
@@ -69,6 +69,10 @@ class GameStore {
 
   canUndo = $derived(
     (this.session?.history.currentIndex ?? 0) > 0
+  );
+
+  canRedo = $derived(
+    (this.session?.history.currentIndex ?? 0) < (this.session?.history.actions.length ?? 0)
   );
 
   // Actions
@@ -198,6 +202,34 @@ class GameStore {
     if (result.success) {
       this.session = result.data;
       this.throttledSave(); // Auto-save after setting candidates
+    } else {
+      this.error = result.error.message;
+    }
+  }
+
+  // Undo last action (FR-022)
+  undo(): void {
+    if (!this.session) return;
+
+    const result = undoMove(this.session);
+
+    if (result.success) {
+      this.session = result.data;
+      this.throttledSave(); // Auto-save after undo
+    } else {
+      this.error = result.error.message;
+    }
+  }
+
+  // Redo previously undone action (FR-022)
+  redo(): void {
+    if (!this.session) return;
+
+    const result = redoMove(this.session);
+
+    if (result.success) {
+      this.session = result.data;
+      this.throttledSave(); // Auto-save after redo
     } else {
       this.error = result.error.message;
     }

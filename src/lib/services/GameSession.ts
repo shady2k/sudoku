@@ -64,7 +64,7 @@ export async function createGameSession(
         col,
         value,
         isClue,
-        isError: false,
+        isMistake: false,
         manualCandidates: new Set(),
         autoCandidates: null
       });
@@ -102,7 +102,7 @@ export async function createGameSession(
     pausedAt: null,
     isAutoPaused: false,
     difficultyLevel: difficulty,
-    errorCount: 0,
+    mistakeCount: 0,
     isCompleted: false,
     lastActivityAt: now,
     lastTimerUpdate: now,
@@ -224,9 +224,15 @@ function updateCellValue(
 
   cell.value = value;
 
-  // Validate and mark errors
+  // Validate and mark mistakes
   const isValid = value !== 0 ? isValidMove(session.board, position, value as SudokuNumber) : true;
-  cell.isError = value !== 0 ? !isValid : false;
+  const wasMistake = cell.isMistake;
+  cell.isMistake = value !== 0 ? !isValid : false;
+
+  // Count mistakes immediately when they occur (not on cell change)
+  if (!isValid && !wasMistake) {
+    session.mistakeCount = session.mistakeCount + 1;
+  }
 
   // Clear candidates when value is set
   if (value !== 0) {
@@ -267,8 +273,6 @@ function applyCandidateElimination(
 /**
  * Selects a cell
  *
- * When deselecting (position = null), increments error count if previous cell had error
- *
  * @param session - Current game session
  * @param position - Cell to select (null to deselect)
  * @returns Updated game session
@@ -279,15 +283,6 @@ export function selectCell(
 ): GameSession {
   const newSession = { ...session };
   newSession.lastActivityAt = Date.now();
-
-  // Check if previous cell had error (FR-010: error counted on deselection)
-  if (session.selectedCell && position !== session.selectedCell) {
-    const prevCell = session.cells[session.selectedCell.row]?.[session.selectedCell.col];
-    if (prevCell && prevCell.isError && prevCell.value !== 0) {
-      newSession.errorCount = session.errorCount + 1;
-    }
-  }
-
   newSession.selectedCell = position;
 
   return newSession;
@@ -573,6 +568,9 @@ export function undoMove(session: GameSession): Result<GameSession> {
     currentIndex: session.history.currentIndex - 1
   };
 
+  // Recalculate mistake count based on current grid state
+  newSession.mistakeCount = calculateMistakeCount(newSession);
+
   // Recalculate completion status
   newSession.isCompleted = isPuzzleCompleted(newSession);
 
@@ -645,9 +643,9 @@ function applySetValueAction(session: GameSession, action: SetValueAction): void
     cell.manualCandidates = new Set();
   }
 
-  // Recalculate error status
+  // Recalculate mistake status
   const isValid = value !== 0 ? isValidMove(session.board, action.cell, value as SudokuNumber) : true;
-  cell.isError = value !== 0 ? !isValid : false;
+  cell.isMistake = value !== 0 ? !isValid : false;
 
   // Re-apply automatic candidate elimination (FR-012)
   if (value !== 0 && isValid) {
@@ -670,4 +668,20 @@ function applySetCandidatesAction(session: GameSession, action: SetCandidatesAct
     }
   }
   cell.manualCandidates = validCandidates;
+}
+
+/**
+ * Calculates the current mistake count by counting cells marked as mistakes
+ */
+function calculateMistakeCount(session: GameSession): number {
+  let mistakeCount = 0;
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      const cell = session.cells[row]?.[col];
+      if (cell && cell.isMistake) {
+        mistakeCount++;
+      }
+    }
+  }
+  return mistakeCount;
 }

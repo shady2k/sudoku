@@ -36,7 +36,7 @@ describe('Statistics Component', () => {
   it('should display difficulty level', () => {
     gameStore.session = {
       difficultyLevel: 7,
-      errorCount: 0,
+      mistakeCount: 0,
       isCompleted: false,
     } as any;
 
@@ -47,7 +47,7 @@ describe('Statistics Component', () => {
   it('should display error count', () => {
     gameStore.session = {
       difficultyLevel: 5,
-      errorCount: 3,
+      mistakeCount: 3,
       isCompleted: false,
     } as any;
 
@@ -58,19 +58,19 @@ describe('Statistics Component', () => {
   it('should highlight errors when count is greater than zero', () => {
     gameStore.session = {
       difficultyLevel: 5,
-      errorCount: 5,
+      mistakeCount: 5,
       isCompleted: false,
     } as any;
 
     render(Statistics);
-    const errorValue = screen.getByText('5');
-    expect(errorValue).toHaveClass('has-errors');
+    const mistakeValue = screen.getByText('5');
+    expect(mistakeValue).toHaveClass('has-mistakes');
   });
 
   it('should show completion message when game is completed', () => {
     gameStore.session = {
       difficultyLevel: 5,
-      errorCount: 0,
+      mistakeCount: 0,
       isCompleted: true,
     } as any;
 
@@ -81,7 +81,7 @@ describe('Statistics Component', () => {
   it('should not show completion message when game is in progress', () => {
     gameStore.session = {
       difficultyLevel: 5,
-      errorCount: 0,
+      mistakeCount: 0,
       isCompleted: false,
     } as any;
 

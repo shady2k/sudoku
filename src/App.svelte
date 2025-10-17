@@ -152,9 +152,22 @@
   }
 
   function handleUndoShortcut(event: KeyboardEvent): void {
-    if (event.key === 'z' || event.key === 'Z') {
-      // Undo functionality not yet implemented (Phase 11)
-      // This is a placeholder for future implementation
+    // U key for undo (FR-022)
+    if (event.key === 'u' || event.key === 'U') {
+      if (canInteractWithGame() && gameStore.canUndo) {
+        gameStore.undo();
+        event.preventDefault();
+      }
+    }
+  }
+
+  function handleRedoShortcut(event: KeyboardEvent): void {
+    // R key for redo (FR-022)
+    if (event.key === 'r' || event.key === 'R') {
+      if (canInteractWithGame() && gameStore.canRedo) {
+        gameStore.redo();
+        event.preventDefault();
+      }
     }
   }
 
@@ -173,6 +186,7 @@
     handlePauseResume(event);
     handleNewGameShortcut(event);
     handleUndoShortcut(event);
+    handleRedoShortcut(event);
   }
 
   // Handle pause overlay interaction to resume
@@ -248,6 +262,30 @@
           <NotesModeToggle />
         {/if}
         <SudokuGrid />
+        {#if gameStore.session && !gameStore.session.isCompleted}
+          <div class="undo-redo-group">
+            <button
+              type="button"
+              class="btn btn-undo"
+              onclick={(): void => gameStore.undo()}
+              disabled={!gameStore.canUndo}
+              title="Undo (U)"
+            >
+              <span class="btn-text">Undo</span>
+              <span class="hotkey">U</span>
+            </button>
+            <button
+              type="button"
+              class="btn btn-redo"
+              onclick={(): void => gameStore.redo()}
+              disabled={!gameStore.canRedo}
+              title="Redo (R)"
+            >
+              <span class="btn-text">Redo</span>
+              <span class="hotkey">R</span>
+            </button>
+          </div>
+        {/if}
       </div>
       <div class="right-panel">
         <!-- Compact stats row inspired by reference -->
@@ -264,9 +302,9 @@
               <div class="stat-value">{gameStore.session.difficultyLevel}%</div>
             </div>
             <div class="stat-item">
-              <div class="stat-label">Errors</div>
-              <div class="stat-value" class:error={gameStore.session.errorCount > 0}>
-                {gameStore.session.errorCount}
+              <div class="stat-label">Mistakes</div>
+              <div class="stat-value" class:error={gameStore.session.mistakeCount > 0}>
+                {gameStore.session.mistakeCount}
               </div>
             </div>
           {/if}
@@ -308,7 +346,7 @@
   {/if}
 
   <footer>
-    <p>Use arrow keys to navigate • Number keys (1-9) to fill • Shift/Alt+1-9 for candidates • Shift+Delete to clear candidates • Press C to toggle auto-candidates</p>
+    <p>Use arrow keys to navigate • Number keys (1-9) to fill • Shift/Alt+1-9 for candidates • U/R for undo/redo • Press C to fill candidates</p>
   </footer>
 </main>
 
@@ -331,7 +369,7 @@
 <CongratulationsModal
   bind:isOpen={showCongratulationsModal}
   formattedTime={gameStore.formattedTime}
-  errorCount={gameStore.session?.errorCount ?? 0}
+  mistakeCount={gameStore.session?.mistakeCount ?? 0}
   onStartNewGame={handleCongratulationsStartNewGame}
 />
 
@@ -400,6 +438,68 @@
     gap: 0.5rem;
     width: 100%;
     align-items: center;
+  }
+
+  .undo-redo-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 400px;
+    margin-top: 0.5rem;
+  }
+
+  .btn {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+    color: #374151;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    min-height: 44px;
+  }
+
+  .btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-text {
+    flex-shrink: 0;
+  }
+
+  .hotkey {
+    display: inline-block;
+    padding: 0.125rem 0.375rem;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 0.25rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: #3b82f6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .right-panel {

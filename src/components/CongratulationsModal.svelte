@@ -3,7 +3,7 @@
    * Congratulations Modal Component
    *
    * Shows when player completes the puzzle (FR-014):
-   * - Displays congratulations message with final time and errors
+   * - Displays congratulations message with final time and mistakes
    * - Shows ONLY "Start New Game" button (no close/cancel option)
    * - Clicking button opens New Game modal with difficulty slider
    */
@@ -11,11 +11,11 @@
   interface Props {
     isOpen: boolean;
     formattedTime: string;
-    errorCount: number;
+    mistakeCount: number;
     onStartNewGame: () => void;
   }
 
-  let { isOpen = $bindable(false), formattedTime, errorCount, onStartNewGame }: Props = $props();
+  let { isOpen = $bindable(false), formattedTime, mistakeCount, onStartNewGame }: Props = $props();
 
   function handleStartNewGame(): void {
     onStartNewGame();
@@ -37,13 +37,13 @@
           <div class="stat-value">{formattedTime}</div>
         </div>
         <div class="stat-item">
-          <div class="stat-label">Errors</div>
-          <div class="stat-value" class:perfect={errorCount === 0}>{errorCount}</div>
+          <div class="stat-label">Mistakes</div>
+          <div class="stat-value" class:perfect={mistakeCount === 0}>{mistakeCount}</div>
         </div>
       </div>
 
-      {#if errorCount === 0}
-        <p class="perfect-message">Perfect! No errors!</p>
+      {#if mistakeCount === 0}
+        <p class="perfect-message">Perfect! No mistakes!</p>
       {/if}
 
       <div class="modal-actions">

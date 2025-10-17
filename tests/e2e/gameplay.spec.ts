@@ -35,7 +35,7 @@ test.describe('Full Gameplay Flow', () => {
     await expect(difficultyLabel).toBeVisible();
 
     // Verify errors stat is displayed
-    const errorsLabel = page.locator('.stat-item .stat-label:has-text("Errors")');
+    const errorsLabel = page.locator('.stat-item .stat-label:has-text("Mistakes")');
     await expect(errorsLabel).toBeVisible();
   });
 
@@ -152,7 +152,7 @@ test.describe('Full Gameplay Flow', () => {
     await page.keyboard.press('ArrowRight');
 
     // Check if error class was applied (errors are validated on move)
-    const errorCell = page.locator('.cell.error');
+    const errorCell = page.locator('.cell.mistake');
     const hasError = await errorCell.count();
     expect(hasError).toBeGreaterThan(0);
   });
@@ -227,7 +227,7 @@ test.describe('Full Gameplay Flow', () => {
     await page.waitForSelector('.grid');
 
     // Get initial error count
-    const errorsStat = page.locator('.stat-item:has(.stat-label:has-text("Errors")) .stat-value');
+    const errorsStat = page.locator('.stat-item:has(.stat-label:has-text("Mistakes")) .stat-value');
     await expect(errorsStat).toBeVisible();
 
     const initialErrors = await errorsStat.textContent();
@@ -416,7 +416,7 @@ test.describe('Full Gameplay Flow', () => {
     expect(diffText).toMatch(/\d+%/);
 
     // Verify Errors stat
-    const errorsValue = page.locator('.stat-item:has(.stat-label:has-text("Errors")) .stat-value');
+    const errorsValue = page.locator('.stat-item:has(.stat-label:has-text("Mistakes")) .stat-value');
     await expect(errorsValue).toBeVisible();
   });
 });

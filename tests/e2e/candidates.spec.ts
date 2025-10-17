@@ -178,7 +178,7 @@ test.describe('Candidate Numbers Feature', () => {
       await page.keyboard.press(clueNumber);
 
       // Cell should show error state
-      await expect(targetCell).toHaveClass(/error/);
+      await expect(targetCell).toHaveClass(/mistake/);
     }
   });
 

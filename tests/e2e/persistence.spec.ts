@@ -108,7 +108,7 @@ test.describe('Game State Persistence', () => {
     }).toPass({ timeout: 8000 });
 
     // Get current error count
-    const errorCount = await page.locator('.stat-item:has(.stat-label:has-text("Errors")) .stat-value').textContent();
+    const errorCount = await page.locator('.stat-item:has(.stat-label:has-text("Mistakes")) .stat-value').textContent();
 
     // Reload page (simulating browser close/reopen)
     await page.reload();
@@ -154,7 +154,7 @@ test.describe('Game State Persistence', () => {
     }).toPass({ timeout: 8000 });
 
     // Verify error count restored
-    const restoredErrors = await page.locator('.stat-item:has(.stat-label:has-text("Errors")) .stat-value').textContent();
+    const restoredErrors = await page.locator('.stat-item:has(.stat-label:has-text("Mistakes")) .stat-value').textContent();
     expect(restoredErrors).toBe(errorCount);
 
     // Verify timer continues (check that time is progressing)
@@ -508,29 +508,73 @@ test.describe('Game State Persistence', () => {
     await page.waitForSelector('.grid');
 
     // Initial error count should be 0
-    let errorCount = await page.locator('.stat-item:has(.stat-label:has-text("Errors")) .stat-value').textContent();
+    let errorCount = await page.locator('.stat-item:has(.stat-label:has-text("Mistakes")) .stat-value').textContent();
     expect(errorCount).toBe('0');
 
-    // Make an intentional error (we need to know the solution, so this is simplified)
-    // For a real test, we'd need to access the solution and make a wrong move
-    // For now, just verify the mechanism works
+    // Find a valid empty cell and force a mistake by placing a wrong number
+    // We'll use a cell where the solution is not 1, then place 1 there
+    const solutionData = await page.evaluate(() => {
+      const saved = localStorage.getItem('sudoku:current-session');
+      if (!saved) return null;
+      const data = JSON.parse(saved);
+      return data.data.puzzle.solution;
+    });
 
-    // Make a move
-    const emptyCell = page.locator('button.cell:not(.clue)').first();
-    await emptyCell.click();
-    await page.keyboard.press('7');
+    let targetCell = null;
+    let wrongNumber = 1;
 
-    // Wait for auto-save by polling localStorage
+    // Find the first empty cell where the solution is not 1
+    for (let row = 0; row < 9; row++) {
+      for (let col = 0; col < 9; col++) {
+        const cellSelector = `button.cell[data-row="${row}"][data-col="${col}"]:not(.clue)`;
+        const cell = page.locator(cellSelector);
+        const count = await cell.count();
+        if (count > 0) {
+          const cellValue = await cell.textContent();
+          if (cellValue?.trim() === '' || cellValue?.trim() === '0') {
+            // Check if the solution is not 1
+            if (solutionData && solutionData[row] && solutionData[row][col] !== 1) {
+              targetCell = cell;
+              // Find a number that's wrong for this cell
+              const correctValue = solutionData[row][col];
+              wrongNumber = correctValue === 1 ? 2 : 1; // Use 1 unless correct is 1, then use 2
+              break;
+            }
+          }
+        }
+      }
+      if (targetCell) break;
+    }
+
+    // If we couldn't find a suitable cell, just use the first empty cell and number 9
+    if (!targetCell) {
+      targetCell = page.locator('button.cell:not(.clue)').first();
+      wrongNumber = 9;
+    }
+
+    // Make an intentional error by placing the wrong number
+    await targetCell.click();
+    await page.keyboard.press(String(wrongNumber));
+
+    // Wait longer for auto-save to complete (the throttled save might take up to 2 seconds)
+    // Use longer timeout for WebKit which may have different timing
+    await page.waitForTimeout(5000);
+
+    // Verify mistake is saved in localStorage
     await expect(async () => {
-      const hasSavedGame = await page.evaluate(() => {
+      const savedData = await page.evaluate(() => {
         const saved = localStorage.getItem('sudoku:current-session');
-        return saved !== null;
+        if (!saved) return null;
+        return JSON.parse(saved);
       });
-      expect(hasSavedGame).toBe(true);
-    }).toPass({ timeout: 5000 });
+      expect(savedData).toBeTruthy();
+      expect(savedData.data.mistakeCount).toBe(1);
+    }).toPass({ timeout: 8000 });
 
-    // Get error count before reload
-    errorCount = await page.locator('.stat-item:has(.stat-label:has-text("Errors")) .stat-value').textContent();
+    // Get error count before reload - should now be 1
+    errorCount = await page.locator('.stat-item:has(.stat-label:has-text("Mistakes")) .stat-value').textContent();
+
+    expect(errorCount).toBe('1'); // Should be exactly 1 since we forced a mistake
 
     // Reload
     await page.reload();
@@ -545,9 +589,11 @@ test.describe('Game State Persistence', () => {
     // Wait for grid to be visible
     await page.waitForSelector('.grid');
 
-    // Error count should be preserved
-    const restoredErrorCount = await page.locator('.stat-item:has(.stat-label:has-text("Errors")) .stat-value').textContent();
-    expect(restoredErrorCount).toBe(errorCount);
+    // Error count should be preserved - wait for it to be restored
+    await expect(async () => {
+      const restoredErrorCount = await page.locator('.stat-item:has(.stat-label:has-text("Mistakes")) .stat-value').textContent();
+      expect(restoredErrorCount).toBe(errorCount);
+    }).toPass({ timeout: 5000 });
   });
 
   test('should clear saved game when starting new game', async ({ page }) => {

@@ -49,7 +49,7 @@ export interface Cell {
   readonly isClue: boolean;
 
   /** Whether the current value violates Sudoku rules */
-  isError: boolean;
+  isMistake: boolean;
 
   /** Manually entered candidate numbers (user pencil marks) */
   manualCandidates: Set<number>;
@@ -92,8 +92,8 @@ export interface GameSession {
   /** Difficulty level (0-100% scale, 0% = easiest, 100% = hardest) */
   difficultyLevel: number;
 
-  /** Count of errors made (only counts persistent invalid entries per FR-010) */
-  errorCount: number;
+  /** Count of mistakes made (incremented immediately when invalid entry is made) */
+  mistakeCount: number;
 
   /** Whether puzzle is completed */
   isCompleted: boolean;
@@ -217,8 +217,8 @@ export interface GameRecord {
   /** Total elapsed time (milliseconds) */
   totalTime: number;
 
-  /** Total errors made during game */
-  errorCount: number;
+  /** Total mistakes made during game */
+  mistakeCount: number;
 
   /** Difficulty level (0-100%, 0% = easiest, 100% = hardest) */
   difficultyLevel: number;
@@ -229,7 +229,7 @@ export interface GameRecord {
   /** Whether this is a personal best for this difficulty */
   isPersonalBest: {
     fastestTime: boolean;
-    fewestErrors: boolean;
+    fewestMistakes: boolean;
   };
 }
 
@@ -261,7 +261,7 @@ export type CandidateMode = 'auto' | 'manual' | 'off';
 export interface ThemeSettings {
   darkMode: boolean;
   highlightColor: string;
-  errorColor: string;
+  mistakeColor: string;
 }
 
 export interface KeyboardShortcuts {
@@ -273,7 +273,7 @@ export interface KeyboardShortcuts {
 }
 
 export interface HistoryPreferences {
-  sortBy: 'date' | 'time' | 'errors' | 'difficulty';
+  sortBy: 'date' | 'time' | 'mistakes' | 'difficulty';
   sortOrder: 'asc' | 'desc';
   filterDifficulty: number | null;
 }

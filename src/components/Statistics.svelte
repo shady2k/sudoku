@@ -9,9 +9,9 @@
       <span class="value">{gameStore.session.difficultyLevel}%</span>
     </div>
     <div class="stat">
-      <span class="label">Errors:</span>
-      <span class="value" class:has-errors={gameStore.session.errorCount > 0}>
-        {gameStore.session.errorCount}
+      <span class="label">Mistakes:</span>
+      <span class="value" class:has-mistakes={gameStore.session.mistakeCount > 0}>
+        {gameStore.session.mistakeCount}
       </span>
     </div>
     {#if gameStore.session.isCompleted}
@@ -49,7 +49,7 @@
     color: #333;
   }
 
-  .value.has-errors {
+  .value.has-mistakes {
     color: #d32f2f;
   }
 

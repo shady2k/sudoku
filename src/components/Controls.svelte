@@ -205,7 +205,6 @@
 
   /* Primary button hotkey styles imported from ../styles/hotkey.css */
 
-
   .number-pad {
     display: flex;
     flex-direction: column;

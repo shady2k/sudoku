@@ -28,7 +28,7 @@ describe('Cell Component - Rendering', () => {
     col: 0,
     value: 0,
     isClue: false,
-    isError: false,
+    isMistake: false,
     manualCandidates: new Set<number>(),
     autoCandidates: null,
     ...overrides,
@@ -43,7 +43,7 @@ describe('Cell Component - Rendering', () => {
     const button = screen.getByRole('button');
     expect(button).toBeInTheDocument();
     expect(button).toHaveClass('cell');
-    expect(button).not.toHaveClass('clue', 'selected', 'related', 'error');
+    expect(button).not.toHaveClass('clue', 'selected', 'related', 'mistake');
   });
 
   it('should render cell with value', () => {
@@ -88,23 +88,23 @@ describe('Cell Component - Rendering', () => {
   });
 
   it('should render error cell with error styling', () => {
-    const cell = createMockCell({ value: 5, isError: true });
+    const cell = createMockCell({ value: 5, isMistake: true });
     const onSelect = vi.fn();
 
     render(Cell, { cell, isSelected: false, isRelated: false, onSelect });
 
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('error');
+    expect(button).toHaveClass('mistake');
   });
 
   it('should render cell with multiple states', () => {
-    const cell = createMockCell({ value: 8, isError: true });
+    const cell = createMockCell({ value: 8, isMistake: true });
     const onSelect = vi.fn();
 
     render(Cell, { cell, isSelected: true, isRelated: true, onSelect });
 
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('selected', 'related', 'error');
+    expect(button).toHaveClass('selected', 'related', 'mistake');
   });
 });
 
@@ -114,7 +114,7 @@ describe('Cell Component - Data Attributes', () => {
     col: 0,
     value: 0,
     isClue: false,
-    isError: false,
+    isMistake: false,
     manualCandidates: new Set<number>(),
     autoCandidates: null,
     ...overrides,
@@ -147,7 +147,7 @@ describe('Cell Component - Touch Targets (FR-020)', () => {
     col: 0,
     value: 0,
     isClue: false,
-    isError: false,
+    isMistake: false,
     manualCandidates: new Set<number>(),
     autoCandidates: null,
     ...overrides,
@@ -174,7 +174,7 @@ describe('Cell Component - Candidate Numbers', () => {
     col: 0,
     value: 0,
     isClue: false,
-    isError: false,
+    isMistake: false,
     manualCandidates: new Set<number>(),
     autoCandidates: null,
     ...overrides,
@@ -287,7 +287,7 @@ describe('Cell Component - Interaction', () => {
     col: 0,
     value: 0,
     isClue: false,
-    isError: false,
+    isMistake: false,
     manualCandidates: new Set<number>(),
     autoCandidates: null,
     ...overrides,
@@ -341,7 +341,7 @@ describe('Cell Component - Accessibility', () => {
     col: 0,
     value: 0,
     isClue: false,
-    isError: false,
+    isMistake: false,
     manualCandidates: new Set<number>(),
     autoCandidates: null,
     ...overrides,
@@ -374,7 +374,7 @@ describe('Cell Component - Visual Feedback', () => {
     col: 0,
     value: 0,
     isClue: false,
-    isError: false,
+    isMistake: false,
     manualCandidates: new Set<number>(),
     autoCandidates: null,
     ...overrides,
@@ -407,13 +407,13 @@ describe('Cell Component - Visual Feedback', () => {
   });
 
   it('should show error styling when cell has error', () => {
-    const cell = createMockCell({ value: 5, isError: true });
+    const cell = createMockCell({ value: 5, isMistake: true });
     const onSelect = vi.fn();
 
     render(Cell, { cell, isSelected: false, isRelated: false, onSelect });
 
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('error');
+    expect(button).toHaveClass('mistake');
   });
 
   it('should combine selected and related styling', () => {

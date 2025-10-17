@@ -148,7 +148,7 @@ interface SerializedCell {
   col: number;
   value: number;
   isClue: boolean;
-  isError: boolean;
+  isMistake: boolean;
   manualCandidates: number[];
   autoCandidates: number[] | null;
 }
@@ -171,7 +171,7 @@ interface SerializedSession {
   pausedAt: number | null;
   isAutoPaused: boolean;
   difficultyLevel: number;
-  errorCount: number;
+  mistakeCount: number;
   isCompleted: boolean;
   lastActivityAt: number;
   lastTimerUpdate: number;
@@ -321,7 +321,7 @@ export async function saveGameRecord(record: GameRecord): Promise<Result<void>> 
           ...r,
           isPersonalBest: {
             fastestTime: sameLevel.length === 0 || r.totalTime < Math.min(...sameLevel.map(h => h.totalTime)),
-            fewestErrors: sameLevel.length === 0 || r.errorCount < Math.min(...sameLevel.map(h => h.errorCount))
+            fewestMistakes: sameLevel.length === 0 || r.mistakeCount < Math.min(...sameLevel.map(h => h.mistakeCount))
           }
         };
       }
@@ -408,7 +408,7 @@ export function getDefaultPreferences(): UserPreferences {
     theme: {
       darkMode: false,
       highlightColor: '#e3f2fd',
-      errorColor: '#ffcdd2'
+      mistakeColor: '#ffcdd2'
     },
     keyboardShortcuts: {
       undo: 'z',

@@ -71,7 +71,7 @@ describe('Storage Service Integration', () => {
       expect(loadedSession.difficultyLevel).toBe(originalSession.difficultyLevel);
       expect(loadedSession.startTime).toBe(originalSession.startTime);
       expect(loadedSession.elapsedTime).toBe(originalSession.elapsedTime);
-      expect(loadedSession.errorCount).toBe(originalSession.errorCount);
+      expect(loadedSession.mistakeCount).toBe(originalSession.mistakeCount);
       expect(loadedSession.isCompleted).toBe(originalSession.isCompleted);
       expect(loadedSession.isPaused).toBe(originalSession.isPaused);
 
@@ -92,7 +92,7 @@ describe('Storage Service Integration', () => {
 
           expect(loadedCell?.value).toBe(originalCell?.value);
           expect(loadedCell?.isClue).toBe(originalCell?.isClue);
-          expect(loadedCell?.isError).toBe(originalCell?.isError);
+          expect(loadedCell?.isMistake).toBe(originalCell?.isMistake);
 
           // Verify Sets were restored correctly
           expect(loadedCell?.manualCandidates).toBeInstanceOf(Set);
@@ -229,12 +229,12 @@ describe('Storage Service Integration', () => {
         recordId: 'test-123',
         completedAt: Date.now(),
         totalTime: 300000, // 5 minutes
-        errorCount: 3,
+        mistakeCount: 3,
         difficultyLevel: 50,
         puzzleId: 'puzzle-123',
         isPersonalBest: {
           fastestTime: false,
-          fewestErrors: false
+          fewestMistakes: false
         }
       };
 
@@ -247,7 +247,7 @@ describe('Storage Service Integration', () => {
       expect(history.length).toBe(1);
       expect(history[0]?.recordId).toBe('test-123');
       expect(history[0]?.totalTime).toBe(300000);
-      expect(history[0]?.errorCount).toBe(3);
+      expect(history[0]?.mistakeCount).toBe(3);
     });
 
     it('should calculate personal bests correctly', async () => {
@@ -256,7 +256,7 @@ describe('Storage Service Integration', () => {
         recordId: 'record-1',
         completedAt: Date.now(),
         totalTime: 300000,
-        errorCount: 5,
+        mistakeCount: 5,
         difficultyLevel: 50,
         puzzleId: 'puzzle-1',
         isPersonalBest: { fastestTime: false, fewestErrors: false }
@@ -268,7 +268,7 @@ describe('Storage Service Integration', () => {
         recordId: 'record-2',
         completedAt: Date.now() + 1000,
         totalTime: 240000, // Faster
-        errorCount: 3, // Fewer errors
+        mistakeCount: 3, // Fewer errors
         difficultyLevel: 50,
         puzzleId: 'puzzle-2',
         isPersonalBest: { fastestTime: false, fewestErrors: false }
@@ -281,7 +281,7 @@ describe('Storage Service Integration', () => {
 
       const latest = history[0];
       expect(latest?.isPersonalBest.fastestTime).toBe(true);
-      expect(latest?.isPersonalBest.fewestErrors).toBe(true);
+      expect(latest?.isPersonalBest.fewestMistakes).toBe(true);
     });
 
     it('should maintain max 1000 records', async () => {
@@ -291,7 +291,7 @@ describe('Storage Service Integration', () => {
           recordId: `record-${i}`,
           completedAt: Date.now() + i,
           totalTime: 300000,
-          errorCount: 0,
+          mistakeCount: 0,
           difficultyLevel: 50,
           puzzleId: `puzzle-${i}`,
           isPersonalBest: { fastestTime: false, fewestErrors: false }
@@ -315,7 +315,7 @@ describe('Storage Service Integration', () => {
           recordId: `record-${i}`,
           completedAt: Date.now() + i,
           totalTime: 300000,
-          errorCount: 0,
+          mistakeCount: 0,
           difficultyLevel: 50,
           puzzleId: `puzzle-${i}`,
           isPersonalBest: { fastestTime: false, fewestErrors: false }
@@ -360,7 +360,7 @@ describe('Storage Service Integration', () => {
         theme: {
           darkMode: true,
           highlightColor: '#fff3e0',
-          errorColor: '#ffab91'
+          mistakeColor: '#ffab91'
         },
         keyboardShortcuts: {
           undo: 'u',
