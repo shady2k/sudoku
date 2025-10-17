@@ -77,8 +77,8 @@ test.describe('Candidate Numbers Feature', () => {
     await targetCell.click();
 
     // Cell should be selected (wrapper should have selected class)
-    const row = await targetCell.getAttribute('data-row');
-    const col = await targetCell.getAttribute('data-col');
+    await targetCell.getAttribute('data-row');
+    await targetCell.getAttribute('data-col');
     const cellWrapper = page.locator(`.cell-wrapper[class*="selected"]`).first();
     await expect(cellWrapper).toBeVisible();
 
@@ -112,7 +112,7 @@ test.describe('Candidate Numbers Feature', () => {
     await page.keyboard.press('ArrowDown');
 
     // Cell (1,1) should now be selected
-    const targetCell = page.locator('button.cell[data-row="1"][data-col="1"]');
+    page.locator('button.cell[data-row="1"][data-col="1"]');
     const targetWrapper = page.locator('.cell-wrapper').nth(10); // Row 1 * 9 + Col 1 = index 10
     await expect(targetWrapper).toHaveClass(/selected/);
   });
@@ -446,12 +446,12 @@ test.describe('Candidate Numbers Feature', () => {
     }
   });
 
-  test.skip('should restore eliminated candidates on undo (FR-012 + FR-022)', async ({ page }) => {
+  test.skip('should restore eliminated candidates on undo (FR-012 + FR-022)', async () => {
     // Note: This test requires undo functionality to be implemented
     // Currently skipped as undo buttons may not be available
   });
 
-  test.skip('should re-apply candidate elimination on redo (FR-012 + FR-022)', async ({ page }) => {
+  test.skip('should re-apply candidate elimination on redo (FR-012 + FR-022)', async () => {
     // Note: This test requires redo functionality to be implemented
     // Currently skipped as redo buttons may not be available
   });

@@ -133,7 +133,7 @@ test.describe('Full Gameplay Flow', () => {
     }
 
     const row = parseInt(clueDataRow);
-    const col = parseInt(clueDataCol);
+    parseInt(clueDataCol);
 
     // Find an empty cell in the same row
     const emptyCellInRow = page.locator(`.cell[data-row="${row}"]:not(.clue)`).first();
@@ -187,7 +187,7 @@ test.describe('Full Gameplay Flow', () => {
     // Verify candidates appear in empty cells
     // Find an empty cell and check if it has candidate numbers
     const emptyCell = page.locator('.cell:not(.clue)').first();
-    const candidates = emptyCell.locator('.candidates');
+    emptyCell.locator('.candidates');
 
     // Candidates might not be visible depending on implementation
     // This is a basic check that the button is functional
