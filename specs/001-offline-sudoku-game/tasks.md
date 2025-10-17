@@ -2,10 +2,12 @@
 
 **Feature**: Offline Sudoku Game
 **Branch**: `001-offline-sudoku-game`
-**Date**: 2025-10-16
-**Total Tasks**: 149
+**Date**: 2025-10-17 (Updated)
+**Total Tasks**: 157
 
 This document provides a dependency-ordered task list for implementing the offline Sudoku game. Tasks are organized by user story (P1, P2, P3) following the Test-Driven Development (TDD) approach mandated by Constitution Principle III.
+
+**Latest Update (2025-10-17)**: Added Phase 6a (8 tasks: T089a-T089h) for automatic candidate elimination feature (FR-012) clarified today.
 
 ---
 
@@ -254,6 +256,42 @@ This document provides a dependency-ordered task list for implementing the offli
 
 ---
 
+## Phase 6a: Automatic Candidate Elimination (FR-012) (8 tasks)
+
+**Goal**: Implement automatic candidate elimination when valid moves are made per FR-012 clarified 2025-10-17. When a player enters a valid number, automatically remove that number from candidates in all cells in the same row, column, and 3x3 square. Invalid moves (rule violations) do NOT trigger elimination.
+
+**Independent Test Criteria**: Enter valid number in cell with candidates present, verify number automatically removed from related cells' candidates; enter invalid number, verify NO elimination occurs; undo move, verify eliminated candidates fully restored.
+
+**NEW REQUIREMENT (2025-10-17)**: This is in ADDITION to the Fill Candidates feature (Phase 6). Key clarifications:
+- Timing: Immediate (real-time on valid entry)
+- Scope: ALL candidates (manual + auto-generated)
+- Range: Same row, column, AND 3x3 square
+- Validation: Only on valid moves (no elimination on rule violations)
+- Undo: Full state restoration with eliminated candidates snapshot
+
+### Tasks
+
+#### Automatic Elimination Logic (TDD)
+
+- [ ] T089a [P] [US4] TEST: Write automatic candidate elimination tests in tests/integration/candidate-elimination.test.ts - verify elimination on valid move, no elimination on invalid move, affected cells identified correctly
+- [ ] T089b [US4] Implement eliminateCandidatesFromRelatedCells() function in src/lib/services/GameValidator.ts per FR-012 - takes cell position and value, returns Map of affected cells and eliminated candidates
+- [ ] T089c [US4] Update makeMove() in GameSession.ts to call eliminateCandidatesFromRelatedCells() ONLY when move is valid (passes Sudoku rules) per FR-012
+- [ ] T089d [US4] Add eliminatedCandidates field to Action interface in ActionHistory.ts per updated data-model.md - stores Map<cellIndex, Set<number>> for undo restoration
+
+#### Undo/Redo Integration (TDD)
+
+- [ ] T089e [P] [US4] TEST: Write undo with candidate restoration tests in tests/unit/stores/gameStore.test.ts - verify undoing valid move restores eliminated candidates to exact previous state per FR-022
+- [ ] T089f [US4] Update undoMove() in gameStore.svelte.ts to restore eliminatedCandidates from action history per FR-022 - iterate through Map and restore each candidate to affected cells
+- [ ] T089g [US4] Update redoMove() in gameStore.svelte.ts to re-apply candidate elimination when redoing a valid move
+
+#### E2E Tests
+
+- [ ] T089h [US4] Implement E2E test for automatic candidate elimination flow in tests/e2e/auto-elimination.spec.ts - complete scenario: add candidates, make valid moves, verify elimination, undo, verify restoration
+
+**Deliverable**: Automatic candidate elimination on valid moves with full undo/redo support. Completes FR-012 requirement clarified 2025-10-17.
+
+---
+
 ## Phase 7: User Story 5 - Flexible Difficulty Selection (P2) (6 tasks)
 
 **Goal**: Implement continuous difficulty slider (1-10) per FR-021, replacing fixed presets.
@@ -462,6 +500,8 @@ Phase 5: US3 (P1) ← depends on US1 (needs game grid and controls)
   ↓
 Phase 6: US4 (P2) ← depends on US1 (needs cell state and validation)
   ↓
+Phase 6a: Automatic Candidate Elimination (FR-012) ← depends on Phase 6 (needs candidates), Phase 11 (needs undo/redo for restoration)
+  ↓
 Phase 7: US5 (P2) ← depends on US1 (needs puzzle generator)
   ↓
 Phase 8: US6 (P2) ← depends on US1 (needs cell selection)
@@ -576,10 +616,12 @@ Phase 15: Mobile ← depends on all previous phases (final optimization)
 
 ---
 
-**Total Tasks**: 149 (T001-T146 + T080a + T080b)
+**Total Tasks**: 157 (T001-T146 + T080a + T080b + T089a-T089h)
 **MVP Tasks**: 47 (Phases 1-3)
 **P1 Tasks**: 73 (Phases 1-5, including T080a and T080b)
-**P2 Tasks**: 92 (Phases 1-8)
-**P3 Tasks**: 125 (Phases 1-10)
+**P2 Tasks**: 100 (Phases 1-8, including Phase 6a with 8 new tasks)
+**P3 Tasks**: 133 (Phases 1-10)
+
+**New Tasks (2025-10-17)**: Phase 6a adds 8 tasks (T089a-T089h) for automatic candidate elimination (FR-012)
 
 **Estimated Timeline**: 6-8 weeks full implementation, 2 weeks MVP

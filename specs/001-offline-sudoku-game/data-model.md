@@ -89,9 +89,10 @@ interface Cell {
 - `autoCandidates` is null when "Show Candidates" is off, regenerated on demand
 
 **State Transitions:**
-- Empty → Filled: User enters number (triggers validation, updates candidates)
+- Empty → Filled: User enters number (triggers validation, automatic candidate elimination per FR-012 if valid)
 - Filled → Empty: User deletes number (clears error state, restores candidates)
 - Error detection: Triggered on every cell value change or focus change (FR-010)
+- Automatic Candidate Elimination (FR-012): When valid number entered in any cell, that number is automatically removed from candidates in all cells in the same row, column, and 3x3 square; invalid entries (rule violations) do NOT trigger elimination
 
 **3x3 Box Calculation:**
 ```typescript
@@ -206,6 +207,14 @@ interface Action {
 
   /** Timestamp when action occurred */
   timestamp: number;
+
+  /**
+   * Candidates eliminated by automatic elimination (FR-012)
+   * Only populated when type is 'SET_VALUE' and the value is valid
+   * Maps cell index to Set of candidates that were removed
+   * Used for full state restoration on undo
+   */
+  eliminatedCandidates?: Map<number, Set<number>>;
 }
 ```
 
@@ -216,9 +225,9 @@ interface Action {
 - `maxSize` fixed at 50
 
 **Operations:**
-- **Push**: Add new action, truncate future actions if not at end, enforce size limit
-- **Undo**: Revert to `actions[currentIndex - 1]`, decrement `currentIndex`
-- **Redo**: Apply `actions[currentIndex + 1]`, increment `currentIndex`
+- **Push**: Add new action, truncate future actions if not at end, enforce size limit; for 'SET_VALUE' actions with valid moves, capture `eliminatedCandidates` snapshot for undo restoration (FR-012, FR-022)
+- **Undo**: Revert to `actions[currentIndex - 1]`, decrement `currentIndex`; if action has `eliminatedCandidates`, restore all eliminated candidates to affected cells (full state restoration per FR-022)
+- **Redo**: Apply `actions[currentIndex + 1]`, increment `currentIndex`; re-apply candidate elimination if action has `eliminatedCandidates`
 
 **Pers istance:**
 - Saved with `GameSession` to LocalStorage
