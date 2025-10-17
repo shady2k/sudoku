@@ -17,6 +17,7 @@ vi.mock('../../../src/lib/stores/gameStore.svelte', () => {
   const mockSelectCell = vi.fn();
   const mockMakeMove = vi.fn();
   const mockSetManualCandidates = vi.fn();
+  const mockClearCell = vi.fn();
 
   return {
     gameStore: {
@@ -24,9 +25,11 @@ vi.mock('../../../src/lib/stores/gameStore.svelte', () => {
       isLoading: false,
       error: null,
       currentTime: Date.now(),
+      notesMode: false,
       selectCell: mockSelectCell,
       makeMove: mockMakeMove,
       setManualCandidates: mockSetManualCandidates,
+      clearCell: mockClearCell,
     },
   };
 });
@@ -37,6 +40,7 @@ import { gameStore } from '../../../src/lib/stores/gameStore.svelte';
 // Extract mocks for testing
 const mockSelectCell = gameStore.selectCell as ReturnType<typeof vi.fn>;
 const mockMakeMove = gameStore.makeMove as ReturnType<typeof vi.fn>;
+const mockClearCell = gameStore.clearCell as ReturnType<typeof vi.fn>;
 
 describe('SudokuGrid Component', () => {
   const user = userEvent.setup();
@@ -354,7 +358,7 @@ describe('SudokuGrid Component', () => {
 
       await user.keyboard('{Delete}');
 
-      expect(mockMakeMove).toHaveBeenCalledWith({ row: 2, col: 2 }, 0);
+      expect(mockClearCell).toHaveBeenCalledWith({ row: 2, col: 2 });
     });
 
     it('should clear cell with Backspace key', async () => {
@@ -367,7 +371,7 @@ describe('SudokuGrid Component', () => {
 
       await user.keyboard('{Backspace}');
 
-      expect(mockMakeMove).toHaveBeenCalledWith({ row: 1, col: 1 }, 0);
+      expect(mockClearCell).toHaveBeenCalledWith({ row: 1, col: 1 });
     });
 
     it('should not allow editing clue cells with keyboard', () => {

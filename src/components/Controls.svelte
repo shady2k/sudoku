@@ -1,6 +1,6 @@
 <script lang="ts">
   import { gameStore } from '../lib/stores/gameStore.svelte';
-  import type { CellValue } from '../lib/models/types';
+  import type { CellValue, SudokuNumber } from '../lib/models/types';
 
   interface Props {
     onNewGame: () => Promise<void>;
@@ -32,7 +32,7 @@
       if (cell?.isClue) {
         // Deselect and highlight the number instead (FR-013)
         gameStore.selectCell(null);
-        gameStore.setHighlightedNumber(value as import('../lib/models/types').SudokuNumber);
+        gameStore.setHighlightedNumber(value as SudokuNumber);
         return;
       }
 
@@ -52,7 +52,7 @@
       }
     } else {
       // No selected cell - use numpad for highlighting (FR-013)
-      gameStore.setHighlightedNumber(value as import('../lib/models/types').SudokuNumber);
+      gameStore.setHighlightedNumber(value as SudokuNumber);
     }
   }
 

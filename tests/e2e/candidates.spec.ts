@@ -219,7 +219,6 @@ test.describe('Candidate Numbers Feature', () => {
     // Manual candidates should be cleared (cell should be empty or show only auto-candidates)
     // Verify cell didn't get filled with a value
     const cellText = await emptyCell.textContent();
-    const hasDigit = /[1-9]/.test(cellText || '');
     // If there's a single digit, it means the cell was filled, which is wrong
     // The cell should either be empty or have small candidate numbers
     expect(cellText?.trim().length).not.toBe(1);

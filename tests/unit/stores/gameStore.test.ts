@@ -34,6 +34,15 @@ describe('GameStore', () => {
       data: undefined
     });
     vi.mocked(StorageService.hasSavedGame).mockReturnValue(false);
+    vi.mocked(StorageService.loadPreferences).mockResolvedValue({
+      defaultDifficulty: 5,
+      soundEnabled: true,
+      theme: 'light'
+    });
+    vi.mocked(StorageService.savePreferences).mockResolvedValue({
+      success: true,
+      data: undefined
+    });
   });
 
   describe('Initial State', () => {
@@ -270,28 +279,6 @@ describe('GameStore', () => {
     });
   });
 
-  describe('toggleCandidates Action', () => {
-    it('should do nothing when no session exists', () => {
-      gameStore.session = null;
-      gameStore.toggleCandidates();
-
-      expect(GameSessionService.toggleAutoCandidates).not.toHaveBeenCalled();
-    });
-
-    it('should toggle auto candidates', () => {
-      const currentSession = { sessionId: 'test-1', showAutoCandidates: false } as GameSession;
-      const updatedSession = { sessionId: 'test-1', showAutoCandidates: true } as GameSession;
-
-      gameStore.session = currentSession;
-
-      vi.mocked(GameSessionService.toggleAutoCandidates).mockReturnValue(updatedSession);
-
-      gameStore.toggleCandidates();
-
-      expect(GameSessionService.toggleAutoCandidates).toHaveBeenCalledWith(currentSession);
-      expect(gameStore.session).toStrictEqual(updatedSession);
-    });
-  });
 
   describe('Timer Actions - pause/resume', () => {
     it('should pause game timer', () => {

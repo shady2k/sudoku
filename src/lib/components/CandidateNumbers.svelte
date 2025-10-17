@@ -7,6 +7,7 @@
 
 <script lang="ts">
   import type { Cell } from '../models/types';
+  import { gameStore } from '../stores/gameStore.svelte.ts';
 
   export interface Props {
     /** The cell to display candidates for */
@@ -15,21 +16,53 @@
 
   const { cell }: Props = $props();
 
-  // Compute candidates reactively - only manual candidates now
+  // Compute candidates reactively
   const manualCandidates = $derived(Array.from(cell.manualCandidates).sort());
-  const hasCandidates = $derived(manualCandidates.length > 0);
+  const autoCandidates = $derived(
+    cell.autoCandidates ? Array.from(cell.autoCandidates).sort() : []
+  );
+
+  // Show auto candidates when enabled in session
+  const showAutoCandidates = $derived(
+    gameStore.session?.showAutoCandidates && autoCandidates.length > 0
+  );
+
+  // Combined candidates for display (union of manual and auto)
+  const displayCandidates = $derived.by(() => {
+    if (manualCandidates.length > 0 && showAutoCandidates) {
+      // Show union of both (all unique candidates)
+      const combined = new Set([...manualCandidates, ...autoCandidates]);
+      return Array.from(combined).sort();
+    } else if (manualCandidates.length > 0) {
+      // Only manual candidates
+      return manualCandidates;
+    } else if (showAutoCandidates) {
+      // Only auto candidates
+      return autoCandidates;
+    }
+    return [];
+  });
+
+  const hasCandidates = $derived(displayCandidates.length > 0);
   const isEmpty = $derived(cell.value === 0 && !cell.isClue);
+
+  // Helper to check if a candidate is manual (for styling)
+  const isManualCandidate = (num: number): boolean => {
+    return manualCandidates.includes(num);
+  };
 </script>
 
 {#if isEmpty}
-  <div class="candidates-container" data-testid="candidates-container" aria-label="Candidate numbers: {manualCandidates.join(', ')}">
+  <div class="candidates-container" data-testid="candidates-container" aria-label="Candidate numbers: {displayCandidates.join(', ')}">
     {#if hasCandidates}
       <div class="candidates-grid">
         <!-- Row 1 -->
         {#each [1, 2, 3] as num}
-          {#if manualCandidates.includes(num)}
+          {#if displayCandidates.includes(num)}
             <span
               class="candidate-number"
+              class:manual-candidate={isManualCandidate(num)}
+              class:auto-candidate={!isManualCandidate(num)}
               data-testid={`candidate-${num}`}
               aria-label={`Candidate number ${num}`}
             >
@@ -41,9 +74,11 @@
         {/each}
         <!-- Row 2 -->
         {#each [4, 5, 6] as num}
-          {#if manualCandidates.includes(num)}
+          {#if displayCandidates.includes(num)}
             <span
               class="candidate-number"
+              class:manual-candidate={isManualCandidate(num)}
+              class:auto-candidate={!isManualCandidate(num)}
               data-testid={`candidate-${num}`}
               aria-label={`Candidate number ${num}`}
             >
@@ -55,9 +90,11 @@
         {/each}
         <!-- Row 3 -->
         {#each [7, 8, 9] as num}
-          {#if manualCandidates.includes(num)}
+          {#if displayCandidates.includes(num)}
             <span
               class="candidate-number"
+              class:manual-candidate={isManualCandidate(num)}
+              class:auto-candidate={!isManualCandidate(num)}
               data-testid={`candidate-${num}`}
               aria-label={`Candidate number ${num}`}
             >
@@ -112,10 +149,16 @@
     visibility: hidden;
   }
 
-  /* All candidates are manual now */
-  .candidate-number:not(.empty) {
+  /* Manual candidates - darker and bolder */
+  .candidate-number.manual-candidate {
     color: #000;
-    font-weight: 500;
+    font-weight: 600;
+  }
+
+  /* Auto candidates - lighter and grayed out */
+  .candidate-number.auto-candidate {
+    color: #999;
+    font-weight: 400;
   }
 
   /* Mobile responsive - ensure touch targets */
