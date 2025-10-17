@@ -29,13 +29,11 @@
 <svelte:window on:keydown={handleKeyDown} />
 
 <div class="notes-mode-toggle">
-  <label for="notes-mode-switch" class="toggle-label">
-    NOTES MODE <kbd>N</kbd>
-  </label>
   <div id="notes-mode-switch"
        class="toggle-switch"
        role="radiogroup"
-       aria-label="Input mode selection">
+       aria-label="Input mode selection"
+       title="Toggle notes mode (N)">
     <button type="button"
             role="radio"
             aria-checked={!gameStore.notesMode}
@@ -44,7 +42,7 @@
             data-mode="fill"
             onclick={(): void => handleToggle('fill')}
             aria-label="Fill mode - enter numbers directly">
-      <span>FILL</span>
+      <span class="btn-text">FILL</span>
     </button>
     <button type="button"
             role="radio"
@@ -54,7 +52,8 @@
             data-mode="notes"
             onclick={(): void => handleToggle('notes')}
             aria-label="Notes mode - enter candidate marks">
-      <span>NOTES</span>
+      <span class="btn-text">NOTES</span>
+      <span class="hotkey">N</span>
     </button>
   </div>
 </div>
@@ -62,34 +61,8 @@
 <style>
   .notes-mode-toggle {
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .toggle-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #6b7280;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .toggle-label kbd {
-    display: inline-flex;
-    align-items: center;
     justify-content: center;
-    padding: 0.125rem 0.375rem;
-    background: #f3f4f6;
-    border: 1px solid #d1d5db;
-    border-radius: 0.25rem;
-    font-size: 0.625rem;
-    font-weight: 600;
-    font-family: monospace;
-    color: #374151;
+    width: 100%;
   }
 
   .toggle-switch {
@@ -117,6 +90,25 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .btn-text {
+    flex-shrink: 0;
+  }
+
+  .hotkey {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.125rem 0.375rem;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 0.25rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    font-family: monospace;
+    color: inherit;
+    min-width: 1.25rem;
   }
 
   .toggle-option:hover:not(.active) {
@@ -154,11 +146,12 @@
     box-shadow: 0 1px 3px rgba(139, 92, 246, 0.3);
   }
 
-  @media (max-width: 767px) {
-    .notes-mode-toggle {
-      margin-bottom: 1rem;
-    }
+  .toggle-option[data-mode="notes"].active .hotkey {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+  }
 
+  @media (max-width: 767px) {
     .toggle-option {
       min-height: 48px;
       font-size: 0.9375rem;

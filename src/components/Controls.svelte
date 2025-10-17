@@ -1,7 +1,6 @@
 <script lang="ts">
   import { gameStore } from '../lib/stores/gameStore.svelte';
   import type { CellValue } from '../lib/models/types';
-  import NotesModeToggle from './NotesModeToggle.svelte';
 
   interface Props {
     onNewGame: () => Promise<void>;
@@ -61,7 +60,6 @@
 
 <div class="controls">
   {#if gameStore.session && !gameStore.session.isCompleted}
-    <NotesModeToggle />
     <div class="number-pad">
       <div class="number-pad-grid">
         {#each Array.from({ length: 9 }, (_, i) => i + 1) as num}

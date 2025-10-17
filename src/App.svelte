@@ -2,6 +2,7 @@
   import SudokuGrid from './components/SudokuGrid.svelte';
   import Controls from './components/Controls.svelte';
   import ResumeModal from './components/ResumeModal.svelte';
+  import NotesModeToggle from './components/NotesModeToggle.svelte';
   import { gameStore } from './lib/stores/gameStore.svelte';
   import { onMount, onDestroy } from 'svelte';
   import { hasSavedGame } from './lib/services/StorageService';
@@ -129,7 +130,12 @@
   <div class="game-container">
     <!-- T080b: Desktop layout with grid on left and number pad on right -->
     <div class="game-layout">
-      <SudokuGrid />
+      <div class="left-panel">
+        {#if gameStore.session && !gameStore.session.isCompleted}
+          <NotesModeToggle />
+        {/if}
+        <SudokuGrid />
+      </div>
       <div class="right-panel">
         <!-- Compact stats row inspired by reference -->
         <div class="stats-row">
@@ -233,6 +239,14 @@
     align-items: center;
     justify-content: center;
     min-height: 500px;
+  }
+
+  .left-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    align-items: center;
   }
 
   .right-panel {
@@ -361,9 +375,16 @@
       display: grid;
       grid-template-columns: auto auto;
       gap: 2.5rem;
-      align-items: center;
+      align-items: start;
       justify-content: center;
       min-height: auto;
+    }
+
+    .left-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: center;
     }
 
     .right-panel {
