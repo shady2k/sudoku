@@ -22,7 +22,7 @@
     }, 100);
 
     // Flush pending saves before page unload
-    const handleBeforeUnload = () => {
+    const handleBeforeUnload = (): void => {
       if (gameStore.session) {
         gameStore.forceSave();
       }
@@ -42,7 +42,7 @@
     }
 
     // Cleanup beforeunload listener
-    return () => {
+    return (): void => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   });
