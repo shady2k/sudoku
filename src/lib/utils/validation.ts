@@ -60,7 +60,9 @@ export function getRelatedCells(position: CellPosition): readonly CellPosition[]
   // Convert back to CellPosition objects
   return Array.from(related).map(key => {
     const [r, c] = key.split(',').map(Number);
-    return { row: r!, col: c! };
+    const rowNum = r ?? 0;
+    const colNum = c ?? 0;
+    return { row: rowNum, col: colNum };
   });
 }
 
@@ -173,6 +175,26 @@ export function createValidator(board: readonly (readonly number[])[]): FastVali
   const colMasks = new Uint16Array(9);
   const boxMasks = new Uint16Array(9);
 
+  function clearValueFromMasks(row: number, col: number, box: number, value: number): void {
+    if (value >= 1 && value <= 9) {
+      const bit = 1 << (value - 1);
+      // Use bitwise AND with NOT to clear the bit
+      if (row < 9) rowMasks[row] = (rowMasks[row] ?? 0) & ~bit;
+      if (col < 9) colMasks[col] = (colMasks[col] ?? 0) & ~bit;
+      if (box < 9) boxMasks[box] = (boxMasks[box] ?? 0) & ~bit;
+    }
+  }
+
+  function setValueInMasks(row: number, col: number, box: number, value: number): void {
+    if (value >= 1 && value <= 9) {
+      const bit = 1 << (value - 1);
+      // Use bitwise OR to set the bit
+      if (row < 9) rowMasks[row] = (rowMasks[row] ?? 0) | bit;
+      if (col < 9) colMasks[col] = (colMasks[col] ?? 0) | bit;
+      if (box < 9) boxMasks[box] = (boxMasks[box] ?? 0) | bit;
+    }
+  }
+
   // Initialize masks from board state
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
@@ -207,23 +229,8 @@ export function createValidator(board: readonly (readonly number[])[]): FastVali
     updateMove(row: number, col: number, oldVal: number, newVal: number): void {
       const box = getBoxIndexFlat(row, col);
 
-      // Clear old value if present
-      if (oldVal >= 1 && oldVal <= 9) {
-        const oldBit = 1 << (oldVal - 1);
-        // Use bitwise AND with NOT to clear the bit
-        if (row < 9) rowMasks[row] = (rowMasks[row] ?? 0) & ~oldBit;
-        if (col < 9) colMasks[col] = (colMasks[col] ?? 0) & ~oldBit;
-        if (box < 9) boxMasks[box] = (boxMasks[box] ?? 0) & ~oldBit;
-      }
-
-      // Set new value if present
-      if (newVal >= 1 && newVal <= 9) {
-        const newBit = 1 << (newVal - 1);
-        // Use bitwise OR to set the bit
-        if (row < 9) rowMasks[row] = (rowMasks[row] ?? 0) | newBit;
-        if (col < 9) colMasks[col] = (colMasks[col] ?? 0) | newBit;
-        if (box < 9) boxMasks[box] = (boxMasks[box] ?? 0) | newBit;
-      }
+      clearValueFromMasks(row, col, box, oldVal);
+      setValueInMasks(row, col, box, newVal);
     },
 
     getRowMask(row: number): number {

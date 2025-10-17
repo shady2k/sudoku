@@ -9,24 +9,24 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { GameSession } from '../../../src/lib/models/types';
 
 // Mock localStorage
-const mockLocalStorage = (() => {
+const mockLocalStorage = ((): Storage => {
   let store: Record<string, string> = {};
 
   return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
+    getItem: (key: string): string | null => store[key] || null,
+    setItem: (key: string, value: string): void => {
       store[key] = value;
     },
-    removeItem: (key: string) => {
+    removeItem: (key: string): void => {
       delete store[key];
     },
-    clear: () => {
+    clear: (): void => {
       store = {};
     },
-    get length() {
+    get length(): number {
       return Object.keys(store).length;
     },
-    key: (index: number) => Object.keys(store)[index] || null
+    key: (index: number): string | null => Object.keys(store)[index] || null
   };
 })();
 
@@ -41,6 +41,50 @@ import {
   hasSavedGame,
   isLocalStorageAvailable
 } from '../../../src/lib/services/StorageService';
+
+// Helper function to create mock game session
+function createMockSession(): GameSession {
+  const cells = Array.from({ length: 9 }, (_, row) =>
+    Array.from({ length: 9 }, (_, col) => ({
+      row,
+      col,
+      value: 0,
+      isClue: false,
+      isError: false,
+      manualCandidates: new Set<number>(),
+      autoCandidates: null
+    }))
+  );
+
+  return {
+    sessionId: 'test-session-123',
+    puzzle: {
+      grid: Array.from({ length: 9 }, () => Array(9).fill(0)),
+      solution: Array.from({ length: 9 }, () => Array(9).fill(1)),
+      clues: Array.from({ length: 9 }, () => Array(9).fill(false)),
+      difficultyRating: 35,
+      puzzleId: 'test-puzzle-123',
+      generatedAt: Date.now()
+    },
+    board: Array.from({ length: 9 }, () => Array(9).fill(0)),
+    cells,
+    startTime: Date.now(),
+    elapsedTime: 0,
+    isPaused: false,
+    pausedAt: null,
+    difficultyLevel: 50,
+    errorCount: 0,
+    isCompleted: false,
+    lastActivityAt: Date.now(),
+    selectedCell: null,
+    showAutoCandidates: false,
+    history: {
+      actions: [],
+      currentIndex: 0,
+      maxSize: 50
+    }
+  };
+}
 
 describe('StorageService', () => {
   beforeEach(() => {
@@ -67,9 +111,7 @@ describe('StorageService', () => {
 
       expect(result.success).toBe(true);
 
-      // Debug: Check what's in localStorage
       const stored = mockLocalStorage.getItem('sudoku:current-session');
-      console.log('Stored data exists:', !!stored);
       expect(stored).toBeTruthy();
     });
 
@@ -118,7 +160,7 @@ describe('StorageService', () => {
     });
   });
 
-  describe('loadGameSession', () => {
+  describe('loadGameSession - basic operations', () => {
     it('should load saved game session from localStorage', async () => {
       const mockSession: GameSession = createMockSession();
       await saveGameSession(mockSession);
@@ -156,7 +198,9 @@ describe('StorageService', () => {
         expect(result.data.cells[0]![0]!.manualCandidates.size).toBe(3);
       }
     });
+  });
 
+  describe('loadGameSession - error handling', () => {
     it('should return failure when no saved game exists', async () => {
       const result = await loadGameSession();
 
@@ -206,47 +250,3 @@ describe('StorageService', () => {
     });
   });
 });
-
-// Helper function to create mock game session
-function createMockSession(): GameSession {
-  const cells = Array.from({ length: 9 }, (_, row) =>
-    Array.from({ length: 9 }, (_, col) => ({
-      row,
-      col,
-      value: 0,
-      isClue: false,
-      isError: false,
-      manualCandidates: new Set<number>(),
-      autoCandidates: null
-    }))
-  );
-
-  return {
-    sessionId: 'test-session-123',
-    puzzle: {
-      grid: Array.from({ length: 9 }, () => Array(9).fill(0)),
-      solution: Array.from({ length: 9 }, () => Array(9).fill(1)),
-      clues: Array.from({ length: 9 }, () => Array(9).fill(false)),
-      difficultyRating: 35,
-      puzzleId: 'test-puzzle-123',
-      generatedAt: Date.now()
-    },
-    board: Array.from({ length: 9 }, () => Array(9).fill(0)),
-    cells,
-    startTime: Date.now(),
-    elapsedTime: 0,
-    isPaused: false,
-    pausedAt: null,
-    difficultyLevel: 50,
-    errorCount: 0,
-    isCompleted: false,
-    lastActivityAt: Date.now(),
-    selectedCell: null,
-    showAutoCandidates: false,
-    history: {
-      actions: [],
-      currentIndex: 0,
-      maxSize: 50
-    }
-  };
-}

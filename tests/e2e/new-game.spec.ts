@@ -37,7 +37,7 @@ test.describe('New Game Functionality', () => {
     await page.keyboard.press('5');
 
     // Get the first cell value before new game
-    const firstCellBefore = await page.locator('[data-row="0"][data-col="0"]').textContent();
+    const _firstCellBefore = await page.locator('[data-row="0"][data-col="0"]').textContent();
 
     // Click "New Game" button
     await page.getByRole('button', { name: 'New Game' }).click();

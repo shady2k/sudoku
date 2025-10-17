@@ -33,7 +33,7 @@ vi.mock('../../../src/lib/stores/gameStore.svelte', () => {
 import { gameStore } from '../../../src/lib/stores/gameStore.svelte';
 
 // Extract mocks for testing
-const mockNewGame = gameStore.newGame as ReturnType<typeof vi.fn>;
+const _mockNewGame = gameStore.newGame as ReturnType<typeof vi.fn>;
 const mockPauseGame = gameStore.pauseGame as ReturnType<typeof vi.fn>;
 const mockResumeGame = gameStore.resumeGame as ReturnType<typeof vi.fn>;
 const mockToggleCandidates = gameStore.toggleCandidates as ReturnType<typeof vi.fn>;

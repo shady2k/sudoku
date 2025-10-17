@@ -7,25 +7,25 @@
 
 import { render, screen } from '@testing-library/svelte';
 import { describe, it, expect, beforeEach } from 'vitest';
-import userEvent from '@testing-library/user-event';
+import _userEvent from '@testing-library/user-event';
 import CandidateNumbers from '../../../src/lib/components/CandidateNumbers.svelte';
 
-describe('CandidateNumbers Component', () => {
-  const mockCell = {
-    row: 0,
-    col: 0,
-    value: 0,
-    isClue: false,
-    isError: false,
-    manualCandidates: new Set([1, 2, 3]),
-    autoCandidates: new Set([4, 5, 6])
-  };
+const mockCell = {
+  row: 0,
+  col: 0,
+  value: 0,
+  isClue: false,
+  isError: false,
+  manualCandidates: new Set([1, 2, 3]),
+  autoCandidates: new Set([4, 5, 6])
+};
 
-  beforeEach(() => {
-    // Reset any DOM state between tests
-    document.body.innerHTML = '';
-  });
+beforeEach(() => {
+  // Reset any DOM state between tests
+  document.body.innerHTML = '';
+});
 
+describe('CandidateNumbers Component - Rendering Conditions', () => {
   it('should render nothing when cell has a value', () => {
     const filledCell = { ...mockCell, value: 5 };
 
@@ -51,10 +51,42 @@ describe('CandidateNumbers Component', () => {
     expect(candidatesContainer).toBeInTheDocument();
   });
 
+  it('should handle empty candidate sets', () => {
+    const emptyCell = {
+      ...mockCell,
+      manualCandidates: new Set(),
+      autoCandidates: new Set()
+    };
+
+    render(CandidateNumbers, { cell: emptyCell });
+
+    const candidatesContainer = screen.getByTestId('candidates-container');
+
+    // Container should exist but be empty
+    expect(candidatesContainer).toBeInTheDocument();
+    expect(candidatesContainer.children.length).toBe(0);
+  });
+
+  it('should handle cell in error state', () => {
+    const errorCell = { ...mockCell, isError: true };
+
+    render(CandidateNumbers, { cell: errorCell });
+
+    const candidatesContainer = screen.getByTestId('candidates-container');
+
+    // Should still render candidates even if cell has error
+    expect(candidatesContainer).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+  });
+});
+
+describe('CandidateNumbers Component - Manual Candidates Display', () => {
   it('should display manual candidates correctly', () => {
     render(CandidateNumbers, { cell: mockCell });
 
-    const candidatesContainer = screen.getByTestId('candidates-container');
+    const _candidatesContainer = screen.getByTestId('candidates-container');
 
     // Should show manual candidates 1, 2, 3
     expect(screen.getByText('1')).toBeInTheDocument();
@@ -67,6 +99,21 @@ describe('CandidateNumbers Component', () => {
     expect(screen.queryByText('6')).toBeNull();
   });
 
+  it('should apply correct CSS classes to manual candidates', () => {
+    render(CandidateNumbers, { cell: mockCell });
+
+    const candidate1 = screen.getByText('1');
+    const candidate2 = screen.getByText('2');
+    const candidate3 = screen.getByText('3');
+
+    // Manual candidates should have manual-candidate class
+    expect(candidate1).toHaveClass('manual-candidate');
+    expect(candidate2).toHaveClass('manual-candidate');
+    expect(candidate3).toHaveClass('manual-candidate');
+  });
+});
+
+describe('CandidateNumbers Component - Auto Candidates Display', () => {
   it('should display auto candidates when enabled', () => {
     const cellWithAuto = { ...mockCell, autoCandidates: new Set([7, 8, 9]) };
 
@@ -103,19 +150,6 @@ describe('CandidateNumbers Component', () => {
     expect(screen.queryByText('9')).toBeNull();
   });
 
-  it('should apply correct CSS classes to manual candidates', () => {
-    render(CandidateNumbers, { cell: mockCell });
-
-    const candidate1 = screen.getByText('1');
-    const candidate2 = screen.getByText('2');
-    const candidate3 = screen.getByText('3');
-
-    // Manual candidates should have manual-candidate class
-    expect(candidate1).toHaveClass('manual-candidate');
-    expect(candidate2).toHaveClass('manual-candidate');
-    expect(candidate3).toHaveClass('manual-candidate');
-  });
-
   it('should apply correct CSS classes to auto candidates', () => {
     const cellWithAuto = { ...mockCell, autoCandidates: new Set([7, 8, 9]) };
 
@@ -133,37 +167,9 @@ describe('CandidateNumbers Component', () => {
     expect(candidate8).toHaveClass('auto-candidate');
     expect(candidate9).toHaveClass('auto-candidate');
   });
+});
 
-  it('should handle empty candidate sets', () => {
-    const emptyCell = {
-      ...mockCell,
-      manualCandidates: new Set(),
-      autoCandidates: new Set()
-    };
-
-    render(CandidateNumbers, { cell: emptyCell });
-
-    const candidatesContainer = screen.getByTestId('candidates-container');
-
-    // Container should exist but be empty
-    expect(candidatesContainer).toBeInTheDocument();
-    expect(candidatesContainer.children.length).toBe(0);
-  });
-
-  it('should handle cell in error state', () => {
-    const errorCell = { ...mockCell, isError: true };
-
-    render(CandidateNumbers, { cell: errorCell });
-
-    const candidatesContainer = screen.getByTestId('candidates-container');
-
-    // Should still render candidates even if cell has error
-    expect(candidatesContainer).toBeInTheDocument();
-    expect(screen.getByText('1')).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
-  });
-
+describe('CandidateNumbers Component - Accessibility and UX', () => {
   it('should be accessible with proper ARIA labels', () => {
     render(CandidateNumbers, { cell: mockCell });
 

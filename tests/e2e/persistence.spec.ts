@@ -142,7 +142,7 @@ test.describe('Game State Persistence', () => {
     await emptyCell.click();
     await page.keyboard.press('9');
 
-    const cellPosition = await emptyCell.getAttribute('data-row');
+    const _cellPosition = await emptyCell.getAttribute('data-row');
 
     // Wait for auto-save
     await page.waitForTimeout(3500);
@@ -227,7 +227,7 @@ test.describe('Game State Persistence', () => {
 
     // Get timer value before blur
     await page.waitForTimeout(1000);
-    const timeBeforeBlur = await page.locator('.time-display').textContent();
+    const _timeBeforeBlur = await page.locator('.time-display').textContent();
 
     // Open new tab (triggers blur)
     const newPage = await context.newPage();
@@ -442,7 +442,7 @@ test.describe('Game State Persistence', () => {
     expect(hasSavedGame).toBe(true);
 
     // The cell should not have '9' anymore (new puzzle)
-    const newCellValue = await emptyCell.textContent();
+    const _newCellValue = await emptyCell.textContent();
     // Can't guarantee it won't be '9' in new puzzle, but can verify it's playable
     const cellsCount = await page.locator('.cell').count();
     expect(cellsCount).toBe(81);

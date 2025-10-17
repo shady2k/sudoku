@@ -111,7 +111,7 @@ describe('GameStore', () => {
     });
   });
 
-  describe('newGame Action', () => {
+  describe('newGame Action - success cases', () => {
     it('should set isLoading true while creating game', async () => {
       const mockSession = { sessionId: 'test-123' } as GameSession;
 
@@ -154,7 +154,9 @@ describe('GameStore', () => {
 
       expect(GameSessionService.createGameSession).toHaveBeenCalledWith(7, 12345);
     });
+  });
 
+  describe('newGame Action - error cases', () => {
     it('should set error when game creation fails', async () => {
       vi.mocked(GameSessionService.createGameSession).mockResolvedValue({
         success: false,
@@ -291,7 +293,7 @@ describe('GameStore', () => {
     });
   });
 
-  describe('Timer Actions', () => {
+  describe('Timer Actions - pause/resume', () => {
     it('should pause game timer', () => {
       const now = Date.now();
       const currentSession = { sessionId: 'test-1', isPaused: false } as GameSession;
@@ -337,7 +339,7 @@ describe('GameStore', () => {
     });
   });
 
-  describe('updateTime Action', () => {
+  describe('updateTime Action - guards', () => {
     it('should do nothing when no session exists', () => {
       gameStore.session = null;
       gameStore.updateTime();
@@ -365,7 +367,9 @@ describe('GameStore', () => {
       expect(TimerService.shouldAutoPause).not.toHaveBeenCalled();
       expect(TimerService.updateTimer).not.toHaveBeenCalled();
     });
+  });
 
+  describe('updateTime Action - auto-pause', () => {
     it('should auto-pause when idle timeout reached', () => {
       const currentSession = {
         sessionId: 'test-1',

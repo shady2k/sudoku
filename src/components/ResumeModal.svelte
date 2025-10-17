@@ -35,27 +35,29 @@
     }
   });
 
-  function handleResumeClick() {
-    onResume();
+  function handleResumeClick(): void {
+    if (onResume) {
+      onResume();
+    }
     isOpen = false;
   }
 
-  function handleShowNewGame() {
+  function handleShowNewGame(): void {
     showDifficultySelector = true;
   }
 
-  function handleStartNewGame() {
+  function handleStartNewGame(): void {
     onNewGame(selectedDifficulty);
     isOpen = false;
     showDifficultySelector = false;
   }
 
-  function handleBack() {
+  function handleBack(): void {
     showDifficultySelector = false;
   }
 
   // Handle Escape key
-  function handleKeydown(event: KeyboardEvent) {
+  function handleKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
       if (showDifficultySelector) {
         handleBack();
@@ -68,7 +70,7 @@
 
 {#if isOpen}
   <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
+    <div class="modal" role="document">
       {#if showResumeOption}
         {#if !showDifficultySelector}
           <h2 id="modal-title">Welcome Back!</h2>

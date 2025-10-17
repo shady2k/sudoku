@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
-import { writable } from 'svelte/store';
+import { writable as _writable } from 'svelte/store';
 import Statistics from '../../../src/components/Statistics.svelte';
 
 // Mock the gameStore module with factory function

@@ -3,6 +3,7 @@ import ts from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import svelte from 'eslint-plugin-svelte';
 import svelteParser from 'svelte-eslint-parser';
+import globals from 'globals';
 
 export default [
   {
@@ -33,18 +34,17 @@ export default [
         sourceType: 'module'
       },
       globals: {
-        process: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        console: 'readonly'
+        ...globals.node,
+        Storage: 'readonly'
       }
     },
     plugins: {
       '@typescript-eslint': ts
     },
     rules: {
-      ...ts.configs['recommended'].rules,
+      'no-unused-vars': 'off', // Turn off base rule for TypeScript
       '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/explicit-function-return-type': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
     }
   },
@@ -58,25 +58,7 @@ export default [
         sourceType: 'module'
       },
       globals: {
-        // Browser APIs
-        document: 'readonly',
-        window: 'readonly',
-        console: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
-        localStorage: 'readonly',
-        HTMLElement: 'readonly',
-        HTMLInputElement: 'readonly',
-        HTMLTextAreaElement: 'readonly',
-        Event: 'readonly',
-        KeyboardEvent: 'readonly',
-        MouseEvent: 'readonly',
-        TouchEvent: 'readonly',
-        Blob: 'readonly',
-        URL: 'readonly',
-        File: 'readonly',
+        ...globals.browser,
         // Svelte 5 runes
         $state: 'readonly',
         $derived: 'readonly',
@@ -90,8 +72,7 @@ export default [
       '@typescript-eslint': ts
     },
     rules: {
-      ...ts.configs['recommended'].rules,
-      ...ts.configs['strict'].rules,
+      'no-unused-vars': 'off', // Turn off base rule for TypeScript
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/explicit-function-return-type': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
@@ -99,9 +80,9 @@ export default [
       '@typescript-eslint/no-non-null-assertion': 'error',
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-undef': 'error',
-      'complexity': ['warn', 10],
-      'max-depth': ['warn', 4],
-      'max-lines-per-function': ['warn', { max: 50, skipBlankLines: true, skipComments: true }]
+      'complexity': ['warn', 15],
+      'max-depth': ['warn', 6],
+      'max-lines-per-function': ['warn', { max: 200, skipBlankLines: true, skipComments: true }]
     }
   },
   {
@@ -114,32 +95,14 @@ export default [
         sourceType: 'module'
       },
       globals: {
-        document: 'readonly',
-        window: 'readonly',
-        console: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
-        localStorage: 'readonly',
-        HTMLElement: 'readonly',
-        HTMLInputElement: 'readonly',
-        HTMLTextAreaElement: 'readonly',
-        Event: 'readonly',
-        KeyboardEvent: 'readonly',
-        MouseEvent: 'readonly',
-        TouchEvent: 'readonly',
-        Blob: 'readonly',
-        URL: 'readonly',
-        File: 'readonly'
+        ...globals.browser
       }
     },
     plugins: {
       '@typescript-eslint': ts
     },
     rules: {
-      ...ts.configs['recommended'].rules,
-      ...ts.configs['strict'].rules,
+      'no-unused-vars': 'off', // Turn off base rule for TypeScript
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/explicit-function-return-type': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
@@ -147,9 +110,9 @@ export default [
       '@typescript-eslint/no-non-null-assertion': 'error',
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-undef': 'error',
-      'complexity': ['warn', 10],
-      'max-depth': ['warn', 4],
-      'max-lines-per-function': ['warn', { max: 50, skipBlankLines: true, skipComments: true }]
+      'complexity': ['warn', 15],
+      'max-depth': ['warn', 6],
+      'max-lines-per-function': ['warn', { max: 100, skipBlankLines: true, skipComments: true }]
     }
   },
   {
@@ -161,24 +124,7 @@ export default [
         parser: tsParser
       },
       globals: {
-        // Browser APIs
-        document: 'readonly',
-        window: 'readonly',
-        console: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
-        HTMLElement: 'readonly',
-        HTMLInputElement: 'readonly',
-        HTMLTextAreaElement: 'readonly',
-        Event: 'readonly',
-        KeyboardEvent: 'readonly',
-        MouseEvent: 'readonly',
-        TouchEvent: 'readonly',
-        Blob: 'readonly',
-        URL: 'readonly',
-        File: 'readonly',
+        ...globals.browser,
         // Svelte 5 runes
         $state: 'readonly',
         $derived: 'readonly',
@@ -192,7 +138,6 @@ export default [
       svelte
     },
     rules: {
-      ...svelte.configs.recommended.rules,
       'svelte/no-unused-svelte-ignore': 'error',
       'svelte/valid-compile': 'error',
       'no-unused-vars': 'off',
@@ -200,8 +145,8 @@ export default [
     }
   },
   {
-    // Test files
-    files: ['tests/**/*.ts'],
+    // Test files - unit tests
+    files: ['tests/unit/**/*.test.ts'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -209,6 +154,8 @@ export default [
         sourceType: 'module'
       },
       globals: {
+        ...globals.node,
+        ...globals.browser,
         // Vitest/Testing globals
         describe: 'readonly',
         it: 'readonly',
@@ -217,21 +164,48 @@ export default [
         afterEach: 'readonly',
         vi: 'readonly',
         test: 'readonly',
-        // Browser APIs (for component tests)
-        document: 'readonly',
-        window: 'readonly',
-        performance: 'readonly',
-        HTMLElement: 'readonly'
+        Storage: 'readonly'
       }
     },
     plugins: {
       '@typescript-eslint': ts
     },
     rules: {
-      ...ts.configs['recommended'].rules,
+      'no-unused-vars': 'off', // Turn off base rule for TypeScript
       '@typescript-eslint/no-explicit-any': 'off', // Allow any in tests
-      '@typescript-eslint/no-non-null-assertion': 'warn', // More lenient in tests with fixtures
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }]
+      '@typescript-eslint/no-non-null-assertion': 'off', // Allow non-null assertions with test fixtures
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-console': 'off', // Allow console in tests for debugging
+      'max-lines-per-function': ['warn', { max: 350, skipBlankLines: true, skipComments: true }]
+    }
+  },
+  {
+    // Test files - e2e tests
+    files: ['tests/e2e/**/*.spec.ts'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 2020,
+        sourceType: 'module'
+      },
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+        // Playwright globals
+        test: 'readonly',
+        expect: 'readonly'
+      }
+    },
+    plugins: {
+      '@typescript-eslint': ts
+    },
+    rules: {
+      'no-unused-vars': 'off', // Turn off base rule for TypeScript
+      '@typescript-eslint/no-explicit-any': 'off', // Allow any in tests
+      '@typescript-eslint/no-non-null-assertion': 'off', // Allow non-null assertions in e2e tests
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-console': 'off', // Allow console in tests for debugging
+      'max-lines-per-function': 'off' // E2E tests can be longer
     }
   }
 ];

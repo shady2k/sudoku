@@ -122,6 +122,10 @@ export function deserializeGameSession(data: unknown): Result<GameSession> {
 // Data Validation
 // ============================================================================
 
+interface ValidationRecord {
+  [key: string]: unknown;
+}
+
 /**
  * Validates that data has the structure of a GameSession
  *
@@ -131,80 +135,81 @@ export function deserializeGameSession(data: unknown): Result<GameSession> {
  * @param data - Data to validate
  * @returns true if valid GameSession structure
  */
-export function isValidGameSessionData(data: unknown): data is SerializedGameSession {
-  if (!data || typeof data !== 'object') {
-    return false;
-  }
+function hasValidPrimitiveFields(obj: ValidationRecord): boolean {
+  return (
+    typeof obj.sessionId === 'string' &&
+    typeof obj.startTime === 'number' &&
+    typeof obj.elapsedTime === 'number' &&
+    typeof obj.isPaused === 'boolean' &&
+    typeof obj.difficultyLevel === 'number' &&
+    typeof obj.errorCount === 'number' &&
+    typeof obj.isCompleted === 'boolean' &&
+    typeof obj.lastActivityAt === 'number' &&
+    typeof obj.showAutoCandidates === 'boolean'
+  );
+}
 
-  const obj = data as Record<string, unknown>;
-
-  // Check required primitive fields
-  if (
-    typeof obj.sessionId !== 'string' ||
-    typeof obj.startTime !== 'number' ||
-    typeof obj.elapsedTime !== 'number' ||
-    typeof obj.isPaused !== 'boolean' ||
-    typeof obj.difficultyLevel !== 'number' ||
-    typeof obj.errorCount !== 'number' ||
-    typeof obj.isCompleted !== 'boolean' ||
-    typeof obj.lastActivityAt !== 'number' ||
-    typeof obj.showAutoCandidates !== 'boolean'
-  ) {
-    return false;
-  }
-
-  // Check nullable fields
+function hasValidNullableFields(obj: ValidationRecord): boolean {
   if (obj.pausedAt !== null && typeof obj.pausedAt !== 'number') {
     return false;
   }
 
   if (obj.selectedCell !== null && (
     typeof obj.selectedCell !== 'object' ||
-    typeof (obj.selectedCell as any).row !== 'number' ||
-    typeof (obj.selectedCell as any).col !== 'number'
+    typeof (obj.selectedCell as ValidationRecord).row !== 'number' ||
+    typeof (obj.selectedCell as ValidationRecord).col !== 'number'
   )) {
     return false;
   }
 
-  // Check puzzle object
-  if (
-    !obj.puzzle ||
-    typeof obj.puzzle !== 'object' ||
-    !Array.isArray((obj.puzzle as any).grid) ||
-    !Array.isArray((obj.puzzle as any).solution) ||
-    !Array.isArray((obj.puzzle as any).clues)
-  ) {
+  return true;
+}
+
+function hasValidPuzzleObject(obj: ValidationRecord): boolean {
+  if (!obj.puzzle || typeof obj.puzzle !== 'object') {
+    return false;
+  }
+  const puzzle = obj.puzzle as ValidationRecord;
+  return (
+    Array.isArray(puzzle.grid) &&
+    Array.isArray(puzzle.solution) &&
+    Array.isArray(puzzle.clues)
+  );
+}
+
+function isValid9x9Array(array: unknown): boolean {
+  return (
+    Array.isArray(array) &&
+    array.length === 9 &&
+    (array as unknown[]).every(row => Array.isArray(row) && (row as unknown[]).length === 9)
+  );
+}
+
+function hasValidHistoryObject(obj: ValidationRecord): boolean {
+  if (!obj.history || typeof obj.history !== 'object') {
+    return false;
+  }
+  const history = obj.history as ValidationRecord;
+  return (
+    Array.isArray(history.actions) &&
+    typeof history.currentIndex === 'number' &&
+    typeof history.maxSize === 'number'
+  );
+}
+
+export function isValidGameSessionData(data: unknown): data is SerializedGameSession {
+  if (!data || typeof data !== 'object') {
     return false;
   }
 
-  // Check board is 9x9 array
-  if (
-    !Array.isArray(obj.board) ||
-    obj.board.length !== 9 ||
-    !obj.board.every(row => Array.isArray(row) && row.length === 9)
-  ) {
-    return false;
-  }
+  const obj = data as ValidationRecord;
 
-  // Check cells is 9x9 array
-  if (
-    !Array.isArray(obj.cells) ||
-    obj.cells.length !== 9 ||
-    !obj.cells.every(row => Array.isArray(row) && row.length === 9)
-  ) {
-    return false;
-  }
-
-  // Check history object
-  if (
-    !obj.history ||
-    typeof obj.history !== 'object' ||
-    !Array.isArray((obj.history as any).actions) ||
-    typeof (obj.history as any).currentIndex !== 'number' ||
-    typeof (obj.history as any).maxSize !== 'number'
-  ) {
-    return false;
-  }
+  if (!hasValidPrimitiveFields(obj)) return false;
+  if (!hasValidNullableFields(obj)) return false;
+  if (!hasValidPuzzleObject(obj)) return false;
+  if (!isValid9x9Array(obj.board)) return false;
+  if (!isValid9x9Array(obj.cells)) return false;
+  if (!hasValidHistoryObject(obj)) return false;
 
   return true;
 }
@@ -217,7 +222,7 @@ export function isValidCellData(data: unknown): data is SerializedCell {
     return false;
   }
 
-  const cell = data as Record<string, unknown>;
+  const cell = data as ValidationRecord;
 
   return (
     typeof cell.row === 'number' &&

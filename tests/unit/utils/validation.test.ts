@@ -6,6 +6,10 @@ import {
   createValidator
 } from '../../../src/lib/utils/validation';
 
+function createEmptyBoard(): number[][] {
+  return Array.from({ length: 9 }, () => Array(9).fill(0));
+}
+
 describe('validation utilities', () => {
   describe('getBoxIndex', () => {
     it('should calculate correct box index for top-left cell', () => {
@@ -60,11 +64,7 @@ describe('validation utilities', () => {
     });
   });
 
-  describe('isValidMove', () => {
-    const createEmptyBoard = (): number[][] => {
-      return Array.from({ length: 9 }, () => Array(9).fill(0));
-    };
-
+  describe('isValidMove - basic cases', () => {
     it('should return true for valid move on empty board', () => {
       const board = createEmptyBoard();
       expect(isValidMove(board, { row: 0, col: 0 }, 5)).toBe(true);
@@ -87,7 +87,9 @@ describe('validation utilities', () => {
       board[1][1] = 5;
       expect(isValidMove(board, { row: 0, col: 0 }, 5)).toBe(false);
     });
+  });
 
+  describe('isValidMove - edge cases', () => {
     it('should return true when number exists in different areas', () => {
       const board = createEmptyBoard();
       board[5][5] = 5; // Different row, column, and box
@@ -101,11 +103,7 @@ describe('validation utilities', () => {
     });
   });
 
-  describe('FastValidator', () => {
-    const createEmptyBoard = (): number[][] => {
-      return Array.from({ length: 9 }, () => Array(9).fill(0));
-    };
-
+  describe('FastValidator - basic operations', () => {
     it('should validate moves using bitmask optimization', () => {
       const board = createEmptyBoard();
       board[0][1] = 5;
@@ -158,7 +156,9 @@ describe('validation utilities', () => {
       // Now valid
       expect(validator.validateMove(0, 1, 5)).toBe(true);
     });
+  });
 
+  describe('FastValidator - performance', () => {
     it('should complete validation in <10ms', () => {
       const board = createEmptyBoard();
       // Fill board with some values

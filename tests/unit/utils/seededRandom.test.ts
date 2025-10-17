@@ -44,7 +44,9 @@ describe('SeededRandom', () => {
         expect(value).toBeLessThan(1);
       }
     });
+  });
 
+  describe('next - distribution', () => {
     it('should generate uniform distribution', () => {
       const rng = new SeededRandom(42);
       const samples = 10000;
@@ -162,14 +164,12 @@ describe('SeededRandom', () => {
     });
   });
 
-  describe('getSeed', () => {
+  describe('getSeed and reset', () => {
     it('should return the current seed', () => {
       const rng = new SeededRandom(12345);
       expect(rng.getSeed()).toBe(12345);
     });
-  });
 
-  describe('reset', () => {
     it('should reset to original seed', () => {
       const rng = new SeededRandom(42);
 

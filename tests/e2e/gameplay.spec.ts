@@ -149,7 +149,7 @@ test.describe('Full Gameplay Flow', () => {
     await page.waitForSelector('.grid');
 
     // Get initial session ID or a cell value to verify it changed
-    const initialFirstCell = await page.locator('[data-row="0"][data-col="0"]').textContent();
+    const _initialFirstCell = await page.locator('[data-row="0"][data-col="0"]').textContent();
 
     // Change difficulty slider
     const difficultySlider = page.locator('input[type="range"]');
@@ -167,7 +167,7 @@ test.describe('Full Gameplay Flow', () => {
 
     // Verify a new puzzle was generated (at least some cells should be different)
     // Note: This is probabilistic, but very likely to be true
-    const newFirstCell = await page.locator('[data-row="0"][data-col="0"]').textContent();
+    const _newFirstCell = await page.locator('[data-row="0"][data-col="0"]').textContent();
     // The cell values might be the same, but the puzzle should be different
   });
 

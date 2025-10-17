@@ -7,7 +7,7 @@
  * - Load: <1s (SC-002)
  */
 
-import type { GameSession, Result, GameRecord, UserPreferences } from '../models/types';
+import type { GameSession, Result, GameRecord, UserPreferences, Action } from '../models/types';
 import { success, failure } from '../models/types';
 
 // LocalStorage keys
@@ -93,7 +93,7 @@ export async function loadGameSession(): Promise<Result<GameSession>> {
     }
 
     // Parse stored data
-    const parsed = JSON.parse(stored);
+    const parsed = JSON.parse(stored) as { version: number; data: unknown };
 
     // Validate schema version (for future migrations)
     if (parsed.version !== SCHEMA_VERSION) {
@@ -143,13 +143,52 @@ export function hasSavedGame(): boolean {
 // Serialization Helpers
 // ============================================================================
 
+interface SerializedCell {
+  row: number;
+  col: number;
+  value: number;
+  isClue: boolean;
+  isError: boolean;
+  manualCandidates: number[];
+  autoCandidates: number[] | null;
+}
+
+interface SerializedSession {
+  sessionId: string;
+  puzzle: {
+    grid: readonly (readonly number[])[];
+    solution: readonly (readonly number[])[];
+    clues: readonly (readonly boolean[])[];
+    difficultyRating: number;
+    puzzleId: string;
+    generatedAt: number;
+  };
+  board: number[][];
+  cells: SerializedCell[][];
+  startTime: number;
+  elapsedTime: number;
+  isPaused: boolean;
+  pausedAt: number | null;
+  difficultyLevel: number;
+  errorCount: number;
+  isCompleted: boolean;
+  lastActivityAt: number;
+  selectedCell: { row: number; col: number } | null;
+  showAutoCandidates: boolean;
+  history: {
+    actions: unknown[];
+    currentIndex: number;
+    maxSize: number;
+  };
+}
+
 /**
  * Serializes a GameSession to JSON-compatible format
  * Converts Sets to Arrays for JSON serialization
  */
-export function serializeGameSession(session: GameSession): Record<string, unknown> {
+export function serializeGameSession(session: GameSession): SerializedSession {
   // Deep copy and convert Sets to Arrays
-  const serialized = {
+  const serialized: SerializedSession = {
     ...session,
     cells: session.cells.map(row =>
       row.map(cell => ({
@@ -173,7 +212,7 @@ export function serializeGameSession(session: GameSession): Record<string, unkno
     }
   };
 
-  return serialized as Record<string, unknown>;
+  return serialized;
 }
 
 /**
@@ -187,7 +226,7 @@ export function deserializeGameSession(data: unknown): Result<GameSession> {
       return failure('CORRUPTED_DATA', 'Invalid session data format');
     }
 
-    const sessionData = data as any;
+    const sessionData = data as Record<string, unknown>;
 
     // Validate required fields
     if (!sessionData.sessionId || !sessionData.puzzle || !sessionData.cells) {
@@ -195,32 +234,35 @@ export function deserializeGameSession(data: unknown): Result<GameSession> {
     }
 
     // Convert Arrays back to Sets
+    const typedSessionData = data as SerializedSession;
+
     const deserialized: GameSession = {
-      ...sessionData,
-      cells: sessionData.cells.map((row: any[]) =>
-        row.map((cell: any) => ({
+      ...typedSessionData,
+      cells: typedSessionData.cells.map((row: SerializedCell[]) =>
+        row.map((cell: SerializedCell) => ({
           ...cell,
           manualCandidates: new Set(cell.manualCandidates || []),
           autoCandidates: cell.autoCandidates ? new Set(cell.autoCandidates) : null
         }))
       ),
       history: {
-        ...sessionData.history,
-        actions: (sessionData.history?.actions || []).map((action: any) => {
-          if (action.type === 'SET_CANDIDATES') {
+        ...typedSessionData.history,
+        actions: (typedSessionData.history?.actions || []).map((action: unknown) => {
+          const typedAction = action as Action;
+          if (typedAction.type === 'SET_CANDIDATES') {
             return {
-              ...action,
-              previousCandidates: action.previousCandidates || [],
-              newCandidates: action.newCandidates || []
+              ...typedAction,
+              previousCandidates: typedAction.previousCandidates || [],
+              newCandidates: typedAction.newCandidates || []
             };
           }
-          if (action.type === 'CLEAR_CANDIDATES') {
+          if (typedAction.type === 'CLEAR_CANDIDATES') {
             return {
-              ...action,
-              previousCandidates: action.previousCandidates || []
+              ...typedAction,
+              previousCandidates: typedAction.previousCandidates || []
             };
           }
-          return action;
+          return typedAction;
         })
       }
     };
@@ -299,13 +341,13 @@ export async function loadGameHistory(): Promise<readonly GameRecord[]> {
       return [];
     }
 
-    const history = JSON.parse(stored);
+    const history = JSON.parse(stored) as unknown;
 
     if (!Array.isArray(history)) {
       return [];
     }
 
-    return history;
+    return history as GameRecord[];
   } catch {
     return [];
   }
@@ -380,7 +422,7 @@ export async function loadPreferences(): Promise<UserPreferences> {
       return getDefaultPreferences();
     }
 
-    const parsed = JSON.parse(stored);
+    const parsed = JSON.parse(stored) as Partial<UserPreferences>;
 
     // Merge with defaults to handle missing fields
     return {

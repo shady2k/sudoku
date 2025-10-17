@@ -96,7 +96,7 @@ describe('PuzzleGenerator', () => {
     });
   });
 
-  describe('generatePuzzle', () => {
+  describe('generatePuzzle - basic functionality', () => {
     it('should generate puzzle with correct difficulty', async () => {
       const result = await generatePuzzle(50); // Medium difficulty (50%)
 
@@ -127,24 +127,6 @@ describe('PuzzleGenerator', () => {
       expect(result.success).toBe(true);
       // Should complete in <2000ms per SC-007
       expect(elapsed).toBeLessThan(2000);
-    });
-
-    it('should generate valid puzzle (all clues follow Sudoku rules)', async () => {
-      const result = await generatePuzzle(50);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const { grid } = result.data;
-
-        for (let row = 0; row < 9; row++) {
-          for (let col = 0; col < 9; col++) {
-            const val = grid[row]![col]!;
-            if (val !== 0) {
-              expect(isValidMove(grid, { row, col }, val as any)).toBe(true);
-            }
-          }
-        }
-      }
     });
 
     it('should mark clues correctly', async () => {
@@ -178,6 +160,26 @@ describe('PuzzleGenerator', () => {
         expect(result1.data.grid).toEqual(result2.data.grid);
       }
     });
+  });
+
+  describe('generatePuzzle - validation', () => {
+    it('should generate valid puzzle (all clues follow Sudoku rules)', async () => {
+      const result = await generatePuzzle(50);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const { grid } = result.data;
+
+        for (let row = 0; row < 9; row++) {
+          for (let col = 0; col < 9; col++) {
+            const val = grid[row]![col]!;
+            if (val !== 0) {
+              expect(isValidMove(grid, { row, col }, val as any)).toBe(true);
+            }
+          }
+        }
+      }
+    });
 
     it('should include solution grid', async () => {
       const result = await generatePuzzle(50);
@@ -198,7 +200,9 @@ describe('PuzzleGenerator', () => {
         }
       }
     });
+  });
 
+  describe('generatePuzzle - difficulty levels', () => {
     it('should generate easier puzzle with difficulty 0%', async () => {
       const result = await generatePuzzle(0);
 

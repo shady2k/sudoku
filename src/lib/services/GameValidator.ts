@@ -5,7 +5,7 @@
  * Implements bitwise operations for <10ms performance per Constitution Principle II.
  */
 
-import type { CellPosition, SudokuNumber } from '../models/types';
+import type { SudokuNumber } from '../models/types';
 
 /**
  * Generates auto-candidate numbers for all empty cells based on current board state
@@ -22,39 +22,64 @@ export function generateCandidates(board: readonly (readonly number[])[]): Map<s
     return new Map();
   }
 
-  const candidates = new Map<string, Set<SudokuNumber>>();
-
   // Pre-calculate row, column, and box constraints using bit masks
-  // Each bit represents numbers 1-9 (bit 0 = 1, bit 1 = 2, ..., bit 8 = 9)
+  const { rowMasks, colMasks, boxMasks } = buildConstraintMasks(board);
+
+  // Generate candidates for each empty cell
+  return generateCandidatesForEmptyCells(board, rowMasks, colMasks, boxMasks);
+}
+
+/**
+ * Builds constraint masks for rows, columns, and boxes
+ */
+function buildConstraintMasks(board: readonly (readonly number[])[]): {
+  rowMasks: number[];
+  colMasks: number[];
+  boxMasks: number[];
+} {
   const rowMasks = new Array<number>(9).fill(0);
   const colMasks = new Array<number>(9).fill(0);
   const boxMasks = new Array<number>(9).fill(0);
 
-  // Build constraint masks from current board state
   for (let row = 0; row < 9; row++) {
     for (let col = 0; col < 9; col++) {
-      const value = board[row][col];
-      if (value > 0 && value <= 9) {
-        const bit = 1 << (value - 1);
-        rowMasks[row] |= bit;
-        colMasks[col] |= bit;
-        const boxIndex = Math.floor(row / 3) * 3 + Math.floor(col / 3);
-        boxMasks[boxIndex] |= bit;
-      }
+      const rowData = board[row];
+      if (!rowData) continue;
+      const value = rowData[col];
+      if (value === undefined || value <= 0 || value > 9) continue;
+
+      const bit = 1 << (value - 1);
+      rowMasks[row] = (rowMasks[row] ?? 0) | bit;
+      colMasks[col] = (colMasks[col] ?? 0) | bit;
+      const boxIndex = Math.floor(row / 3) * 3 + Math.floor(col / 3);
+      boxMasks[boxIndex] = (boxMasks[boxIndex] ?? 0) | bit;
     }
   }
 
-  // Generate candidates for each empty cell
+  return { rowMasks, colMasks, boxMasks };
+}
+
+/**
+ * Generates candidates for all empty cells
+ */
+function generateCandidatesForEmptyCells(
+  board: readonly (readonly number[])[],
+  rowMasks: number[],
+  colMasks: number[],
+  boxMasks: number[]
+): Map<string, Set<SudokuNumber>> {
+  const candidates = new Map<string, Set<SudokuNumber>>();
+
   for (let row = 0; row < 9; row++) {
     for (let col = 0; col < 9; col++) {
-      const value = board[row][col];
+      const rowData = board[row];
+      if (!rowData) continue;
+      const value = rowData[col];
 
-      // Only generate candidates for empty cells
       if (value === 0) {
         const cellCandidates = getCellCandidates(row, col, rowMasks, colMasks, boxMasks);
         if (cellCandidates.size > 0) {
-          const key = `${row},${col}`;
-          candidates.set(key, cellCandidates);
+          candidates.set(`${row},${col}`, cellCandidates);
         }
       }
     }
@@ -83,7 +108,7 @@ function getCellCandidates(
   const boxIndex = Math.floor(row / 3) * 3 + Math.floor(col / 3);
 
   // Combine all constraints (OR operation)
-  const combinedMask = rowMasks[row] | colMasks[col] | boxMasks[boxIndex];
+  const combinedMask = (rowMasks[row] ?? 0) | (colMasks[col] ?? 0) | (boxMasks[boxIndex] ?? 0);
 
   // Candidates are bits that are NOT in the combined mask
   // ALL_POSSIBLE_MASK has all 9 bits set (0b111111111 = 511)
@@ -114,13 +139,12 @@ function getCellCandidates(
  *
  * **Performance**: O(1) time using pre-calculated masks
  */
-export function isValidCandidate(
+function isValidInput(
   board: readonly (readonly number[])[],
   row: number,
   col: number,
   candidate: SudokuNumber
 ): boolean {
-  // Validate input
   if (!board || board.length !== 9 || row < 0 || row > 8 || col < 0 || col > 8) {
     return false;
   }
@@ -129,35 +153,71 @@ export function isValidCandidate(
     return false;
   }
 
-  // Check if cell is already filled
-  if (board[row][col] !== 0) {
-    return false;
-  }
+  const rowData = board[row];
+  return rowData ? rowData[col] === 0 : false;
+}
 
-  // Validate against row
+function isValidInRow(
+  board: readonly (readonly number[])[],
+  row: number,
+  candidate: SudokuNumber
+): boolean {
+  const rowData = board[row];
+  if (!rowData) return true;
   for (let c = 0; c < 9; c++) {
-    if (board[row][c] === candidate) {
+    if (rowData[c] === candidate) {
       return false;
     }
   }
+  return true;
+}
 
-  // Validate against column
+function isValidInColumn(
+  board: readonly (readonly number[])[],
+  col: number,
+  candidate: SudokuNumber
+): boolean {
   for (let r = 0; r < 9; r++) {
-    if (board[r][col] === candidate) {
+    const rowData = board[r];
+    if (rowData && rowData[col] === candidate) {
       return false;
     }
   }
+  return true;
+}
 
-  // Validate against 3x3 box
+function isValidInBox(
+  board: readonly (readonly number[])[],
+  row: number,
+  col: number,
+  candidate: SudokuNumber
+): boolean {
   const boxStartRow = Math.floor(row / 3) * 3;
   const boxStartCol = Math.floor(col / 3) * 3;
+
   for (let r = boxStartRow; r < boxStartRow + 3; r++) {
+    const rowData = board[r];
+    if (!rowData) continue;
     for (let c = boxStartCol; c < boxStartCol + 3; c++) {
-      if (board[r][c] === candidate) {
+      if (rowData[c] === candidate) {
         return false;
       }
     }
   }
-
   return true;
+}
+
+export function isValidCandidate(
+  board: readonly (readonly number[])[],
+  row: number,
+  col: number,
+  candidate: SudokuNumber
+): boolean {
+  if (!isValidInput(board, row, col, candidate)) {
+    return false;
+  }
+
+  return isValidInRow(board, row, candidate) &&
+         isValidInColumn(board, col, candidate) &&
+         isValidInBox(board, row, col, candidate);
 }

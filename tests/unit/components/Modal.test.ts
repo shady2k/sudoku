@@ -146,7 +146,7 @@ describe('Modal Component', () => {
   });
 
   it('should not render modal content when isOpen is false', () => {
-    const { container } = render(Modal, {
+    const { container: _container } = render(Modal, {
       props: {
         isOpen: false,
         hasActiveGame: false,

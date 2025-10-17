@@ -2,7 +2,6 @@
   import Cell from './Cell.svelte';
   import { gameStore } from '../lib/stores/gameStore.svelte';
   import { getRelatedCells } from '../lib/utils/validation';
-  import type { CellPosition } from '../lib/models/types';
 
   function handleCellSelect(row: number, col: number): void {
     const cell = gameStore.session?.cells[row]?.[col];
@@ -35,39 +34,37 @@
     gameStore.setManualCandidates({ row, col }, currentCandidates);
   }
 
-  function handleKeyDown(event: KeyboardEvent): void {
-    if (!gameStore.session?.selectedCell) return;
-
-    const { row, col } = gameStore.session.selectedCell;
-    const cell = gameStore.session.cells[row]?.[col];
-    if (!cell) return;
-
+  function shouldIgnoreKeyboardEvent(event: KeyboardEvent): boolean {
     // Don't interfere with input elements
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-      return;
-    }
+    return event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement;
+  }
 
-    // Number keys 1-9 for normal entry
+  function canModifyCell(cell: { isClue: boolean }): boolean {
+    return !cell.isClue;
+  }
+
+  function handleNumberInput(event: KeyboardEvent, row: number, col: number, cell: { isClue: boolean; value: number }): void {
     if (event.key >= '1' && event.key <= '9') {
-      if (cell.isClue) return; // Can't modify clue cells
+      if (!canModifyCell(cell)) return;
 
       const value = parseInt(event.key);
 
-      // If Shift or Alt key is pressed, toggle as candidate
       if (event.shiftKey || event.altKey) {
-        if (cell.value === 0) { // Only allow candidates on empty cells
-          toggleManualCandidate(row, col, value as any);
+        // Toggle as candidate
+        if (cell.value === 0) {
+          toggleManualCandidate(row, col, value);
         }
       } else {
         // Normal cell value entry
-        gameStore.makeMove({ row, col }, value as any);
+        gameStore.makeMove({ row, col }, value);
       }
       event.preventDefault();
     }
+  }
 
-    // Delete/Backspace to clear
+  function handleClearInput(event: KeyboardEvent, row: number, col: number, cell: { isClue: boolean; value: number }): void {
     if (event.key === 'Delete' || event.key === 'Backspace') {
-      if (cell.isClue) return; // Can't modify clue cells
+      if (!canModifyCell(cell)) return;
 
       if (event.shiftKey || event.altKey) {
         // Clear all manual candidates
@@ -80,8 +77,9 @@
       }
       event.preventDefault();
     }
+  }
 
-    // Arrow keys for navigation
+  function handleNavigation(event: KeyboardEvent, row: number, col: number): void {
     let newRow = row;
     let newCol = col;
 
@@ -111,6 +109,20 @@
       event.preventDefault();
     }
   }
+
+  function handleKeyDown(event: KeyboardEvent): void {
+    if (!gameStore.session?.selectedCell) return;
+
+    const { row, col } = gameStore.session.selectedCell;
+    const cell = gameStore.session.cells[row]?.[col];
+    if (!cell) return;
+
+    if (shouldIgnoreKeyboardEvent(event)) return;
+
+    handleNumberInput(event, row, col, cell);
+    handleClearInput(event, row, col, cell);
+    handleNavigation(event, row, col);
+  }
 </script>
 
 <svelte:window on:keydown={handleKeyDown} />
@@ -133,7 +145,7 @@
               isSelected={gameStore.session.selectedCell?.row === rowIndex &&
                          gameStore.session.selectedCell?.col === colIndex}
               isRelated={isRelatedToSelected(rowIndex, colIndex)}
-              onSelect={() => handleCellSelect(rowIndex, colIndex)}
+              onSelect={(): void => handleCellSelect(rowIndex, colIndex)}
             />
           </div>
         {/each}

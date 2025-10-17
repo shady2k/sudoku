@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { writable } from 'svelte/store';
+import { writable as _writable } from 'svelte/store';
 import SudokuGrid from '../../../src/components/SudokuGrid.svelte';
 import type { GameSession, Cell as CellType } from '../../../src/lib/models/types';
 

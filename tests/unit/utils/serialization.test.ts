@@ -8,6 +8,59 @@ import {
 } from '../../../src/lib/utils/serialization';
 import type { GameSession, Cell } from '../../../src/lib/models/types';
 
+// Helper function to create test game session
+function createTestGameSession(): GameSession {
+  const grid = Array.from({ length: 9 }, () => Array(9).fill(0));
+  const solution = Array.from({ length: 9 }, () => Array(9).fill(0));
+  const clues = Array.from({ length: 9 }, () => Array(9).fill(false));
+
+  // Create cells array
+  const cells: Cell[][] = [];
+  for (let row = 0; row < 9; row++) {
+    cells[row] = [];
+    for (let col = 0; col < 9; col++) {
+      cells[row]![col] = {
+        row,
+        col,
+        value: 0,
+        isClue: false,
+        isError: false,
+        manualCandidates: new Set([1, 2, 3]),
+        autoCandidates: new Set([4, 5, 6])
+      };
+    }
+  }
+
+  return {
+    sessionId: 'test-session-123',
+    puzzle: {
+      grid,
+      solution,
+      clues,
+      difficultyRating: 35,
+      puzzleId: 'puzzle-123',
+      generatedAt: Date.now()
+    },
+    board: grid,
+    cells,
+    startTime: Date.now(),
+    elapsedTime: 12345,
+    isPaused: false,
+    pausedAt: null,
+    difficultyLevel: 5,
+    errorCount: 2,
+    isCompleted: false,
+    lastActivityAt: Date.now(),
+    selectedCell: { row: 3, col: 4 },
+    showAutoCandidates: true,
+    history: {
+      actions: [],
+      currentIndex: 0,
+      maxSize: 50
+    }
+  };
+}
+
 describe('serialization utilities', () => {
   describe('Set serialization', () => {
     it('should serialize Set to Array', () => {
@@ -46,59 +99,7 @@ describe('serialization utilities', () => {
     });
   });
 
-  describe('GameSession serialization', () => {
-    const createTestGameSession = (): GameSession => {
-      const grid = Array.from({ length: 9 }, () => Array(9).fill(0));
-      const solution = Array.from({ length: 9 }, () => Array(9).fill(0));
-      const clues = Array.from({ length: 9 }, () => Array(9).fill(false));
-
-      // Create cells array
-      const cells: Cell[][] = [];
-      for (let row = 0; row < 9; row++) {
-        cells[row] = [];
-        for (let col = 0; col < 9; col++) {
-          cells[row]![col] = {
-            row,
-            col,
-            value: 0,
-            isClue: false,
-            isError: false,
-            manualCandidates: new Set([1, 2, 3]),
-            autoCandidates: new Set([4, 5, 6])
-          };
-        }
-      }
-
-      return {
-        sessionId: 'test-session-123',
-        puzzle: {
-          grid,
-          solution,
-          clues,
-          difficultyRating: 35,
-          puzzleId: 'puzzle-123',
-          generatedAt: Date.now()
-        },
-        board: grid,
-        cells,
-        startTime: Date.now(),
-        elapsedTime: 12345,
-        isPaused: false,
-        pausedAt: null,
-        difficultyLevel: 5,
-        errorCount: 2,
-        isCompleted: false,
-        lastActivityAt: Date.now(),
-        selectedCell: { row: 3, col: 4 },
-        showAutoCandidates: true,
-        history: {
-          actions: [],
-          currentIndex: 0,
-          maxSize: 50
-        }
-      };
-    };
-
+  describe('GameSession serialization - basic', () => {
     it('should serialize GameSession to JSON-compatible object', () => {
       const session = createTestGameSession();
       const serialized = serializeGameSession(session);
@@ -118,7 +119,9 @@ describe('serialization utilities', () => {
 
       expect(() => JSON.stringify(serialized)).not.toThrow();
     });
+  });
 
+  describe('GameSession serialization - roundtrip', () => {
     it('should deserialize back to GameSession', () => {
       const session = createTestGameSession();
       const serialized = serializeGameSession(session);
@@ -164,14 +167,16 @@ describe('serialization utilities', () => {
       session.selectedCell = null;
 
       const serialized = serializeGameSession(session);
-      const result = deserializeGameSession(session);
+      const result = deserializeGameSession(serialized);
 
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.selectedCell).toBeNull();
       }
     });
+  });
 
+  describe('GameSession deserialization - error handling', () => {
     it('should fail on invalid data structure', () => {
       const invalid = { foo: 'bar' };
       const result = deserializeGameSession(invalid);

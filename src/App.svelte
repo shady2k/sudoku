@@ -1,6 +1,5 @@
 <script lang="ts">
   import SudokuGrid from './components/SudokuGrid.svelte';
-    import Statistics from './components/Statistics.svelte';
   import Controls from './components/Controls.svelte';
   import ResumeModal from './components/ResumeModal.svelte';
   import { gameStore } from './lib/stores/gameStore.svelte';
@@ -39,46 +38,51 @@
     }
   });
 
-  async function handleResume() {
+  async function handleResume(): Promise<void> {
     showResumeModal = false;
     await gameStore.loadSavedGame();
   }
 
-  async function handleNewGameFromResume(difficulty: DifficultyLevel) {
+  async function handleNewGameFromResume(difficulty: DifficultyLevel): Promise<void> {
     showResumeModal = false;
     await gameStore.newGame(difficulty);
   }
 
-  async function handleNewGame() {
+  async function handleNewGame(): Promise<void> {
     showNewGameModal = true;
   }
 
-  async function handleNewGameFromModal(difficulty: DifficultyLevel) {
+  async function handleNewGameFromModal(difficulty: DifficultyLevel): Promise<void> {
     showNewGameModal = false;
     await gameStore.newGame(difficulty);
   }
 
-  // Global keyboard shortcuts (FR-007)
-  function handleGlobalKeyboard(event: KeyboardEvent): void {
+  function shouldIgnoreKeyboardEvent(event: KeyboardEvent): boolean {
     // Don't interfere with input elements
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-      return;
+      return true;
     }
 
     // Don't handle if modal is open
-    if (showResumeModal) return;
+    return showResumeModal;
+  }
 
-    // 'C' or 'c' - Toggle candidates
+  function canInteractWithGame(): boolean {
+    return !!(gameStore.session && !gameStore.session.isCompleted);
+  }
+
+  function handleCandidateToggle(event: KeyboardEvent): void {
     if (event.key === 'c' || event.key === 'C') {
-      if (gameStore.session && !gameStore.session.isCompleted) {
+      if (canInteractWithGame()) {
         gameStore.toggleCandidates();
         event.preventDefault();
       }
     }
+  }
 
-    // Space - Pause/Resume
+  function handlePauseResume(event: KeyboardEvent): void {
     if (event.key === ' ') {
-      if (gameStore.session && !gameStore.session.isCompleted) {
+      if (canInteractWithGame() && gameStore.session) {
         if (gameStore.session.isPaused) {
           gameStore.resumeGame();
         } else {
@@ -87,18 +91,30 @@
         event.preventDefault();
       }
     }
+  }
 
-    // 'G' or 'g' - New Game
+  function handleNewGameShortcut(event: KeyboardEvent): void {
     if (event.key === 'g' || event.key === 'G') {
       handleNewGame();
       event.preventDefault();
     }
+  }
 
-    // 'Z' or 'z' - Undo (if implemented)
+  function handleUndoShortcut(event: KeyboardEvent): void {
     if (event.key === 'z' || event.key === 'Z') {
       // Undo functionality not yet implemented (Phase 11)
       // This is a placeholder for future implementation
     }
+  }
+
+  // Global keyboard shortcuts (FR-007)
+  function handleGlobalKeyboard(event: KeyboardEvent): void {
+    if (shouldIgnoreKeyboardEvent(event)) return;
+
+    handleCandidateToggle(event);
+    handlePauseResume(event);
+    handleNewGameShortcut(event);
+    handleUndoShortcut(event);
   }
 </script>
 

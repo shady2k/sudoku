@@ -23,18 +23,25 @@
   let selectedDifficulty: DifficultyLevel = $state(50); // 50% = medium
 
   // Handle Escape key
-  function handleKeydown(event: KeyboardEvent) {
+  function handleKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape' && hasActiveGame && onCancel) {
       onCancel();
     }
   }
 
-  function handleStart() {
+  // Handle Enter key on overlay button
+  function handleOverlayKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      handleCancelClick();
+    }
+  }
+
+  function handleStart(): void {
     onStartGame(selectedDifficulty);
     isOpen = false;
   }
 
-  function handleCancelClick() {
+  function handleCancelClick(): void {
     if (onCancel) {
       onCancel();
     }
@@ -45,9 +52,20 @@
 <svelte:window on:keydown={handleKeydown} />
 
 {#if isOpen}
-  <div class="modal-overlay" onclick={hasActiveGame ? handleCancelClick : undefined}>
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
-      <h2>New Game</h2>
+  <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    {#if hasActiveGame}
+      <button
+        class="overlay-button"
+        onclick={handleCancelClick}
+        onkeydown={handleOverlayKeydown}
+        aria-label="Close modal"
+        tabindex="-1"
+      ></button>
+    {:else}
+      <div class="overlay-inactive"></div>
+    {/if}
+    <div class="modal" role="document">
+      <h2 id="modal-title">New Game</h2>
 
       {#if hasActiveGame}
         <p class="warning">⚠️ Starting a new game will lose your current progress.</p>
@@ -98,12 +116,32 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
     padding: 1rem;
+  }
+
+  .overlay-button,
+  .overlay-inactive {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  .overlay-button {
+    cursor: pointer;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .overlay-inactive {
+    cursor: default;
   }
 
   .modal {

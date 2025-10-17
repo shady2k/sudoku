@@ -285,7 +285,8 @@ export type ErrorCode =
   | 'GAME_ALREADY_COMPLETED'
   | 'NO_SAVED_GAME'
   | 'CORRUPTED_DATA'
-  | 'INVALID_DIFFICULTY';
+  | 'INVALID_DIFFICULTY'
+  | 'INVALID_CANDIDATES';
 
 // ============================================================================
 // Utility Types

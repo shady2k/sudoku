@@ -3,7 +3,7 @@
   import type { CellValue } from '../lib/models/types';
 
   interface Props {
-    onNewGame: () => void;
+    onNewGame: () => Promise<void>;
   }
 
   let { onNewGame }: Props = $props();
@@ -53,7 +53,7 @@
           <button
             type="button"
             class="num-btn"
-            onclick={() => handleNumberPadClick(num as CellValue)}
+            onclick={(): void => handleNumberPadClick(num as CellValue)}
             disabled={!gameStore.session?.selectedCell || gameStore.session.cells[gameStore.session.selectedCell.row]?.[gameStore.session.selectedCell.col]?.isClue}
             aria-label={`Enter number ${num}`}
           >
