@@ -11,8 +11,22 @@ test.describe('Candidate Numbers Feature', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
 
-    // Start a new game
-    await page.click('button:has-text("New Game")');
+    // Handle any modals and start new game
+    const modalNewGameBtn = page.locator('[role="dialog"] button:has-text("New Game")').first();
+    const regularNewGameBtn = page.locator('button:has-text("New Game")').first();
+
+    // Wait for either modal or main UI
+    try {
+      await modalNewGameBtn.waitFor({ timeout: 2000 });
+      await modalNewGameBtn.click();
+      // Wait for modal to close
+      await page.locator('[role="dialog"]').waitFor({ state: 'hidden', timeout: 5000 });
+    } catch {
+      // No modal, continue
+    }
+
+    // Now click the main new game button
+    await regularNewGameBtn.click();
 
     // Wait for game to load
     await page.waitForSelector('.cell');
@@ -138,5 +152,109 @@ test.describe('Candidate Numbers Feature', () => {
     // The page should still be functional
     await page.keyboard.press('3');
     await expect(firstEmptyCell).toHaveText('3');
+  });
+
+  test('should add candidates using Shift+number without notes mode', async ({ page }) => {
+    // Find an empty cell
+    const emptyCells = page.locator('.cell:not(.clue):has-text("")');
+    expect(await emptyCells.count()).toBeGreaterThan(0);
+
+    const emptyCell = emptyCells.first();
+    await emptyCell.click();
+
+    // Cell should be selected
+    await expect(emptyCell).toHaveClass(/selected/);
+
+    // Verify we're NOT in notes mode
+    const notesModeButton = page.locator('button:has-text("Notes Mode")');
+    const isNotesMode = await notesModeButton.evaluate(el => el.classList.contains('active'));
+    expect(isNotesMode).toBe(false);
+
+    // Enter candidate using Shift+1
+    await page.keyboard.press('Shift+1');
+    await page.waitForTimeout(200);
+
+    // The cell should show the candidate
+    const candidates = emptyCell.locator('.candidate-number');
+    await expect(candidates).toHaveCount(1);
+
+    // Add another candidate using Shift+5
+    await page.keyboard.press('Shift+5');
+    await page.waitForTimeout(200);
+
+    // Should now have 2 candidates
+    await expect(candidates).toHaveCount(2);
+
+    // Verify cell still has no value (empty)
+    const cellValue = emptyCell.locator('.value');
+    await expect(cellValue).toHaveCount(0);
+  });
+
+  test('should add candidates using Alt+number without notes mode', async ({ page }) => {
+    // Find an empty cell
+    const emptyCells = page.locator('.cell:not(.clue):has-text("")');
+    expect(await emptyCells.count()).toBeGreaterThan(0);
+
+    const emptyCell = emptyCells.first();
+    await emptyCell.click();
+
+    // Enter candidate using Alt+2
+    await page.keyboard.press('Alt+2');
+    await page.waitForTimeout(200);
+
+    // The cell should show the candidate
+    const candidates = emptyCell.locator('.candidate-number');
+    await expect(candidates).toHaveCount(1);
+  });
+
+  test('should clear candidates using Shift+Delete', async ({ page }) => {
+    // Find an empty cell
+    const emptyCells = page.locator('.cell:not(.clue):has-text("")');
+    expect(await emptyCells.count()).toBeGreaterThan(0);
+
+    const emptyCell = emptyCells.first();
+    await emptyCell.click();
+
+    // Add multiple candidates using Shift+number
+    await page.keyboard.press('Shift+1');
+    await page.waitForTimeout(100);
+    await page.keyboard.press('Shift+2');
+    await page.waitForTimeout(100);
+    await page.keyboard.press('Shift+3');
+    await page.waitForTimeout(200);
+
+    // Verify candidates were added
+    const candidates = emptyCell.locator('.candidate-number');
+    await expect(candidates).toHaveCount(3);
+
+    // Clear all candidates using Shift+Delete
+    await page.keyboard.press('Shift+Delete');
+    await page.waitForTimeout(200);
+
+    // All candidates should be cleared
+    await expect(candidates).toHaveCount(0);
+  });
+
+  test('should toggle same candidate with Shift+number', async ({ page }) => {
+    // Find an empty cell
+    const emptyCells = page.locator('.cell:not(.clue):has-text("")');
+    expect(await emptyCells.count()).toBeGreaterThan(0);
+
+    const emptyCell = emptyCells.first();
+    await emptyCell.click();
+
+    // Add candidate 5
+    await page.keyboard.press('Shift+5');
+    await page.waitForTimeout(200);
+
+    const candidates = emptyCell.locator('.candidate-number');
+    await expect(candidates).toHaveCount(1);
+
+    // Press Shift+5 again to toggle it off
+    await page.keyboard.press('Shift+5');
+    await page.waitForTimeout(200);
+
+    // Candidate should be removed
+    await expect(candidates).toHaveCount(0);
   });
 });

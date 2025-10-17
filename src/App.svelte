@@ -5,7 +5,7 @@
   import NotesModeToggle from './components/NotesModeToggle.svelte';
   import { gameStore } from './lib/stores/gameStore.svelte';
   import { onMount, onDestroy } from 'svelte';
-  import { hasSavedGame } from './lib/services/StorageService';
+  import { hasSavedGame, loadPreferences } from './lib/services/StorageService';
   import type { DifficultyLevel } from './lib/models/types';
 
   // State for resume modal (T066: Resume or New Game modal)
@@ -28,8 +28,9 @@
       // Show modal with Resume or New Game options (FR-004)
       showResumeModal = true;
     } else {
-      // No saved game, start with a medium difficulty game (50% difficulty)
-      await gameStore.newGame(50);
+      // No saved game, start with user's preferred difficulty or default to 50%
+      const preferences = await loadPreferences();
+      await gameStore.newGame(preferences.defaultDifficulty);
     }
   });
 

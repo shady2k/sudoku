@@ -49,8 +49,10 @@
 
       const value = parseInt(event.key);
 
-      // Check if in notes mode
-      if (gameStore.notesMode) {
+      // Check if Shift or Alt is pressed, or if in notes mode
+      const shouldToggleCandidate = event.shiftKey || event.altKey || gameStore.notesMode;
+
+      if (shouldToggleCandidate) {
         // Toggle as candidate (only for empty cells)
         if (cell.value === 0) {
           toggleManualCandidate(row, col, value);
@@ -67,8 +69,11 @@
     if (event.key === 'Delete' || event.key === 'Backspace') {
       if (!canModifyCell(cell)) return;
 
-      // In notes mode, clear all manual candidates for empty cells
-      if (gameStore.notesMode && cell.value === 0) {
+      // Check if Shift is pressed, or if in notes mode
+      const shouldClearCandidates = event.shiftKey || gameStore.notesMode;
+
+      // In notes mode or with Shift, clear all manual candidates for empty cells
+      if (shouldClearCandidates && cell.value === 0) {
         gameStore.setManualCandidates({ row, col }, new Set());
       } else {
         // Clear cell value (or do nothing if in notes mode and cell has value)

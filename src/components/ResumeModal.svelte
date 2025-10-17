@@ -8,7 +8,9 @@
    * - Start a new game (with difficulty selection)
    */
 
+  import { onMount } from 'svelte';
   import type { DifficultyLevel } from '../lib/models/types';
+  import { loadPreferences } from '../lib/services/StorageService';
 
   interface Props {
     isOpen: boolean;
@@ -25,7 +27,13 @@
   }: Props = $props();
 
   let showDifficultySelector = $state(false);
-  let selectedDifficulty: DifficultyLevel = $state(50); // 50% = medium
+  let selectedDifficulty: DifficultyLevel = $state(50); // 50% = medium (default)
+
+  // Load saved difficulty preference on mount
+  onMount(async () => {
+    const preferences = await loadPreferences();
+    selectedDifficulty = preferences.defaultDifficulty;
+  });
 
   // Auto-show difficulty selector for new game modal
   $effect(() => {

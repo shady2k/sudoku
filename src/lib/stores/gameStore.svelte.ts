@@ -10,7 +10,7 @@
 import type { GameSession, CellPosition, CellValue, DifficultyLevel } from '../models/types';
 import { createGameSession, makeMove, selectCell, fillCandidatesOnce, setManualCandidates } from '../services/GameSession';
 import { updateTimer, pauseTimer, resumeTimer, shouldAutoPause, formatTime } from '../services/TimerService';
-import { saveGameSession, loadGameSession, hasSavedGame } from '../services/StorageService';
+import { saveGameSession, loadGameSession, hasSavedGame, loadPreferences, savePreferences } from '../services/StorageService';
 
 // Top-level reactive state for notesMode to ensure proper tracking
 let notesModeState = $state(false);
@@ -89,6 +89,11 @@ class GameStore {
         this.session = result.data;
         // Force immediate save for new games (not throttled)
         await this.saveToStorage();
+
+        // Save difficulty preference for next game
+        const preferences = await loadPreferences();
+        preferences.defaultDifficulty = difficulty;
+        await savePreferences(preferences);
       } else {
         this.error = result.error.message;
       }

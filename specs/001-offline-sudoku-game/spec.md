@@ -130,7 +130,9 @@ Instead of fixed difficulty presets, players can customize their game difficulty
 
 1. **Given** the player is on the new game screen, **When** they view difficulty options, **Then** they see a slider for adjusting difficulty level with a percentage scale from 0% (hardest) to 100% (easiest)
 2. **Given** the player adjusts the difficulty slider, **When** they start a new game, **Then** the puzzle generated has a number of pre-filled clues corresponding to the selected percentage (higher percentage = more clues = easier)
-3. **Given** the player has played games at different difficulties, **When** they view their game history, **Then** each game shows the difficulty percentage it was played at for accurate comparison
+3. **Given** the player has started a new game at a specific difficulty level, **When** they later open the New Game modal (via Ctrl+N or New Game button), **Then** the difficulty slider is pre-populated with the last used difficulty level
+4. **Given** the player opens the app for the first time (or after clearing browser data), **When** the New Game modal appears, **Then** the difficulty slider defaults to 50% (medium difficulty)
+5. **Given** the player has played games at different difficulties, **When** they view their game history, **Then** each game shows the difficulty percentage it was played at for accurate comparison
 
 ---
 
@@ -222,7 +224,7 @@ Players can view a history of their completed games, including completion time, 
 - **FR-018**: System MUST auto-resume the timer when the user interacts with the game after an idle pause
 - **FR-019**: System MUST persist game state when the browser is closed and restore it when reopened
 - **FR-020**: System MUST provide a modern, responsive user interface that works on desktop and mobile devices with static layout where UI elements maintain fixed positions and sizes regardless of state changes (no layout shifts when content updates); on desktop, the layout MUST position the Sudoku grid on the left with the Notes Mode toggle and number pad to its right; on mobile, the Notes Mode toggle appears below the grid and the number pad is omitted; all interactive buttons MUST display their keyboard shortcut hints in labels or tooltips (e.g., "NOTES MODE (N)", "Fill Candidates (C)", "Undo (Z)")
-- **FR-021**: System MUST allow players to customize difficulty using a percentage scale (0-100%, where 0% is hardest and 100% is easiest) that adjusts the number of pre-filled clues rather than fixed presets
+- **FR-021**: System MUST allow players to customize difficulty using a percentage scale (0-100%, where 0% is hardest and 100% is easiest) that adjusts the number of pre-filled clues rather than fixed presets; the system MUST persist the selected difficulty level to user preferences after each new game and automatically pre-populate the difficulty slider with the last used value when the New Game modal is opened
 - **FR-022**: System MUST provide an undo function (via button and Z/Ctrl+Z keys) to revert the last action, including both final number entries and manual candidate/note changes (preserving up to 50 steps of history)
 - **FR-023**: System MUST pause the timer when the page loses focus and keep it paused until the user explicitly interacts with the game (does not auto-resume on focus)
 
@@ -236,7 +238,7 @@ Players can view a history of their completed games, including completion time, 
 
 - **Game Record**: Represents a completed game stored in history. Attributes include: completion date/time, total elapsed time, total error count, difficulty level (percentage), puzzle identifier (for potential replay), personal best flags.
 
-- **User Preferences**: Represents player settings and preferences. Attributes include: preferred difficulty level (percentage), notes mode state (FILL or NOTES), theme/appearance settings, keyboard shortcuts configuration (including notes mode hotkey 'N', fill candidates hotkey 'C'), history display preferences (sort order, filters), auto-pause timeout setting.
+- **User Preferences**: Represents player settings and preferences. Attributes include: preferred difficulty level (percentage, persisted after each new game and automatically applied to subsequent games), notes mode state (FILL or NOTES), theme/appearance settings, keyboard shortcuts configuration (including notes mode hotkey 'N', fill candidates hotkey 'C'), history display preferences (sort order, filters), auto-pause timeout setting.
 
 - **Action History**: Represents the undo/redo stack for game actions. Attributes include: sequence of actions (cell, action type [final number entry or candidate change], previous state, new state, timestamp), current position in history, maximum history size (50 steps).
 
