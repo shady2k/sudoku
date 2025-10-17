@@ -201,11 +201,14 @@ export function serializeGameSession(session: GameSession): SerializedSession {
     history: {
       ...session.history,
       actions: session.history.actions.map(action => {
-        if (action.type === 'SET_CANDIDATES' || action.type === 'CLEAR_CANDIDATES') {
+        // Convert snapshot candidates Map to serializable format
+        if ('snapshot' in action && action.snapshot) {
           return {
             ...action,
-            previousCandidates: Array.from(action.previousCandidates),
-            newCandidates: action.type === 'SET_CANDIDATES' ? Array.from(action.newCandidates) : undefined
+            snapshot: {
+              board: action.snapshot.board,
+              candidates: Array.from(action.snapshot.candidates.entries()).map(([key, value]) => [key, Array.from(value)])
+            }
           };
         }
         return action;
@@ -250,21 +253,24 @@ export function deserializeGameSession(data: unknown): Result<GameSession> {
       history: {
         ...typedSessionData.history,
         actions: (typedSessionData.history?.actions || []).map((action: unknown) => {
-          const typedAction = action as Action;
-          if (typedAction.type === 'SET_CANDIDATES') {
+          const typedAction = action as any;
+
+          // Convert serialized snapshot back to Map
+          if (typedAction.snapshot && Array.isArray(typedAction.snapshot.candidates)) {
             return {
               ...typedAction,
-              previousCandidates: typedAction.previousCandidates || [],
-              newCandidates: typedAction.newCandidates || []
+              snapshot: {
+                board: typedAction.snapshot.board,
+                candidates: new Map(
+                  typedAction.snapshot.candidates.map(([key, value]: [string, number[]]) => [
+                    key,
+                    new Set(value)
+                  ])
+                )
+              }
             };
           }
-          if (typedAction.type === 'CLEAR_CANDIDATES') {
-            return {
-              ...typedAction,
-              previousCandidates: typedAction.previousCandidates || []
-            };
-          }
-          return typedAction;
+          return typedAction as Action;
         })
       }
     };

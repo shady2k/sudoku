@@ -145,31 +145,57 @@ export type Action =
 export interface SetValueAction {
   type: 'SET_VALUE';
   cell: CellPosition;
-  previousValue: number;
   newValue: number;
   timestamp: number;
+  /**
+   * Full grid snapshot BEFORE the move (for undo restoration)
+   * Stores complete state including board values and all candidates
+   * This simplifies undo/redo logic and makes it more robust (FR-022, FR-012)
+   */
+  snapshot: {
+    board: number[][];
+    candidates: Map<string, Set<number>>; // key: "row,col"
+  };
 }
 
 export interface ClearValueAction {
   type: 'CLEAR_VALUE';
   cell: CellPosition;
-  previousValue: number;
   timestamp: number;
+  /**
+   * Full grid snapshot BEFORE clearing the value (for undo restoration)
+   */
+  snapshot: {
+    board: number[][];
+    candidates: Map<string, Set<number>>; // key: "row,col"
+  };
 }
 
 export interface SetCandidatesAction {
   type: 'SET_CANDIDATES';
   cell: CellPosition;
-  previousCandidates: readonly number[];
   newCandidates: readonly number[];
   timestamp: number;
+  /**
+   * Full grid snapshot BEFORE the candidate change (for undo restoration)
+   */
+  snapshot: {
+    board: number[][];
+    candidates: Map<string, Set<number>>; // key: "row,col"
+  };
 }
 
 export interface ClearCandidatesAction {
   type: 'CLEAR_CANDIDATES';
   cell: CellPosition;
-  previousCandidates: readonly number[];
   timestamp: number;
+  /**
+   * Full grid snapshot BEFORE clearing candidates (for undo restoration)
+   */
+  snapshot: {
+    board: number[][];
+    candidates: Map<string, Set<number>>; // key: "row,col"
+  };
 }
 
 /**

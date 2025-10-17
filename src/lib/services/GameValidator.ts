@@ -221,3 +221,65 @@ export function isValidCandidate(
          isValidInColumn(board, col, candidate) &&
          isValidInBox(board, row, col, candidate);
 }
+
+/**
+ * Eliminates a candidate from all related cells (same row, column, and 3x3 box)
+ *
+ * @param board - Current board state
+ * @param cells - Cell metadata grid
+ * @param position - Position of the cell where value was placed
+ * @param value - The value that was placed (to be eliminated from candidates)
+ * @returns Map of affected cell indices to their eliminated candidates (for undo restoration)
+ *
+ * **Performance**: Must complete in <100ms per SC-013
+ * **Implementation**: FR-012 - Only affects cells in same row, column, AND 3x3 square
+ */
+export function eliminateCandidatesFromRelatedCells(
+  _board: readonly (readonly number[])[],
+  cells: readonly (readonly import('../models/types').Cell[])[],
+  position: import('../models/types').CellPosition,
+  value: SudokuNumber
+): Map<number, Set<number>> {
+  const eliminated = new Map<number, Set<number>>();
+  const { row, col } = position;
+
+  // Calculate 3x3 box boundaries
+  const boxStartRow = Math.floor(row / 3) * 3;
+  const boxStartCol = Math.floor(col / 3) * 3;
+
+  // Iterate through all cells and eliminate from related cells
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      // Skip the cell where the value was placed
+      if (r === row && c === col) {
+        continue;
+      }
+
+      // Check if cell is in same row, column, or box
+      const inSameRow = r === row;
+      const inSameCol = c === col;
+      const inSameBox = (
+        r >= boxStartRow && r < boxStartRow + 3 &&
+        c >= boxStartCol && c < boxStartCol + 3
+      );
+
+      if (!inSameRow && !inSameCol && !inSameBox) {
+        continue; // Cell not affected
+      }
+
+      // Get cell candidates
+      const cell = cells[r]?.[c];
+      if (!cell) {
+        continue;
+      }
+
+      // Check if cell has the value in its candidates
+      if (cell.manualCandidates.has(value)) {
+        const cellIndex = r * 9 + c;
+        eliminated.set(cellIndex, new Set([value]));
+      }
+    }
+  }
+
+  return eliminated;
+}
