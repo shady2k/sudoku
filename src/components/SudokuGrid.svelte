@@ -44,10 +44,18 @@
   }
 
   function handleNumberInput(event: KeyboardEvent, row: number, col: number, cell: { isClue: boolean; value: number }): void {
-    if (event.key >= '1' && event.key <= '9') {
+    // Check if it's a number key (1-9)
+    // When Shift is pressed, event.key becomes "!" instead of "1", so check event.code
+    const isNumberKey = (event.key >= '1' && event.key <= '9') ||
+                        (event.code >= 'Digit1' && event.code <= 'Digit9');
+
+    if (isNumberKey) {
       if (!canModifyCell(cell)) return;
 
-      const value = parseInt(event.key);
+      // Extract the number from either key or code
+      const value = event.key >= '1' && event.key <= '9'
+        ? parseInt(event.key)
+        : parseInt(event.code.replace('Digit', ''));
 
       // Check if Shift or Alt is pressed, or if in notes mode
       const shouldToggleCandidate = event.shiftKey || event.altKey || gameStore.notesMode;
