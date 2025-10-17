@@ -1,6 +1,7 @@
 <script lang="ts">
   import { gameStore } from '../lib/stores/gameStore.svelte';
   import type { CellValue, SudokuNumber } from '../lib/models/types';
+  import '../styles/hotkey.css';
 
   interface Props {
     onNewGame: () => Promise<void>;
@@ -169,19 +170,7 @@
     flex-shrink: 0;
   }
 
-  .hotkey {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.125rem 0.5rem;
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    font-family: monospace;
-    color: #ffffff;
-    min-width: 1.5rem;
-  }
+  /* Hotkey styles imported from ../styles/hotkey.css */
 
   .btn:hover:not(:disabled) {
     background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
@@ -214,10 +203,7 @@
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
   }
 
-  .btn-primary .hotkey {
-    background: rgba(255, 255, 255, 0.25);
-    color: white;
-  }
+  /* Primary button hotkey styles imported from ../styles/hotkey.css */
 
 
   .number-pad {
@@ -308,6 +294,8 @@
     min-height: 32px;
   }
 
+  /* Clear button hotkey styles imported from ../styles/hotkey.css */
+
   .clear-btn:hover:not(:disabled) {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     color: white;
@@ -315,9 +303,18 @@
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
   }
 
-  .clear-btn:hover:not(:disabled) .hotkey {
-    background: rgba(255, 255, 255, 0.25);
-    color: white;
+  /* Focus states and accessibility imported from ../styles/hotkey.css */
+  .btn:focus-visible {
+    outline: 3px solid #3b82f6;
+    outline-offset: 3px;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  }
+
+  /* Reduced motion support for buttons */
+  @media (prefers-reduced-motion: reduce) {
+    .btn {
+      transition: none;
+    }
   }
 
   /* T080a: Hide number pad on mobile (<768px) per FR-020 clarification */

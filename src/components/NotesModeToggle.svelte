@@ -1,5 +1,6 @@
 <script lang="ts">
   import { gameStore } from '../lib/stores/gameStore.svelte';
+  import '../styles/hotkey.css';
 
   function handleToggle(mode: 'fill' | 'notes'): void {
     const shouldBeNotesMode = mode === 'notes';
@@ -97,19 +98,7 @@
     flex-shrink: 0;
   }
 
-  .hotkey {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.125rem 0.375rem;
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 0.25rem;
-    font-size: 0.625rem;
-    font-weight: 600;
-    font-family: monospace;
-    color: inherit;
-    min-width: 1.25rem;
-  }
+  /* Hotkey styles imported from ../styles/hotkey.css */
 
   .toggle-option:hover:not(.active) {
     background: #f9fafb;
@@ -146,10 +135,7 @@
     box-shadow: 0 1px 3px rgba(139, 92, 246, 0.3);
   }
 
-  .toggle-option[data-mode="notes"].active .hotkey {
-    background: rgba(255, 255, 255, 0.25);
-    color: white;
-  }
+  /* Notes mode hotkey styling imported from ../styles/hotkey.css */
 
   @media (max-width: 767px) {
     .toggle-option {
