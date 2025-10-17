@@ -24,9 +24,10 @@
     "puzzle",
     "svelte"
   ],
-  "author": "Alexandr",
+  "author": "Alexandr Korachentsov",
   "license": "MIT",
   "dependencies": {
+    "lodash-es": "4.17.21",
     "svelte": "5.40.1"
   },
   "devDependencies": {
@@ -35,6 +36,7 @@
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/svelte": "5.2.8",
     "@testing-library/user-event": "14.6.1",
+    "@types/lodash-es": "4.17.12",
     "@typescript-eslint/eslint-plugin": "8.46.1",
     "@typescript-eslint/parser": "8.46.1",
     "@vitest/coverage-v8": "3.2.4",

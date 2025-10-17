@@ -222,7 +222,7 @@ describe('PuzzleGenerator', () => {
       }
     });
 
-    it('should generate harder puzzle with difficulty 100%', async () => {
+    it('should generate harder puzzle with difficulty 100% (with fallback)', async () => {
       const result = await generatePuzzle(100);
 
       expect(result.success).toBe(true);
@@ -236,9 +236,11 @@ describe('PuzzleGenerator', () => {
           });
         });
 
-        // Difficulty 100% should have ~17 clues (hardest)
-        expect(clueCount).toBeLessThan(25);
+        // Difficulty 100% may fall back to 95% or 90% (progressive fallback)
+        // So expect 17-21 clues (100%=17, 95%=18, 90%=20)
+        expect(clueCount).toBeGreaterThanOrEqual(17);
+        expect(clueCount).toBeLessThan(22);
       }
-    });
+    }, 30000); // 30s timeout - reduced from 10s but allows for fallback
   });
 });

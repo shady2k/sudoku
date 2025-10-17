@@ -21,6 +21,14 @@
       gameStore.updateTime();
     }, 100);
 
+    // Flush pending saves before page unload
+    const handleBeforeUnload = () => {
+      if (gameStore.session) {
+        gameStore.forceSave();
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     // T065: Check if there's a saved game
     const hasGame = hasSavedGame();
 
@@ -32,12 +40,19 @@
       const preferences = await loadPreferences();
       await gameStore.newGame(preferences.defaultDifficulty);
     }
+
+    // Cleanup beforeunload listener
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   });
 
   onDestroy(() => {
     if (intervalId) {
       clearInterval(intervalId);
     }
+    // Cleanup throttled save to prevent memory leaks
+    gameStore.destroy();
   });
 
   async function handleResume(): Promise<void> {

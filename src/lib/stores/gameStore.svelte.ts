@@ -8,12 +8,23 @@
  */
 
 import type { GameSession, CellPosition, CellValue, DifficultyLevel, SudokuNumber } from '../models/types';
+import { isSudokuNumber } from '../models/types';
 import { createGameSession, makeMove, selectCell, fillCandidatesOnce, setManualCandidates, setHighlightedNumber } from '../services/GameSession';
 import { updateTimer, pauseTimer, resumeTimer, shouldAutoPause, formatTime } from '../services/TimerService';
 import { saveGameSession, loadGameSession, hasSavedGame, loadPreferences, savePreferences } from '../services/StorageService';
+import { throttle } from 'lodash-es';
 
 // Top-level reactive state for notesMode to ensure proper tracking
 let notesModeState = $state(false);
+
+// Save state management for UI feedback
+interface SaveState {
+  status: 'idle' | 'saving' | 'success' | 'warning' | 'error';
+  lastSuccess: Date | null;
+  failureCount: number;
+  lastError: string | null;
+  nextRetryIn: number; // milliseconds
+}
 
 class GameStore {
   // Reactive state
@@ -21,6 +32,15 @@ class GameStore {
   isLoading = $state(false);
   error = $state<string | null>(null);
   currentTime = $state(Date.now());
+
+  // Save state for error recovery UI
+  saveState = $state<SaveState>({
+    status: 'idle',
+    lastSuccess: null,
+    failureCount: 0,
+    lastError: null,
+    nextRetryIn: 0
+  });
 
   // Getter/setter for notesMode that accesses top-level state
   get notesMode(): boolean {
@@ -31,10 +51,12 @@ class GameStore {
     notesModeState = value;
   }
 
-  // Auto-save throttling (save at most every 2 seconds)
-  private lastSaveTime = 0;
-  private saveThrottleMs = 2000;
-  private pendingSave = false;
+  // Auto-save throttling using lodash-es (save at most every 2 seconds)
+  private throttledSaveImpl = throttle(
+    () => this.saveToStorage(),
+    2000,
+    { leading: true, trailing: true }
+  );
 
   // Derived state
   formattedTime = $derived(
@@ -161,7 +183,17 @@ class GameStore {
   setManualCandidates(position: CellPosition, candidates: Set<number>): void {
     if (!this.session) return;
 
-    const result = setManualCandidates(this.session, position, candidates as Set<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9>);
+    // Validate all candidates are valid Sudoku numbers (1-9)
+    const validCandidates = new Set<SudokuNumber>();
+    for (const num of candidates) {
+      if (isSudokuNumber(num)) {
+        validCandidates.add(num);
+      } else {
+        console.warn(`Invalid candidate number: ${num}, skipping`);
+      }
+    }
+
+    const result = setManualCandidates(this.session, position, validCandidates);
 
     if (result.success) {
       this.session = result.data;
@@ -204,40 +236,79 @@ class GameStore {
   // Auto-save with throttling (max once per 2 seconds per task T058)
   private throttledSave(): void {
     if (!this.session) return;
-
-    const now = Date.now();
-    const timeSinceLastSave = now - this.lastSaveTime;
-
-    if (timeSinceLastSave >= this.saveThrottleMs) {
-      // Save immediately
-      this.lastSaveTime = now;
-      this.pendingSave = false;
-      this.saveToStorage();
-    } else if (!this.pendingSave) {
-      // Schedule a save for later
-      this.pendingSave = true;
-      const delay = this.saveThrottleMs - timeSinceLastSave;
-
-      setTimeout(() => {
-        if (this.pendingSave && this.session) {
-          this.lastSaveTime = Date.now();
-          this.pendingSave = false;
-          this.saveToStorage();
-        }
-      }, delay);
-    }
+    this.throttledSaveImpl();
   }
 
-  // Actual save operation
-  private async saveToStorage(): Promise<void> {
+  // Cleanup method to cancel pending throttled saves
+  destroy(): void {
+    this.throttledSaveImpl.cancel();
+  }
+
+  // Get retry delay based on failure count (exponential backoff)
+  private getRetryDelay(attemptNumber: number): number {
+    const delays = [0, 2000, 5000, 10000]; // Immediate, 2s, 5s, 10s
+    const cappedDelay = 30000; // Max 30s
+
+    return attemptNumber < delays.length ? (delays[attemptNumber] ?? cappedDelay) : cappedDelay;
+  }
+
+  // Actual save operation with retry logic
+  private async saveToStorage(retryCount = 0): Promise<void> {
     if (!this.session) return;
+
+    this.saveState.status = 'saving';
 
     const result = await saveGameSession(this.session);
 
-    if (!result.success) {
+    if (result.success) {
+      // Save succeeded
+      this.saveState = {
+        status: 'success',
+        lastSuccess: new Date(),
+        failureCount: 0,
+        lastError: null,
+        nextRetryIn: 0
+      };
+
+      // Reset status to idle after 1s
+      setTimeout(() => {
+        if (this.saveState.status === 'success') {
+          this.saveState.status = 'idle';
+        }
+      }, 1000);
+    } else {
+      // Save failed
+      this.saveState.failureCount++;
+      this.saveState.lastError = result.error.message;
+
       console.error('Failed to save game session:', result.error.message);
-      // Don't show error to user for auto-save failures
+
+      // Determine if we should retry
+      const shouldRetry =
+        retryCount < 3 &&
+        result.error.code !== 'STORAGE_QUOTA_EXCEEDED';
+
+      if (shouldRetry) {
+        // Retry with exponential backoff
+        const delay = this.getRetryDelay(retryCount + 1);
+        this.saveState.status = 'warning';
+        this.saveState.nextRetryIn = delay;
+
+        setTimeout(() => {
+          this.saveToStorage(retryCount + 1);
+        }, delay);
+      } else {
+        // Max retries reached or critical error
+        this.saveState.status = 'error';
+        this.error = `Auto-save failed: ${result.error.message}`;
+      }
     }
+  }
+
+  // Force immediate save (bypasses throttling)
+  async forceSave(): Promise<void> {
+    if (!this.session) return;
+    await this.saveToStorage();
   }
 }
 

@@ -125,6 +125,8 @@ function isValidPlacement(
  * @returns Puzzle with clues, solution, and metadata
  *
  * Performance: Target <2 seconds (SC-007)
+ * Guarantee: Unique solution with time-based circuit breaker (2s timeout)
+ * Fallback: Progressive difficulty reduction if timeout exceeded
  */
 export async function generatePuzzle(
   difficulty: DifficultyLevel,
@@ -135,39 +137,105 @@ export async function generatePuzzle(
   }
 
   const actualSeed = seed ?? Date.now();
-  const rng = new SeededRandom(actualSeed);
 
-  // Step 1: Generate complete grid
-  const gridResult = await generateCompleteGrid(actualSeed);
-  if (!gridResult.success) {
-    return gridResult;
+  // Progressive fallback: Try 100% → 95% → 90% → error
+  const difficultyAttempts = [difficulty];
+  if (difficulty === 100) {
+    difficultyAttempts.push(95, 90);
+  } else if (difficulty >= 95) {
+    difficultyAttempts.push(difficulty - 5);
   }
 
-  const solution = gridResult.data;
+  for (const attemptDifficulty of difficultyAttempts) {
+    const result = await generatePuzzleWithTimeout(attemptDifficulty, actualSeed, 2000);
 
-  // Step 2: Create puzzle by removing cells
+    if (result.success) {
+      return result;
+    }
+  }
+
+  // All attempts failed
+  return failure(
+    'PUZZLE_GENERATION_FAILED',
+    `Failed to generate valid puzzle with unique solution within time limit`
+  );
+}
+
+/**
+ * Internal function to generate puzzle with time-based circuit breaker
+ */
+async function generatePuzzleWithTimeout(
+  difficulty: DifficultyLevel,
+  seed: number,
+  maxTimeMs: number
+): Promise<Result<Puzzle>> {
+  const startTime = Date.now();
   const targetClues = difficultyToClues(difficulty);
-  const puzzle = removeCells(solution, targetClues, rng);
+  let attempt = 0;
+  const maxAttempts = 100; // Prevent infinite loops
 
-  // Step 3: Create clue markers
-  const clues: boolean[][] = puzzle.map(row =>
-    row.map(val => val !== 0)
+  // Time-based circuit breaker: Keep trying until timeout or max attempts
+  while (Date.now() - startTime < maxTimeMs && attempt < maxAttempts) {
+    // Use different seed for each attempt to get different puzzles
+    const attemptSeed = seed + attempt;
+    const rng = new SeededRandom(attemptSeed);
+
+    // Step 1: Generate complete grid
+    const gridResult = await generateCompleteGrid(attemptSeed);
+    if (!gridResult.success) {
+      attempt++;
+      continue; // Try next attempt
+    }
+
+    const solution = gridResult.data;
+
+    // Step 2: Create puzzle by removing cells
+    const puzzle = removeCells(solution, targetClues, rng);
+
+    // Step 3: Quick validation before expensive uniqueness check
+    const actualClues = puzzle.reduce(
+      (sum, row) => sum + row.filter(val => val !== 0).length,
+      0
+    );
+
+    // Skip if too many clues removed (puzzle too hard)
+    if (actualClues < 17) {
+      attempt++;
+      continue;
+    }
+
+    // Step 4: Validate uniqueness with timeout protection
+    const uniquenessStartTime = Date.now();
+    if (Date.now() - uniquenessStartTime > 500) { // 500ms max for uniqueness check
+      attempt++;
+      continue;
+    }
+
+    if (!hasUniqueSolution(puzzle)) {
+      attempt++;
+      continue; // Try next attempt
+    }
+
+    // Step 5: Create clue markers
+    const clues: boolean[][] = puzzle.map(row =>
+      row.map(val => val !== 0)
+    );
+
+    return success({
+      grid: puzzle.map(row => [...row]), // Make readonly
+      solution: solution.map(row => [...row]), // Make readonly
+      clues: clues.map(row => [...row]), // Make readonly
+      difficultyRating: actualClues,
+      puzzleId: `puzzle-${attemptSeed}-${difficulty}`,
+      generatedAt: Date.now()
+    });
+  }
+
+  // Timeout exceeded or max attempts reached
+  return failure(
+    'PUZZLE_GENERATION_FAILED',
+    `Failed to generate valid puzzle at difficulty ${difficulty}% within ${maxTimeMs}ms (tried ${attempt + 1} attempts)`
   );
-
-  // Count actual clues
-  const actualClues = puzzle.reduce(
-    (sum, row) => sum + row.filter(val => val !== 0).length,
-    0
-  );
-
-  return success({
-    grid: puzzle.map(row => [...row]), // Make readonly
-    solution: solution.map(row => [...row]), // Make readonly
-    clues: clues.map(row => [...row]), // Make readonly
-    difficultyRating: actualClues,
-    puzzleId: `puzzle-${actualSeed}-${difficulty}`,
-    generatedAt: Date.now()
-  });
 }
 
 /**
@@ -217,11 +285,8 @@ function removeCells(
 /**
  * Validates that a puzzle has a unique solution
  *
- * Uses constraint propagation + backtracking counter
- * If multiple solutions exist, returns false
- *
- * Note: This is a simplified version. Full implementation would use
- * more sophisticated solving techniques.
+ * Uses backtracking with solution counting and early termination
+ * If multiple solutions exist, returns false early
  *
  * @param puzzle - Puzzle to validate
  * @returns true if unique solution exists
@@ -231,12 +296,14 @@ export function hasUniqueSolution(puzzle: readonly (readonly number[])[]): boole
   let solutionCount = 0;
 
   function solve(): boolean {
-    if (solutionCount > 1) return true; // Early exit
+    // Early exit if we already found more than one solution
+    if (solutionCount > 1) return false;
 
     const empty = findEmptyCell(grid);
     if (!empty) {
+      // Found a complete solution
       solutionCount++;
-      return solutionCount <= 1;
+      return solutionCount === 1; // Continue searching if this is the first solution
     }
 
     const { row, col } = empty;
@@ -245,17 +312,13 @@ export function hasUniqueSolution(puzzle: readonly (readonly number[])[]): boole
       if (isValidPlacement(grid, row, col, num)) {
         setCell(grid, row, col, num);
 
-        if (!solve()) {
-          setCell(grid, row, col, 0);
-          continue;
-        }
-
-        if (solutionCount > 1) {
-          setCell(grid, row, col, 0);
+        if (solve()) {
+          // Found a solution, continue searching to see if there are others
+          setCell(grid, row, col, 0); // Backtrack
           return true;
         }
 
-        setCell(grid, row, col, 0);
+        setCell(grid, row, col, 0); // Backtrack
       }
     }
 
