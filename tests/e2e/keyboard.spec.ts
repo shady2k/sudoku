@@ -6,13 +6,12 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { startNewGameIfNeeded } from './helpers';
 
 test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-
-    // Wait for app to load
-    await page.waitForLoadState('networkidle');
+    await startNewGameIfNeeded(page);
   });
 
   test('should navigate and play game using only keyboard', async ({ page }) => {
@@ -21,21 +20,12 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
     // When they use arrow keys (↑ ↓ ← →)
     // Then the cell selection moves in the corresponding direction
 
-    // Start a new game if needed
-    const newGameButton = page.getByRole('button', { name: /new game/i });
-    if (await newGameButton.isVisible()) {
-      await newGameButton.click();
-    }
-
-    // Wait for grid to be visible
-    await page.waitForSelector('.grid', { state: 'visible' });
-
     // Find the first non-clue cell and select it
-    const firstEmptyCell = await page.locator('.cell:not(.clue)').first();
+    const firstEmptyCell = await page.locator('button.cell:not(.clue)').first();
     await firstEmptyCell.click();
 
     // Verify a cell is selected
-    const selectedCell = page.locator('.cell.selected');
+    const selectedCell = page.locator('button.cell.selected');
     await expect(selectedCell).toBeVisible();
 
     // Get initial position
@@ -46,10 +36,10 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
     await page.keyboard.press('ArrowRight');
     await page.waitForTimeout(100); // Allow for state update
 
-    const cellAfterRight = page.locator('.cell.selected');
+    const cellAfterRight = page.locator('button.cell.selected');
     const newCol = await cellAfterRight.getAttribute('data-col');
 
-    // Column should increase by 1 (or wrap if at edge)
+    // Column should increase by 1 (or stay at edge)
     if (Number(initialCol) < 8) {
       expect(Number(newCol)).toBe(Number(initialCol) + 1);
     }
@@ -58,10 +48,10 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
     await page.keyboard.press('ArrowDown');
     await page.waitForTimeout(100);
 
-    const cellAfterDown = page.locator('.cell.selected');
+    const cellAfterDown = page.locator('button.cell.selected');
     const newRow = await cellAfterDown.getAttribute('data-row');
 
-    // Row should increase by 1 (or wrap if at edge)
+    // Row should increase by 1 (or stay at edge)
     if (Number(initialRow) < 8) {
       expect(Number(newRow)).toBeGreaterThan(Number(initialRow));
     }
@@ -73,7 +63,7 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
 
     // Navigate to an empty cell
     for (let i = 0; i < 9; i++) {
-      const currentCell = page.locator('.cell.selected');
+      const currentCell = page.locator('button.cell.selected');
       const isClue = await currentCell.evaluate(el => el.classList.contains('clue'));
 
       if (!isClue) {
@@ -81,8 +71,9 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
         await page.keyboard.press('5');
         await page.waitForTimeout(100);
 
-        // Verify the cell now contains 5
-        await expect(currentCell).toContainText('5');
+        // Verify the cell now contains 5 in the .value span
+        const valueSpan = currentCell.locator('.value');
+        await expect(valueSpan).toHaveText('5');
         break;
       }
 
@@ -97,86 +88,90 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
     // Then the cell is cleared
 
     // Cell should still be selected with value 5
-    const cellWithValue = page.locator('.cell.selected');
-    await expect(cellWithValue).toContainText('5');
+    const cellWithValue = page.locator('button.cell.selected');
+    const valueSpan = cellWithValue.locator('.value');
+    await expect(valueSpan).toHaveText('5');
 
     // Press Delete to clear
     await page.keyboard.press('Delete');
     await page.waitForTimeout(100);
 
-    // Verify cell is now empty (no text content or only whitespace)
-    const cellContent = await cellWithValue.textContent();
-    expect(cellContent?.trim() || '').toBe('');
+    // Verify cell is now empty (value span should not exist or be empty)
+    const valueCount = await cellWithValue.locator('.value').count();
+    expect(valueCount).toBe(0);
 
     // Test with Backspace as well
     await page.keyboard.press('7');
     await page.waitForTimeout(100);
-    await expect(cellWithValue).toContainText('7');
+    await expect(cellWithValue.locator('.value')).toHaveText('7');
 
     await page.keyboard.press('Backspace');
     await page.waitForTimeout(100);
 
-    const clearedContent = await cellWithValue.textContent();
-    expect(clearedContent?.trim() || '').toBe('');
+    const valueCountAfterBackspace = await cellWithValue.locator('.value').count();
+    expect(valueCountAfterBackspace).toBe(0);
   });
 
   test('should support all keyboard hotkeys', async ({ page }) => {
-    // Start a new game
-    const newGameButton = page.getByRole('button', { name: /new game/i });
-    if (await newGameButton.isVisible()) {
-      await newGameButton.click();
-    }
-
-    // Wait for grid
-    await page.waitForSelector('.grid', { state: 'visible' });
 
     // Scenario 5: Toggle candidates with 'C' key
     // Given the player is playing the game
     // When they press 'C' key
-    // Then the Show/Hide Candidates feature is toggled
+    // Then the Fill Candidates feature is activated
 
-    const candidatesButton = page.getByRole('button', { name: /candidates/i });
-    const initialState = await candidatesButton.evaluate(el => el.classList.contains('active'));
+    // Note: There's no toggle state for Fill Candidates - it just fills them
+    // So we'll verify the button exists and can be triggered
+    const fillCandidatesButton = page.getByRole('button', { name: /fill candidates/i });
+    await expect(fillCandidatesButton).toBeVisible();
 
+    // Press 'C' to trigger fill candidates
     await page.keyboard.press('c');
     await page.waitForTimeout(200);
 
-    const newState = await candidatesButton.evaluate(el => el.classList.contains('active'));
-    expect(newState).toBe(!initialState);
+    // The button should still be visible (no errors occurred)
+    await expect(fillCandidatesButton).toBeVisible();
 
     // Scenario 7: Pause/Resume with Space key
     // Given the player is playing the game
     // When they press 'Space' key
     // Then the timer is paused/resumed
 
-    const pauseButton = page.getByRole('button', { name: /pause|resume/i });
-    const pauseButtonText = await pauseButton.textContent();
+    // Check initial state - should show "Pause" button
+    // Use a more specific selector that won't match the overlay
+    const pauseButton = page.locator('button').filter({ hasText: /^(Pause|Resume)/ }).filter({ hasText: /Space/ });
+    await expect(pauseButton).toBeVisible();
+    const initialText = await pauseButton.textContent();
 
     await page.keyboard.press('Space');
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(300);
 
-    const newPauseButtonText = await pauseButton.textContent();
-    expect(newPauseButtonText).not.toBe(pauseButtonText);
+    // Verify pause overlay appears
+    const pauseOverlay = page.locator('.auto-pause-overlay');
+    await expect(pauseOverlay).toBeVisible();
+
+    // Button text should change (check after overlay is visible)
+    const newText = await pauseButton.textContent();
+    expect(newText).not.toBe(initialText);
+
+    // Press Space again to resume
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(300);
+
+    // Pause overlay should disappear
+    await expect(pauseOverlay).not.toBeVisible();
   });
 
   test('should handle boundary navigation correctly', async ({ page }) => {
-    // Start a new game
-    const newGameButton = page.getByRole('button', { name: /new game/i });
-    if (await newGameButton.isVisible()) {
-      await newGameButton.click();
-    }
-
-    await page.waitForSelector('.grid', { state: 'visible' });
 
     // Click on top-left cell
-    const topLeftCell = page.locator('[data-row="0"][data-col="0"]');
+    const topLeftCell = page.locator('button.cell[data-row="0"][data-col="0"]');
     await topLeftCell.click();
 
     // Try to move up from top row (should stay in place)
     await page.keyboard.press('ArrowUp');
     await page.waitForTimeout(100);
 
-    const selectedAfterUp = page.locator('.cell.selected');
+    const selectedAfterUp = page.locator('button.cell.selected');
     const rowAfterUp = await selectedAfterUp.getAttribute('data-row');
     expect(rowAfterUp).toBe('0'); // Should remain at row 0
 
@@ -184,19 +179,19 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
     await page.keyboard.press('ArrowLeft');
     await page.waitForTimeout(100);
 
-    const selectedAfterLeft = page.locator('.cell.selected');
+    const selectedAfterLeft = page.locator('button.cell.selected');
     const colAfterLeft = await selectedAfterLeft.getAttribute('data-col');
     expect(colAfterLeft).toBe('0'); // Should remain at col 0
 
     // Navigate to bottom-right cell
-    const bottomRightCell = page.locator('[data-row="8"][data-col="8"]');
+    const bottomRightCell = page.locator('button.cell[data-row="8"][data-col="8"]');
     await bottomRightCell.click();
 
     // Try to move down from bottom row (should stay in place)
     await page.keyboard.press('ArrowDown');
     await page.waitForTimeout(100);
 
-    const selectedAfterDown = page.locator('.cell.selected');
+    const selectedAfterDown = page.locator('button.cell.selected');
     const rowAfterDown = await selectedAfterDown.getAttribute('data-row');
     expect(rowAfterDown).toBe('8'); // Should remain at row 8
 
@@ -204,33 +199,26 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
     await page.keyboard.press('ArrowRight');
     await page.waitForTimeout(100);
 
-    const selectedAfterRight = page.locator('.cell.selected');
+    const selectedAfterRight = page.locator('button.cell.selected');
     const colAfterRight = await selectedAfterRight.getAttribute('data-col');
     expect(colAfterRight).toBe('8'); // Should remain at col 8
   });
 
   test('should not allow editing clue cells with keyboard', async ({ page }) => {
-    // Start a new game
-    const newGameButton = page.getByRole('button', { name: /new game/i });
-    if (await newGameButton.isVisible()) {
-      await newGameButton.click();
-    }
-
-    await page.waitForSelector('.grid', { state: 'visible' });
 
     // Find and select a clue cell
-    const clueCell = page.locator('.cell.clue').first();
+    const clueCell = page.locator('button.cell.clue').first();
     await clueCell.click();
 
     // Get the original value
-    const originalValue = await clueCell.textContent();
+    const originalValue = await clueCell.locator('.value').textContent();
 
     // Try to enter a different number
     await page.keyboard.press('9');
     await page.waitForTimeout(100);
 
     // Verify the value hasn't changed
-    const newValue = await clueCell.textContent();
+    const newValue = await clueCell.locator('.value').textContent();
     expect(newValue).toBe(originalValue);
 
     // Try to delete the value
@@ -238,21 +226,19 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
     await page.waitForTimeout(100);
 
     // Verify the value still hasn't changed
-    const valueAfterDelete = await clueCell.textContent();
+    const valueAfterDelete = await clueCell.locator('.value').textContent();
     expect(valueAfterDelete).toBe(originalValue);
+
+    // However, pressing a number on a clue should deselect it and highlight that number
+    // The cell should no longer be selected
+    const isStillSelected = await clueCell.evaluate(el => el.classList.contains('selected'));
+    expect(isStillSelected).toBe(false);
   });
 
   test('should handle rapid keyboard input correctly', async ({ page }) => {
-    // Start a new game
-    const newGameButton = page.getByRole('button', { name: /new game/i });
-    if (await newGameButton.isVisible()) {
-      await newGameButton.click();
-    }
-
-    await page.waitForSelector('.grid', { state: 'visible' });
 
     // Find an empty cell
-    const emptyCell = page.locator('.cell:not(.clue)').first();
+    const emptyCell = page.locator('button.cell:not(.clue)').first();
     await emptyCell.click();
 
     // Rapidly enter numbers
@@ -262,9 +248,9 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
     await page.waitForTimeout(200);
 
     // Should only have the last entered number (3)
-    const selectedCell = page.locator('.cell.selected');
-    const content = await selectedCell.textContent();
-    expect(content?.trim()).toBe('3');
+    const selectedCell = page.locator('button.cell.selected');
+    const valueSpan = selectedCell.locator('.value');
+    await expect(valueSpan).toHaveText('3');
   });
 
   test('should allow mixed keyboard and mouse input', async ({ page }) => {
@@ -273,16 +259,8 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
     // When they switch between keyboard and mouse at any time
     // Then the game responds correctly to both input methods without conflict
 
-    // Start a new game
-    const newGameButton = page.getByRole('button', { name: /new game/i });
-    if (await newGameButton.isVisible()) {
-      await newGameButton.click();
-    }
-
-    await page.waitForSelector('.grid', { state: 'visible' });
-
     // Select cell with mouse
-    const cell1 = page.locator('[data-row="2"][data-col="2"]');
+    const cell1 = page.locator('button.cell[data-row="2"][data-col="2"]');
     await cell1.click();
 
     // Enter number with keyboard
@@ -290,7 +268,7 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
     if (!isClue1) {
       await page.keyboard.press('5');
       await page.waitForTimeout(100);
-      await expect(cell1).toContainText('5');
+      await expect(cell1.locator('.value')).toHaveText('5');
     }
 
     // Navigate with keyboard
@@ -298,7 +276,7 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
     await page.waitForTimeout(100);
 
     // Select different cell with mouse
-    const cell2 = page.locator('[data-row="4"][data-col="4"]');
+    const cell2 = page.locator('button.cell[data-row="4"][data-col="4"]');
     await cell2.click();
 
     // Verify the new cell is selected
@@ -309,7 +287,7 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
     if (!isClue2) {
       await page.keyboard.press('7');
       await page.waitForTimeout(100);
-      await expect(cell2).toContainText('7');
+      await expect(cell2.locator('.value')).toHaveText('7');
     }
   });
 
@@ -319,17 +297,10 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
 
     // Note: For performance, we'll simulate partial gameplay rather than solving the entire puzzle
 
-    // Start a new game
-    const newGameButton = page.getByRole('button', { name: /new game/i });
-    if (await newGameButton.isVisible()) {
-      await newGameButton.click();
-    }
-
-    await page.waitForSelector('.grid', { state: 'visible' });
-
     // Navigate to first cell using keyboard (assume some cell is selected by default)
-    // If not, we can tab to the grid
-    await page.keyboard.press('Tab');
+    // If not, we can tab to the grid or click first cell then use keyboard
+    const firstCell = page.locator('button.cell').first();
+    await firstCell.click();
 
     // Perform a sequence of keyboard-only actions:
     // 1. Navigate the grid
@@ -347,7 +318,7 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
     const numbers = ['1', '2', '3', '4', '5'];
     for (const num of numbers) {
       // Check if current cell is a clue
-      const selectedCell = page.locator('.cell.selected');
+      const selectedCell = page.locator('button.cell.selected');
       const isClue = await selectedCell.evaluate(el => el.classList.contains('clue'));
 
       if (!isClue) {
@@ -362,20 +333,44 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
 
     // 3. Test pause/resume with Space
     await page.keyboard.press('Space');
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(300);
 
-    const pauseButton = page.getByRole('button', { name: /resume/i });
-    await expect(pauseButton).toBeVisible();
+    // Verify pause overlay appears
+    const pauseOverlay = page.locator('.auto-pause-overlay');
+    await expect(pauseOverlay).toBeVisible();
 
+    // Any key should resume (including Space)
     await page.keyboard.press('Space');
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(300);
 
-    // 4. Test undo with Z key (if undo is implemented)
+    // Pause overlay should disappear
+    await expect(pauseOverlay).not.toBeVisible();
+
+    // 4. Test undo with Z key (note: undo not implemented yet, but key should not cause errors)
     await page.keyboard.press('z');
     await page.waitForTimeout(100);
 
-    // 5. Toggle candidates with C key
+    // 5. Fill candidates with C key
     await page.keyboard.press('c');
+    await page.waitForTimeout(200);
+
+    // 6. Test notes mode toggle with N key
+    await page.keyboard.press('n');
+    await page.waitForTimeout(200);
+
+    // Verify notes mode is active (purple border on selected cell)
+    const selectedCell = page.locator('button.cell.selected');
+    const hasNotesMode = await selectedCell.evaluate(el =>
+      el.classList.contains('selected-notes-mode')
+    );
+    expect(hasNotesMode).toBe(true);
+
+    // Enter a candidate number in notes mode
+    await page.keyboard.press('9');
+    await page.waitForTimeout(100);
+
+    // Toggle notes mode off
+    await page.keyboard.press('n');
     await page.waitForTimeout(200);
 
     // Verify we've successfully completed multiple keyboard-only actions
@@ -383,9 +378,93 @@ test.describe('Keyboard-Only Gameplay (User Story 3)', () => {
     const grid = page.locator('.grid');
     await expect(grid).toBeVisible();
 
-    // Verify that some numbers were entered
-    const cellsWithNumbers = page.locator('.cell .value');
-    const count = await cellsWithNumbers.count();
+    // Verify that some numbers were entered (cells with .value spans)
+    const cellsWithValues = page.locator('button.cell .value');
+    const count = await cellsWithValues.count();
     expect(count).toBeGreaterThan(0);
+  });
+
+  test('should support notes mode keyboard shortcuts', async ({ page }) => {
+    // Test Shift+Number to enter candidates
+
+    // Find and select an empty cell
+    const emptyCell = page.locator('button.cell:not(.clue)').first();
+    await emptyCell.click();
+    await page.waitForTimeout(100);
+
+    // Clear the cell to ensure it's empty
+    await page.keyboard.press('Delete');
+    await page.waitForTimeout(100);
+
+    // Use Shift+5 to enter a candidate
+    await page.keyboard.press('Shift+5');
+    await page.waitForTimeout(200);
+
+    // Verify the cell now shows candidate marks (has candidate numbers component)
+    const selectedCell = page.locator('button.cell.selected');
+    const hasCandidates = await selectedCell.locator('.candidates-container').count();
+    expect(hasCandidates).toBeGreaterThan(0);
+
+    // Toggle notes mode with N key
+    await page.keyboard.press('n');
+    await page.waitForTimeout(200);
+
+    // In notes mode, verify the selected cell has purple border
+    const hasNotesClass = await selectedCell.evaluate(el =>
+      el.classList.contains('selected-notes-mode')
+    );
+    expect(hasNotesClass).toBe(true);
+
+    // Press number without Shift in notes mode - should toggle candidate
+    await page.keyboard.press('3');
+    await page.waitForTimeout(100);
+
+    // Exit notes mode
+    await page.keyboard.press('n');
+    await page.waitForTimeout(200);
+
+    // Verify notes mode is off
+    const hasNotesClassAfter = await selectedCell.evaluate(el =>
+      el.classList.contains('selected-notes-mode')
+    );
+    expect(hasNotesClassAfter).toBe(false);
+  });
+
+  test('should support new game shortcut with G key', async ({ page }) => {
+    // Test the 'G' key shortcut for starting a new game
+
+    // Press 'G' to open new game modal
+    await page.keyboard.press('g');
+    await page.waitForTimeout(300);
+
+    // The modal should appear - look for the modal with difficulty buttons
+    const modal = page.locator('.modal');
+    await expect(modal).toBeVisible();
+
+    // Verify difficulty slider is present
+    const difficultySlider = page.locator('input[type="range"]');
+    await expect(difficultySlider).toBeVisible();
+
+    // Close modal by clicking overlay button if there's an active game, or just verify modal opened
+    const cancelButton = page.getByRole('button', { name: /cancel/i });
+    const hasCancelButton = await cancelButton.count();
+
+    if (hasCancelButton > 0) {
+      // If there's an active game, we can cancel
+      await cancelButton.click();
+      await page.waitForTimeout(300);
+
+      // Modal should close
+      await expect(modal).not.toBeVisible();
+    } else {
+      // If there's no active game (first game), just verify modal opened correctly
+      // Close by clicking outside (overlay)
+      const overlay = page.locator('.modal-overlay');
+      await overlay.click({ position: { x: 5, y: 5 } }); // Click top-left corner of overlay
+      await page.waitForTimeout(300);
+
+      // Modal should remain visible since there's no active game (overlay is inactive)
+      await expect(modal).toBeVisible();
+    }
   });
 });

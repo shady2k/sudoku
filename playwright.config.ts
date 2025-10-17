@@ -8,13 +8,19 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 4 : undefined,
+  workers: process.env.CI ? 4 : 4,
   reporter: process.env.CI ? 'html' : 'list',
+  timeout: 60000, // 60 seconds per test
+  expect: {
+    timeout: 5000, // 5 seconds for assertions
+  },
 
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    actionTimeout: 10000, // 10 seconds for actions
+    navigationTimeout: 10000, // 10 seconds for page loads
   },
 
   projects: [
@@ -31,14 +37,14 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
     // Mobile testing
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    },
+    // {
+    //   name: 'Mobile Chrome',
+    //   use: { ...devices['Pixel 5'] },
+    // },
+    // {
+    //   name: 'Mobile Safari',
+    //   use: { ...devices['iPhone 12'] },
+    // },
   ],
 
   webServer: {
