@@ -98,10 +98,10 @@ test.describe('Game State Persistence', () => {
 
       // Verify that the user-entered values are actually in the saved board
       const board = savedData.data.board;
-      const firstRowIdx = parseInt(savedData.data.cells[firstRow]?.[firstCol]?.row || firstRow);
-      const firstColIdx = parseInt(savedData.data.cells[firstRow]?.[firstCol]?.col || firstCol);
-      const secondRowIdx = parseInt(savedData.data.cells[secondRow]?.[secondCol]?.row || secondRow);
-      const secondColIdx = parseInt(savedData.data.cells[secondRow]?.[secondCol]?.col || secondCol);
+      const firstRowIdx = parseInt(savedData.data.cells[firstRow]?.[firstCol]?.row || String(firstRow));
+      const firstColIdx = parseInt(savedData.data.cells[firstRow]?.[firstCol]?.col || String(firstCol));
+      const secondRowIdx = parseInt(savedData.data.cells[secondRow]?.[secondCol]?.row || String(secondRow));
+      const secondColIdx = parseInt(savedData.data.cells[secondRow]?.[secondCol]?.col || String(secondCol));
 
       expect(board[firstRowIdx]?.[firstColIdx]).toBe(7);
       expect(board[secondRowIdx]?.[secondColIdx]).toBe(3);
@@ -209,14 +209,29 @@ test.describe('Game State Persistence', () => {
     await emptyCell.click();
     await page.keyboard.press('9');
 
-    // Wait for auto-save by polling localStorage
+    // Wait for the value to be actually entered in the cell
     await expect(async () => {
-      const hasSavedGame = await page.evaluate(() => {
+      const cellValue = await emptyCell.textContent();
+      expect(cellValue?.trim()).toBe('9');
+    }).toPass({ timeout: 2000 });
+
+    // Wait for auto-save by polling localStorage and ensure board state is saved
+    await expect(async () => {
+      const savedData = await page.evaluate(() => {
         const saved = localStorage.getItem('sudoku:current-session');
-        return saved !== null;
+        if (!saved) return null;
+        return JSON.parse(saved);
       });
-      expect(hasSavedGame).toBe(true);
-    }).toPass({ timeout: 5000 });
+      expect(savedData).toBeTruthy();
+      expect(savedData.data.board).toBeTruthy();
+
+      // Verify that the user-entered value is actually in the saved board
+      const board = savedData.data.board;
+      const rowIdx = parseInt(savedData.data.cells[cellRow]?.[cellCol]?.row || String(cellRow));
+      const colIdx = parseInt(savedData.data.cells[cellRow]?.[cellCol]?.col || String(cellCol));
+
+      expect(board[rowIdx]?.[colIdx]).toBe(9);
+    }).toPass({ timeout: 8000 });
 
     // Reload page
     await page.reload();
@@ -243,10 +258,11 @@ test.describe('Game State Persistence', () => {
     }).toPass({ timeout: 3000 });
 
     // Verify game state restored - wait for cell to have its value populated
+    // Add extra wait time for Firefox to ensure proper restoration
     await expect(async () => {
       const restoredCellValue = await page.locator(`button.cell[data-row="${cellRow}"][data-col="${cellCol}"]`).textContent();
       expect(restoredCellValue).toContain('9');
-    }).toPass({ timeout: 5000 });
+    }).toPass({ timeout: 8000 });
   });
 
   test('should start fresh game when clicking New Game from modal', async ({ page }) => {
@@ -307,9 +323,7 @@ test.describe('Game State Persistence', () => {
     expect(timerDisplay).toMatch(/00:0[0-2]/); // Should be 00:00, 00:01, or 00:02
   });
 
-  // Test is flaky - passes in debug mode but times out in normal mode
-  // The blur/focus events may not trigger properly in fast execution
-  test.fixme('should preserve game state when switching tabs (page blur)', async ({ page }) => {
+  test('should preserve game state when switching tabs (page blur)', async ({ page }) => {
     await page.waitForSelector('.grid');
 
     // Make a move
@@ -570,7 +584,6 @@ test.describe('Game State Persistence', () => {
     expect(hasSavedGame).toBe(true);
 
     // The cell should not have '9' anymore (new puzzle)
-    const _newCellValue = await emptyCell.textContent();
     // Can't guarantee it won't be '9' in new puzzle, but can verify it's playable
     const cellsCount = await page.locator('button.cell').count();
     expect(cellsCount).toBe(81);

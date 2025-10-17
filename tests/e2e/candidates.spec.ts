@@ -446,15 +446,13 @@ test.describe('Candidate Numbers Feature', () => {
     }
   });
 
-  test('should restore eliminated candidates on undo (FR-012 + FR-022)', async ({ page }) => {
+  test.skip('should restore eliminated candidates on undo (FR-012 + FR-022)', async ({ page }) => {
     // Note: This test requires undo functionality to be implemented
     // Currently skipped as undo buttons may not be available
-    test.skip(true, 'Undo functionality not yet implemented');
   });
 
-  test('should re-apply candidate elimination on redo (FR-012 + FR-022)', async ({ page }) => {
+  test.skip('should re-apply candidate elimination on redo (FR-012 + FR-022)', async ({ page }) => {
     // Note: This test requires redo functionality to be implemented
     // Currently skipped as redo buttons may not be available
-    test.skip(true, 'Redo functionality not yet implemented');
   });
 });
