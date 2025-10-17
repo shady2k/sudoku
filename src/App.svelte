@@ -75,7 +75,7 @@
   function handleCandidateToggle(event: KeyboardEvent): void {
     if (event.key === 'c' || event.key === 'C') {
       if (canInteractWithGame()) {
-        gameStore.toggleCandidates();
+        gameStore.fillCandidates();
         event.preventDefault();
       }
     }
