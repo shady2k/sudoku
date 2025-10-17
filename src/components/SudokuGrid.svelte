@@ -73,22 +73,9 @@
     }
   }
 
-  function handleClearInput(event: KeyboardEvent, row: number, col: number, cell: { isClue: boolean; value: number }): void {
+  function handleClearInput(event: KeyboardEvent, row: number, col: number): void {
     if (event.key === 'Delete' || event.key === 'Backspace') {
-      if (!canModifyCell(cell)) return;
-
-      // Check if Shift is pressed, or if in notes mode
-      const shouldClearCandidates = event.shiftKey || gameStore.notesMode;
-
-      // In notes mode or with Shift, clear all manual candidates for empty cells
-      if (shouldClearCandidates && cell.value === 0) {
-        gameStore.setManualCandidates({ row, col }, new Set());
-      } else {
-        // Clear cell value (or do nothing if in notes mode and cell has value)
-        if (!gameStore.notesMode) {
-          gameStore.makeMove({ row, col }, 0);
-        }
-      }
+      gameStore.clearCell({ row, col });
       event.preventDefault();
     }
   }
@@ -134,7 +121,7 @@
     if (shouldIgnoreKeyboardEvent(event)) return;
 
     handleNumberInput(event, row, col, cell);
-    handleClearInput(event, row, col, cell);
+    handleClearInput(event, row, col);
     handleNavigation(event, row, col);
   }
 </script>

@@ -21,40 +21,44 @@
   }
 
   function handleNumberPadClick(value: CellValue): void {
-    if (!gameStore.session?.selectedCell) return;
+    if (!gameStore.session) return;
 
-    const { row, col } = gameStore.session.selectedCell;
-    const cell = gameStore.session.cells[row]?.[col];
+    // If there's a selected cell, handle number input
+    if (gameStore.session.selectedCell) {
+      const { row, col } = gameStore.session.selectedCell;
+      const cell = gameStore.session.cells[row]?.[col];
 
-    // Don't allow editing clue cells
-    if (cell?.isClue) return;
-
-    // Check if in notes mode
-    if (gameStore.notesMode && cell.value === 0) {
-      // Toggle candidate
-      const currentCandidates = new Set(cell.manualCandidates);
-      if (currentCandidates.has(value)) {
-        currentCandidates.delete(value);
-      } else {
-        currentCandidates.add(value);
+      // Don't allow editing clue cells
+      if (cell?.isClue) {
+        // Deselect and highlight the number instead (FR-013)
+        gameStore.selectCell(null);
+        gameStore.setHighlightedNumber(value as import('../lib/models/types').SudokuNumber);
+        return;
       }
-      gameStore.setManualCandidates({ row, col }, currentCandidates);
+
+      // Check if in notes mode
+      if (gameStore.notesMode && cell.value === 0) {
+        // Toggle candidate
+        const currentCandidates = new Set(cell.manualCandidates);
+        if (currentCandidates.has(value)) {
+          currentCandidates.delete(value);
+        } else {
+          currentCandidates.add(value);
+        }
+        gameStore.setManualCandidates({ row, col }, currentCandidates);
+      } else {
+        // Normal move
+        gameStore.makeMove(gameStore.session.selectedCell, value);
+      }
     } else {
-      // Normal move
-      gameStore.makeMove(gameStore.session.selectedCell, value);
+      // No selected cell - use numpad for highlighting (FR-013)
+      gameStore.setHighlightedNumber(value as import('../lib/models/types').SudokuNumber);
     }
   }
 
   function handleClearCell(): void {
     if (!gameStore.session?.selectedCell) return;
-
-    const { row, col } = gameStore.session.selectedCell;
-    const cell = gameStore.session.cells[row]?.[col];
-
-    // Don't allow editing clue cells
-    if (cell?.isClue) return;
-
-    gameStore.makeMove(gameStore.session.selectedCell, 0);
+    gameStore.clearCell(gameStore.session.selectedCell);
   }
 </script>
 
@@ -67,8 +71,7 @@
             type="button"
             class="num-btn"
             onclick={(): void => handleNumberPadClick(num as CellValue)}
-            disabled={!gameStore.session?.selectedCell || gameStore.session.cells[gameStore.session.selectedCell.row]?.[gameStore.session.selectedCell.col]?.isClue}
-            aria-label={`Enter number ${num}`}
+            aria-label={`Enter number ${num} or highlight ${num}s`}
           >
             {num}
           </button>

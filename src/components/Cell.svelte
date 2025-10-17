@@ -24,6 +24,12 @@
   const shouldShowNotesMode = $derived.by(() => {
     return isSelected && gameStore.notesMode;
   });
+
+  // Check if this cell's number matches the highlighted number (FR-013)
+  const isHighlighted = $derived.by(() => {
+    if (!gameStore.session?.highlightedNumber || cell.value === 0) return false;
+    return cell.value === gameStore.session.highlightedNumber;
+  });
 </script>
 
 <button
@@ -34,6 +40,7 @@
   class:selected-notes-mode={shouldShowNotesMode}
   class:related={isRelated}
   class:error={cell.isError}
+  class:highlighted-number={isHighlighted}
   onclick={onSelect}
   ontouchend={handleTouchEnd}
   data-row={cell.row}
@@ -100,6 +107,14 @@
 
   .cell.related {
     background-color: #e3f2fd;
+  }
+
+  .cell.highlighted-number {
+    background-color: #fff9c4;
+  }
+
+  .cell.highlighted-number:hover:not(.clue) {
+    background-color: #fff59d;
   }
 
   .cell.error {

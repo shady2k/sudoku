@@ -104,6 +104,7 @@ export async function createGameSession(
     isCompleted: false,
     lastActivityAt: now,
     selectedCell,
+    highlightedNumber: null,
     showAutoCandidates: false,
     history
   };
@@ -220,6 +221,38 @@ export function selectCell(
   }
 
   newSession.selectedCell = position;
+
+  // If selecting a cell with a value, highlight that number (FR-013)
+  if (position) {
+    const cell = session.cells[position.row]?.[position.col];
+    if (cell && cell.value !== 0) {
+      newSession.highlightedNumber = cell.value as SudokuNumber;
+    } else {
+      // Selecting empty cell clears highlighting
+      newSession.highlightedNumber = null;
+    }
+  } else {
+    // Deselecting clears highlighting
+    newSession.highlightedNumber = null;
+  }
+
+  return newSession;
+}
+
+/**
+ * Sets the highlighted number for pattern recognition
+ *
+ * @param session - Current game session
+ * @param number - Number to highlight (null to clear)
+ * @returns Updated game session
+ */
+export function setHighlightedNumber(
+  session: GameSession,
+  number: SudokuNumber | null
+): GameSession {
+  const newSession = { ...session };
+  newSession.lastActivityAt = Date.now();
+  newSession.highlightedNumber = number;
   return newSession;
 }
 

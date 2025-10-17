@@ -32,6 +32,11 @@
 - Q: Should the Escape key close the New Game modal (when "Cancel" button is shown for active games)? → A: Yes, Escape key closes modal (same as clicking "Cancel" when available)
 - Q: Where should the number pad be positioned and on which devices should it appear? → A: Number pad positioned to the right of grid on desktop; no number pad on mobile (users interact directly via touch)
 
+### Session 2025-10-17
+
+- Q: When a player clicks on a filled cell (containing a number), should the numpad remain enabled or disabled? → A: Numpad should remain enabled (not disabled as originally specified)
+- Q: When a player clicks a numpad button to highlight matching numbers, should the currently selected cell remain selected or be deselected? → A: Deselect any selected cell - numpad becomes a "view mode" tool for pattern recognition when no cell is selected
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Play a New Game with Immediate Feedback (Priority: P1)
@@ -138,18 +143,19 @@ Instead of fixed difficulty presets, players can customize their game difficulty
 
 ### User Story 6 - Number Highlighting for Pattern Recognition (Priority: P2)
 
-When a player clicks on a number (either in the grid or on a number pad), all instances of that number throughout the puzzle are highlighted. This helps players see patterns and identify where numbers are already placed.
+When a player clicks on a number (either in the grid or on a number pad), all instances of that number throughout the puzzle are highlighted. The numpad remains enabled at all times and serves a dual purpose: entering numbers when a cell is selected, and highlighting matching numbers for pattern recognition when clicked with no active cell selection.
 
 **Why this priority**: This is a quality-of-life feature that improves gameplay experience but isn't essential for basic functionality. Players can manually scan for numbers, making this an enhancement rather than a requirement.
 
-**Independent Test**: Can be fully tested by clicking on various numbers in the grid and verifying that all matching numbers are highlighted, then clicking elsewhere to verify the highlighting is removed.
+**Independent Test**: Can be fully tested by clicking on various numbers in the grid and verifying that all matching numbers are highlighted, clicking numpad buttons to verify highlighting and cell deselection, then clicking elsewhere to verify the highlighting is removed.
 
 **Acceptance Scenarios**:
 
-1. **Given** the player is viewing the puzzle, **When** they click on a cell containing a number, **Then** all other cells containing the same number are highlighted with a distinct visual style
-2. **Given** the player is viewing the puzzle with a number pad interface, **When** they click on a number in the number pad, **Then** all cells in the grid containing that number are highlighted
-3. **Given** numbers are highlighted, **When** the player clicks on a different number or empty cell, **Then** the previous highlights are removed and new highlights are applied based on the new selection
-4. **Given** numbers are highlighted, **When** the player clicks on an empty area, **Then** all number highlights are removed
+1. **Given** the player is viewing the puzzle, **When** they click on a cell containing a number, **Then** that cell is selected, all cells containing the same number are highlighted with a distinct visual style, and the numpad remains enabled
+2. **Given** the player has a cell selected (empty or filled), **When** they click on a number button in the number pad, **Then** the selected cell is deselected, and all cells in the grid containing that number are highlighted (numpad acts as a "view mode" tool for pattern recognition)
+3. **Given** the player has no cell selected, **When** they click on a number button in the number pad, **Then** all cells in the grid containing that number are highlighted without selecting any cell
+4. **Given** numbers are highlighted, **When** the player clicks on a different number (either in grid or numpad) or an empty cell, **Then** the previous highlights are removed and new highlights are applied based on the new selection
+5. **Given** numbers are highlighted, **When** the player clicks on an empty area (not a cell or numpad button), **Then** all number highlights are removed
 
 ---
 
@@ -216,7 +222,7 @@ Players can view a history of their completed games, including completion time, 
 - **FR-011**: System MUST provide a toggleable "Notes Mode" via segmented control (FILL | NOTES) positioned above number pad (desktop) or below grid (mobile), with 'N' key hotkey; when NOTES is active, the toggle shows purple highlight, selected cell borders become purple, and number entries (1-9) toggle candidate marks (add/remove) in empty cells instead of entering final values; when FILL is active (default), the toggle shows blue highlight, selected cell borders are blue, and number entries fill cells with final values
 - **FR-011a**: System MUST provide a "Fill Candidates" button (via button and 'C' key) that performs a one-time action to fill ALL empty cells with auto-generated candidate numbers based on current board state; once filled, all candidates become manual (user-editable); pressing "Fill Candidates" again overwrites ALL existing candidates in empty cells with freshly generated values
 - **FR-012**: ~~System MUST automatically update auto-generated candidate numbers when the player enters values that eliminate possibilities (manual notes are not auto-updated)~~ [REMOVED: Candidates are now manual-only after Fill Candidates action; no auto-updates]
-- **FR-013**: System MUST highlight all instances of a selected number throughout the puzzle grid
+- **FR-013**: System MUST highlight all instances of a selected number throughout the puzzle grid; when player clicks a cell containing a number, that cell is selected and all matching numbers are highlighted with numpad remaining enabled; when player clicks a numpad button, any selected cell is deselected and all cells containing that number are highlighted (numpad serves dual purpose: number entry when cell selected, pattern recognition tool when used independently)
 - **FR-014**: System MUST detect puzzle completion, display a summary screen with final time and error count, and automatically show the New Game modal (without "Cancel" button) after the completion message is dismissed
 - **FR-015**: System MUST save completed game records to local storage including date, time, errors, and difficulty
 - **FR-016**: System MUST provide a history view showing all previously completed games with sorting and filtering options

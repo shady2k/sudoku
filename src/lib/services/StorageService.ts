@@ -7,7 +7,7 @@
  * - Load: <1s (SC-002)
  */
 
-import type { GameSession, Result, GameRecord, UserPreferences, Action } from '../models/types';
+import type { GameSession, Result, GameRecord, UserPreferences, Action, SudokuNumber } from '../models/types';
 import { success, failure } from '../models/types';
 
 // LocalStorage keys
@@ -174,6 +174,7 @@ interface SerializedSession {
   isCompleted: boolean;
   lastActivityAt: number;
   selectedCell: { row: number; col: number } | null;
+  highlightedNumber: number | null;
   showAutoCandidates: boolean;
   history: {
     actions: unknown[];
@@ -238,6 +239,7 @@ export function deserializeGameSession(data: unknown): Result<GameSession> {
 
     const deserialized: GameSession = {
       ...typedSessionData,
+      highlightedNumber: (typedSessionData.highlightedNumber ?? null) as SudokuNumber | null,
       cells: typedSessionData.cells.map((row: SerializedCell[]) =>
         row.map((cell: SerializedCell) => ({
           ...cell,

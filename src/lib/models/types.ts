@@ -101,6 +101,9 @@ export interface GameSession {
   /** Currently selected cell (null if none) */
   selectedCell: CellPosition | null;
 
+  /** Currently highlighted number for pattern recognition (null if none) */
+  highlightedNumber: SudokuNumber | null;
+
   /** Whether auto-candidates are currently showing */
   showAutoCandidates: boolean;
 

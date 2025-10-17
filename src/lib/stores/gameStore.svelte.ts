@@ -7,8 +7,8 @@
  * - $effect: Side effects
  */
 
-import type { GameSession, CellPosition, CellValue, DifficultyLevel } from '../models/types';
-import { createGameSession, makeMove, selectCell, fillCandidatesOnce, setManualCandidates } from '../services/GameSession';
+import type { GameSession, CellPosition, CellValue, DifficultyLevel, SudokuNumber } from '../models/types';
+import { createGameSession, makeMove, selectCell, fillCandidatesOnce, setManualCandidates, setHighlightedNumber } from '../services/GameSession';
 import { updateTimer, pauseTimer, resumeTimer, shouldAutoPause, formatTime } from '../services/TimerService';
 import { saveGameSession, loadGameSession, hasSavedGame, loadPreferences, savePreferences } from '../services/StorageService';
 
@@ -131,6 +131,31 @@ class GameStore {
 
   toggleNotesMode(): void {
     this.notesMode = !this.notesMode;
+  }
+
+  setHighlightedNumber(number: SudokuNumber | null): void {
+    if (!this.session) return;
+    this.session = setHighlightedNumber(this.session, number);
+    this.throttledSave(); // Auto-save after highlighting change
+  }
+
+  clearCell(position: CellPosition): void {
+    if (!this.session) return;
+
+    const { row, col } = position;
+    const cell = this.session.cells[row]?.[col];
+
+    // Don't allow editing clue cells
+    if (!cell || cell.isClue) return;
+
+    // Smart clear: clear whatever content is in the cell
+    if (cell.value !== 0) {
+      // Cell has a value - clear it
+      this.makeMove(position, 0);
+    } else if (cell.manualCandidates.size > 0) {
+      // Cell has candidates - clear them
+      this.setManualCandidates(position, new Set());
+    }
   }
 
   setManualCandidates(position: CellPosition, candidates: Set<number>): void {
