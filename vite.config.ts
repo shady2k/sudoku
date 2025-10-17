@@ -4,7 +4,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [svelte()],
-  base: './', // For GitHub Pages compatibility
+  base: '/sudoku/', // For GitHub Pages compatibility
   build: {
     target: 'es2020',
     outDir: 'dist',
