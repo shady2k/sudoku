@@ -16,7 +16,6 @@
     "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "lint:eslint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "deploy": "npm run build && gh-pages -d dist",
     "release": "npm version"
   },
   "keywords": [
@@ -45,7 +44,6 @@
     "@vitest/ui": "3.2.4",
     "eslint": "9.37.0",
     "eslint-plugin-svelte": "3.12.4",
-    "gh-pages": "6.3.0",
     "happy-dom": "20.0.2",
     "jsdom": "27.0.0",
     "playwright": "1.56.0",
