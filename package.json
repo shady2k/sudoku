@@ -16,7 +16,8 @@
     "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "lint:eslint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "deploy": "npm run build && gh-pages -d dist"
+    "deploy": "npm run build && gh-pages -d dist",
+    "release": "npm version"
   },
   "keywords": [
     "sudoku",
