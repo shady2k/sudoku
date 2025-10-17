@@ -53,10 +53,6 @@
     return event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement;
   }
 
-  function canModifyCell(cell: { isClue: boolean }): boolean {
-    return !cell.isClue;
-  }
-
   function handleNumberInput(event: KeyboardEvent, row: number, col: number, cell: { isClue: boolean; value: number }): void {
     // Check if it's a number key (1-9)
     // When Shift is pressed, event.key becomes "!" instead of "1", so check event.code
@@ -64,12 +60,21 @@
                         (event.code >= 'Digit1' && event.code <= 'Digit9');
 
     if (isNumberKey) {
-      if (!canModifyCell(cell)) return;
-
       // Extract the number from either key or code
       const value = event.key >= '1' && event.key <= '9'
         ? parseInt(event.key)
         : parseInt(event.code.replace('Digit', ''));
+
+      // FR-013: If cell is a clue, deselect and just highlight (like numpad does)
+      if (cell.isClue) {
+        gameStore.selectCell(null);
+        gameStore.setHighlightedNumber(value);
+        event.preventDefault();
+        return;
+      }
+
+      // FR-013: Highlight the number being pressed
+      gameStore.setHighlightedNumber(value);
 
       // Check if Shift or Alt is pressed, or if in notes mode
       const shouldToggleCandidate = event.shiftKey || event.altKey || gameStore.notesMode;
@@ -126,13 +131,29 @@
   }
 
   function handleKeyDown(event: KeyboardEvent): void {
-    if (!gameStore.session?.selectedCell) return;
+    if (shouldIgnoreKeyboardEvent(event)) return;
+    if (!gameStore.session) return;
 
+    // FR-013: If no cell selected and user presses 1-9, highlight all cells with that number
+    if (!gameStore.session.selectedCell) {
+      const isNumberKey = (event.key >= '1' && event.key <= '9') ||
+                          (event.code >= 'Digit1' && event.code <= 'Digit9');
+
+      if (isNumberKey) {
+        const value = event.key >= '1' && event.key <= '9'
+          ? parseInt(event.key)
+          : parseInt(event.code.replace('Digit', ''));
+
+        gameStore.setHighlightedNumber(value);
+        event.preventDefault();
+      }
+      return;
+    }
+
+    // Cell is selected - handle normal input
     const { row, col } = gameStore.session.selectedCell;
     const cell = gameStore.session.cells[row]?.[col];
     if (!cell) return;
-
-    if (shouldIgnoreKeyboardEvent(event)) return;
 
     handleNumberInput(event, row, col, cell);
     handleClearInput(event, row, col);
