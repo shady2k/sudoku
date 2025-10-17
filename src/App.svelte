@@ -2,15 +2,17 @@
   import SudokuGrid from './components/SudokuGrid.svelte';
   import Controls from './components/Controls.svelte';
   import ResumeModal from './components/ResumeModal.svelte';
+  import CongratulationsModal from './components/CongratulationsModal.svelte';
   import NotesModeToggle from './components/NotesModeToggle.svelte';
   import { gameStore } from './lib/stores/gameStore.svelte';
   import { onMount, onDestroy } from 'svelte';
-  import { hasSavedGame, loadPreferences } from './lib/services/StorageService';
+  import { hasSavedGame, loadPreferences, loadGameSession } from './lib/services/StorageService';
   import type { DifficultyLevel } from './lib/models/types';
 
-  // State for resume modal (T066: Resume or New Game modal)
+  // State for modals
   let showResumeModal = $state(false);
   let showNewGameModal = $state(false);
+  let showCongratulationsModal = $state(false);
 
   // Timer interval
   let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -19,6 +21,11 @@
     // Start timer interval
     intervalId = setInterval(() => {
       gameStore.updateTime();
+
+      // Check if game just completed (FR-014)
+      if (gameStore.session?.isCompleted && !showCongratulationsModal && !showNewGameModal) {
+        showCongratulationsModal = true;
+      }
     }, 100);
 
     // Flush pending saves before page unload
@@ -29,16 +36,27 @@
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // T065: Check if there's a saved game
+    // T065: Check if there's a saved game (FR-003, FR-004)
     const hasGame = hasSavedGame();
 
     if (hasGame) {
-      // Show modal with Resume or New Game options (FR-004)
-      showResumeModal = true;
+      // Load the saved game to check if it's completed
+      const result = await loadGameSession();
+
+      if (result.success && result.data.isCompleted) {
+        // Game is completed - show New Game modal instead of loading it (FR-003)
+        showNewGameModal = true;
+      } else if (result.success) {
+        // Game is in progress - show Resume modal (FR-004)
+        showResumeModal = true;
+      } else {
+        // Error loading game - start new game
+        const preferences = await loadPreferences();
+        await gameStore.newGame(preferences.defaultDifficulty);
+      }
     } else {
-      // No saved game, start with user's preferred difficulty or default to 50%
-      const preferences = await loadPreferences();
-      await gameStore.newGame(preferences.defaultDifficulty);
+      // No saved game - show New Game modal (FR-004)
+      showNewGameModal = true;
     }
 
     // Cleanup beforeunload listener
@@ -72,6 +90,12 @@
   async function handleNewGameFromModal(difficulty: DifficultyLevel): Promise<void> {
     showNewGameModal = false;
     await gameStore.newGame(difficulty);
+  }
+
+  function handleCongratulationsStartNewGame(): void {
+    // Close congratulations modal and open New Game modal (FR-014)
+    showCongratulationsModal = false;
+    showNewGameModal = true;
   }
 
   function shouldIgnoreKeyboardEvent(event: KeyboardEvent): boolean {
@@ -203,6 +227,14 @@
   bind:isOpen={showNewGameModal}
   onNewGame={handleNewGameFromModal}
   showResumeOption={false}
+/>
+
+<!-- Congratulations modal (FR-014) -->
+<CongratulationsModal
+  bind:isOpen={showCongratulationsModal}
+  formattedTime={gameStore.formattedTime}
+  errorCount={gameStore.session?.errorCount ?? 0}
+  onStartNewGame={handleCongratulationsStartNewGame}
 />
 
 <style>

@@ -1,30 +1,27 @@
 <!--
 SYNC IMPACT REPORT - Constitution Update
 =========================================
-Version Change: 1.0.0 → 1.1.0
-Rationale: MINOR version bump. Added new Type Safety principle and expanded Quality
-Standards with TypeScript-specific rules. No breaking changes to existing principles.
+Version Change: 1.1.0 → 1.2.0
+Rationale: MINOR version bump. Added new Communication & Clarification Protocol principle.
+No breaking changes to existing principles.
 
-Modified Principles:
-  - Maintainability & Simplicity (V) - Enhanced with explicitness requirement
-    ("No predictions, fallbacks, or backwards compatibility until specified")
+Modified Principles: None
 
 Added Sections:
-  - New Principle VI: Type Safety & TypeScript Standards
-  - Expanded Quality Standards > Code Quality with TypeScript-specific rules
+  - New Principle VII: Communication & Clarification Protocol
 
 Removed Sections: None
 
 Technical Context Updates:
-  - Language confirmed as TypeScript
-  - Strict type checking enforced (no `any` type)
-  - Zero tolerance for lint errors/warnings
+  - Communication protocol established for project interactions
+  - One-question-per-message approach mandated
+  - Explicit clarification requirements for all uncertain situations
 
 Template Consistency Status:
   ✅ plan-template.md - Constitution Check section compatible with new principles
   ✅ spec-template.md - User scenarios structure unchanged
   ✅ tasks-template.md - Test-first workflow still aligned
-  ✅ Technical Context section in plan-template.md will capture TypeScript as language
+  ✅ Communication protocol applies to all template usage and interactions
 
 Follow-up TODOs: None - all amendments integrated
 =========================================
@@ -128,6 +125,25 @@ at compile time and document contracts explicitly.
 undo/redo). TypeScript's type system prevents entire classes of runtime errors and makes
 refactoring safe. The `any` type defeats these benefits and hides bugs.
 
+### VII. Communication & Clarification Protocol
+
+Direct communication is ESSENTIAL. Ambiguity must be eliminated through explicit questions
+rather than assumptions or predictions.
+
+**Rules**:
+- One question per message; focus on clarity and precision
+- Never guess or make assumptions when uncertain
+- Ask clarifying questions immediately when requirements are unclear
+- Prefer explicit confirmation over implicit understanding
+- All decisions must be based on clear, unambiguous information
+- When multiple valid approaches exist, ask for direction rather than choosing arbitrarily
+
+**Rationale**: Software development suffers from miscommunication and assumptions.
+Sudoku projects involve complex game logic, user experience decisions, and technical tradeoffs.
+Explicit questioning prevents wasted effort, ensures alignment, and builds a foundation of
+trust through transparent communication. Assumptions lead to incorrect implementations
+and project delays.
+
 ## Quality Standards
 
 **Code Quality**:
@@ -201,4 +217,4 @@ When conflicts arise, constitution principles take precedence.
 - Build system enforces automated quality gates (tests, linting, type checking, performance)
 - Project lead resolves disputes about principle interpretation
 
-**Version**: 1.1.0 | **Ratified**: 2025-10-16 | **Last Amended**: 2025-10-16
+**Version**: 1.2.0 | **Ratified**: 2025-10-16 | **Last Amended**: 2025-10-17

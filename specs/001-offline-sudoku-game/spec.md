@@ -36,6 +36,9 @@
 
 - Q: When a player clicks on a filled cell (containing a number), should the numpad remain enabled or disabled? → A: Numpad should remain enabled (not disabled as originally specified)
 - Q: When a player clicks a numpad button to highlight matching numbers, should the currently selected cell remain selected or be deselected? → A: Deselect any selected cell - numpad becomes a "view mode" tool for pattern recognition when no cell is selected
+- Q: When the user completes the puzzle and sees the congratulations message, what actions should be available? → A: Show congratulations modal with only "Start New Game" button (no close/review option - starting a new game is the only way forward)
+- Q: When the user reloads the page after completing a puzzle (completed game in localStorage), what should happen? → A: Skip loading the completed puzzle and show the "New Game" modal with difficulty slider (same as when no game exists), rather than showing the completion message again
+- Q: When there is no game in progress (including first load or after completion), what should the user see? → A: Show the "New Game" modal with difficulty slider and "Start New Game" button
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -54,8 +57,8 @@ A player opens the game, selects a difficulty level, and starts playing. As they
 3. **Given** the player is viewing the puzzle, **When** they click or navigate to a cell, **Then** that cell is highlighted along with all cells in the same row, column, and 3x3 square
 4. **Given** the player has selected a cell, **When** they enter a number that violates Sudoku rules, **Then** the incorrect cell is immediately marked with a visual indicator (e.g., red highlight or icon)
 5. **Given** the player has selected a cell, **When** they enter a correct number, **Then** the number is placed in the cell with no error indication
-6. **Given** the player completes the puzzle correctly, **When** the last cell is filled, **Then** the game displays a completion message with final time and error count
-7. **Given** the player sees the completion message, **When** they dismiss it, **Then** the New Game modal automatically appears with difficulty slider and "Start New Game" button (no "Cancel" button)
+6. **Given** the player completes the puzzle correctly, **When** the last cell is filled, **Then** the game displays a congratulations modal with final time, error count, and only a "Start New Game" button (no close/cancel option)
+7. **Given** the player sees the congratulations modal, **When** they click "Start New Game", **Then** the New Game modal appears with difficulty slider to start a fresh game
 
 ---
 
@@ -70,11 +73,11 @@ A player can interrupt their game at any moment by closing the browser tab or wi
 **Acceptance Scenarios**:
 
 1. **Given** the player is in the middle of a game, **When** they close the browser tab or window, **Then** the current game state (puzzle, progress, timer value, error count) is automatically saved to local storage
-2. **Given** the player has a saved game in progress, **When** they open the game in the browser, **Then** the saved game is automatically loaded and displayed with all progress restored (puzzle, entered numbers, timer value, error count)
-3. **Given** the player was idle when they closed the browser, **When** the saved game auto-loads, **Then** the timer remains paused until they interact with the game
-4. **Given** the player has an active game, **When** they press Ctrl+N or click "New Game" button, **Then** a modal appears with difficulty slider, "Start New Game" button, "Cancel" button, and warning that current game will be lost
-5. **Given** the new game modal is open with active game, **When** they click "Cancel" or press Escape key, **Then** the modal closes and they return to their current game
-6. **Given** the new game modal is open with no active game (first load or after completion), **When** they press Escape key, **Then** the modal closes and they return to their current game (Escape acts as Cancel even when Cancel button not shown)
+2. **Given** the player has a saved game in progress (not completed), **When** they open the game in the browser, **Then** the saved game is automatically loaded and displayed with all progress restored (puzzle, entered numbers, timer value, error count)
+3. **Given** the player has a completed game in localStorage, **When** they open the game in the browser, **Then** the New Game modal appears (same as first-time load) instead of loading the completed puzzle or showing the congratulations message again
+4. **Given** the player was idle when they closed the browser, **When** the saved game auto-loads, **Then** the timer remains paused until they interact with the game
+5. **Given** the player has an active game, **When** they press Ctrl+N or click "New Game" button, **Then** a modal appears with difficulty slider, "Start New Game" button, "Cancel" button, and warning that current game will be lost
+6. **Given** the new game modal is open with active game, **When** they click "Cancel" or press Escape key, **Then** the modal closes and they return to their current game
 
 ---
 
@@ -211,8 +214,8 @@ Players can view a history of their completed games, including completion time, 
 
 - **FR-001**: System MUST generate valid Sudoku puzzles with configurable difficulty levels based on user selection, where difficulty is controlled by the number of pre-filled clues (more clues = easier), and every puzzle MUST be solvable using logic without guessing; if generation fails, system MUST display an error message with a "Try Again" button for manual retry
 - **FR-002**: System MUST store all game state (current puzzle, progress, timer, errors) in browser local storage after every user action
-- **FR-003**: System MUST automatically load and display the most recent saved game immediately when the application loads (if saved game exists)
-- **FR-004**: System MUST display a New Game modal dialog ONLY when: (a) no saved game exists on initial load, OR (b) player explicitly triggers new game via Ctrl+N or New Game button; modal contains difficulty slider and "Start New Game" button; "Cancel" button is included ONLY when an active game exists (to prevent accidental loss), not shown when no game to return to; Escape key closes modal (same behavior as "Cancel" button when present)
+- **FR-003**: System MUST automatically load and display the most recent saved game immediately when the application loads ONLY if the saved game is in progress (not completed); if saved game is completed, system MUST show the New Game modal instead
+- **FR-004**: System MUST display a New Game modal dialog when: (a) no saved game exists on initial load, OR (b) saved game is completed, OR (c) player explicitly triggers new game via Ctrl+N or New Game button; modal contains difficulty slider and "Start New Game" button; "Cancel" button is included ONLY when an active game exists (to prevent accidental loss), not shown when no game to return to; Escape key closes modal (same behavior as "Cancel" button when present)
 - **FR-005**: System MUST validate each number entry in real-time and immediately indicate when a number violates Sudoku rules
 - **FR-006**: System MUST provide visual highlighting of the selected cell's row, column, and 3x3 square
 - **FR-007**: System MUST support keyboard-only operation with hotkeys for all controls: arrow keys (cell navigation), 1-9 (number entry), Delete/Backspace (clear cell), N (toggle Notes Mode between FILL and NOTES), C (Fill Candidates action), Z/Ctrl+Z (Undo), Space (Pause/Resume timer), Ctrl+N (open New Game modal with difficulty slider and warning if active game exists)
@@ -223,7 +226,7 @@ Players can view a history of their completed games, including completion time, 
 - **FR-011a**: System MUST provide a "Fill Candidates" button (via button and 'C' key) that performs a one-time action to fill ALL empty cells with auto-generated candidate numbers based on current board state; once filled, all candidates become manual (user-editable); pressing "Fill Candidates" again overwrites ALL existing candidates in empty cells with freshly generated values
 - **FR-012**: ~~System MUST automatically update auto-generated candidate numbers when the player enters values that eliminate possibilities (manual notes are not auto-updated)~~ [REMOVED: Candidates are now manual-only after Fill Candidates action; no auto-updates]
 - **FR-013**: System MUST highlight all instances of a selected number throughout the puzzle grid; when player clicks a cell containing a number, that cell is selected and all matching numbers are highlighted with numpad remaining enabled; when player clicks a numpad button, any selected cell is deselected and all cells containing that number are highlighted (numpad serves dual purpose: number entry when cell selected, pattern recognition tool when used independently)
-- **FR-014**: System MUST detect puzzle completion, display a summary screen with final time and error count, and automatically show the New Game modal (without "Cancel" button) after the completion message is dismissed
+- **FR-014**: System MUST detect puzzle completion and immediately display a congratulations modal with final time, error count, and ONLY a "Start New Game" button (no close/cancel option); clicking "Start New Game" closes the congratulations modal and opens the New Game modal with difficulty slider
 - **FR-015**: System MUST save completed game records to local storage including date, time, errors, and difficulty
 - **FR-016**: System MUST provide a history view showing all previously completed games with sorting and filtering options
 - **FR-017**: System MUST track the timestamp of the last user interaction and auto-pause the timer at that timestamp after 3 minutes of inactivity
