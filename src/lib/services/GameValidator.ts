@@ -234,10 +234,12 @@ export function isValidCandidate(
  * **Performance**: Must complete in <100ms per SC-013
  * **Implementation**: FR-012 - Only affects cells in same row, column, AND 3x3 square
  */
+import type { Cell, CellPosition } from '../models/types';
+
 export function eliminateCandidatesFromRelatedCells(
   _board: readonly (readonly number[])[],
-  cells: readonly (readonly import('../models/types').Cell[])[],
-  position: import('../models/types').CellPosition,
+  cells: readonly (readonly Cell[])[],
+  position: CellPosition,
   value: SudokuNumber
 ): Map<number, Set<number>> {
   const eliminated = new Map<number, Set<number>>();

@@ -252,25 +252,30 @@ export function deserializeGameSession(data: unknown): Result<GameSession> {
       ),
       history: {
         ...typedSessionData.history,
-        actions: (typedSessionData.history?.actions || []).map((action: unknown) => {
-          const typedAction = action as any;
+        actions: (typedSessionData.history?.actions || []).map((action: unknown): Action => {
+          const typedAction = action as Record<string, unknown>;
 
           // Convert serialized snapshot back to Map
-          if (typedAction.snapshot && Array.isArray(typedAction.snapshot.candidates)) {
+          if (typedAction.snapshot &&
+              typeof typedAction.snapshot === 'object' &&
+              typedAction.snapshot !== null &&
+              'candidates' in typedAction.snapshot &&
+              Array.isArray((typedAction.snapshot as Record<string, unknown>).candidates)) {
+            const snapshot = typedAction.snapshot as Record<string, unknown>;
             return {
               ...typedAction,
               snapshot: {
-                board: typedAction.snapshot.board,
+                board: snapshot.board,
                 candidates: new Map(
-                  typedAction.snapshot.candidates.map(([key, value]: [string, number[]]) => [
-                    key,
-                    new Set(value)
-                  ])
+                  ((snapshot.candidates as unknown[]) || []).map((entry: unknown) => {
+                    const [key, value] = entry as [string, number[]];
+                    return [key, new Set(value)];
+                  })
                 )
               }
-            };
+            } as Action;
           }
-          return typedAction as Action;
+          return typedAction as unknown as Action;
         })
       }
     };

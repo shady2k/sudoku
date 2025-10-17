@@ -126,9 +126,48 @@ export function makeMove(
   position: CellPosition,
   value: CellValue
 ): Result<GameSession> {
+  // Validate move
+  const validationResult = validateMove(session, position);
+  if (!validationResult.success) {
+    return validationResult;
+  }
+
+  // Capture snapshot BEFORE making any changes (for undo)
+  const snapshot = captureGridSnapshot(session.board, session.cells);
+
+  // Create new session and update cell value
+  const newSession = createUpdatedSession(session);
+  const updateResult = updateCellValue(newSession, position, value);
+  if (!updateResult.success) {
+    return updateResult;
+  }
+
+  // Apply candidate elimination for valid moves
+  if (value !== 0 && updateResult.data.isValid) {
+    applyCandidateElimination(newSession, position, value as SudokuNumber);
+  }
+
+  // Update action history with snapshot
+  const action: SetValueAction = {
+    type: 'SET_VALUE',
+    cell: position,
+    newValue: value,
+    timestamp: Date.now(),
+    snapshot
+  };
+
+  newSession.history = addActionToHistory(session.history, action);
+  newSession.isCompleted = isPuzzleCompleted(newSession);
+
+  return success(newSession);
+}
+
+/**
+ * Validates if a move can be made
+ */
+function validateMove(session: GameSession, position: CellPosition): Result<void> {
   const { row, col } = position;
 
-  // Validate position
   if (row < 0 || row > 8 || col < 0 || col > 8) {
     return failure('INVALID_CELL_POSITION', `Invalid position: (${row}, ${col})`);
   }
@@ -138,91 +177,89 @@ export function makeMove(
     return failure('INVALID_CELL_POSITION', `Cell not found at (${row}, ${col})`);
   }
 
-  // Cannot modify clue cells
   if (cell.isClue) {
     return failure('INVALID_MOVE', 'Cannot modify clue cells');
   }
 
-  // Check if game is already completed
   if (session.isCompleted) {
     return failure('GAME_ALREADY_COMPLETED', 'Game is already completed');
   }
 
-  // Capture snapshot BEFORE making any changes (for undo)
-  const snapshot = captureGridSnapshot(session.board, session.cells);
+  return success(undefined);
+}
 
-  // Create new session (immutable update)
+/**
+ * Creates a new session with updated state
+ */
+function createUpdatedSession(session: GameSession): GameSession {
   const newSession = { ...session };
   newSession.board = session.board.map(r => [...r]);
   newSession.cells = session.cells.map(r => r.map(c => ({ ...c })));
   newSession.lastActivityAt = Date.now();
+  return newSession;
+}
 
-  // Update cell value
-  setCell(newSession.board, row, col, value);
-  const cellRow = newSession.cells[row];
+/**
+ * Updates cell value and validates move
+ */
+function updateCellValue(
+  session: GameSession,
+  position: CellPosition,
+  value: CellValue
+): Result<{ isValid: boolean }> {
+  const { row, col } = position;
+
+  setCell(session.board, row, col, value);
+  const cellRow = session.cells[row];
   if (!cellRow) {
     return failure('INVALID_CELL_POSITION', `Cell row ${row} not found`);
   }
-  const newCell = cellRow[col];
-  if (!newCell) {
+
+  const cell = cellRow[col];
+  if (!cell) {
     return failure('INVALID_CELL_POSITION', `Cell [${row}, ${col}] not found`);
   }
-  newCell.value = value;
 
-  // Validate move and mark error
-  const isValid = value !== 0 ? isValidMove(newSession.board, position, value as SudokuNumber) : true;
-  if (value !== 0) {
-    newCell.isError = !isValid;
-  } else {
-    newCell.isError = false;
-  }
+  cell.value = value;
+
+  // Validate and mark errors
+  const isValid = value !== 0 ? isValidMove(session.board, position, value as SudokuNumber) : true;
+  cell.isError = value !== 0 ? !isValid : false;
 
   // Clear candidates when value is set
   if (value !== 0) {
-    newCell.manualCandidates = new Set();
+    cell.manualCandidates = new Set();
   }
 
-  // Automatic candidate elimination (FR-012)
-  // ONLY eliminate candidates if move is VALID (no elimination on rule violations)
-  if (value !== 0 && isValid) {
-    // Get list of cells and candidates to eliminate
-    const eliminatedCandidates = eliminateCandidatesFromRelatedCells(
-      newSession.board,
-      newSession.cells,
-      position,
-      value as SudokuNumber
-    );
+  return success({ isValid });
+}
 
-    // Apply candidate elimination to cells
-    for (const [cellIndex, candidatesToRemove] of eliminatedCandidates) {
-      const affectedRow = Math.floor(cellIndex / 9);
-      const affectedCol = cellIndex % 9;
-      const affectedCell = newSession.cells[affectedRow]?.[affectedCol];
+/**
+ * Applies automatic candidate elimination to related cells
+ */
+function applyCandidateElimination(
+  session: GameSession,
+  position: CellPosition,
+  value: SudokuNumber
+): void {
+  const eliminatedCandidates = eliminateCandidatesFromRelatedCells(
+    session.board,
+    session.cells,
+    position,
+    value
+  );
 
-      if (affectedCell) {
-        // Remove candidates from the cell
-        for (const candidate of candidatesToRemove) {
-          affectedCell.manualCandidates.delete(candidate);
-        }
+  for (const [cellIndex, candidatesToRemove] of eliminatedCandidates) {
+    const affectedRow = Math.floor(cellIndex / 9);
+    const affectedCol = cellIndex % 9;
+    const affectedCell = session.cells[affectedRow]?.[affectedCol];
+
+    if (affectedCell) {
+      for (const candidate of candidatesToRemove) {
+        affectedCell.manualCandidates.delete(candidate);
       }
     }
   }
-
-  // Update action history with snapshot
-  const action: SetValueAction = {
-    type: 'SET_VALUE',
-    cell: position,
-    newValue: value,
-    timestamp: Date.now(),
-    snapshot // Full grid snapshot for simple undo/redo
-  };
-
-  newSession.history = addActionToHistory(session.history, action);
-
-  // Check for completion
-  newSession.isCompleted = isPuzzleCompleted(newSession);
-
-  return success(newSession);
 }
 
 /**
@@ -590,65 +627,59 @@ export function redoMove(session: GameSession): Result<GameSession> {
  * Re-applies the action including candidate elimination for SET_VALUE actions
  */
 function restoreStateAfterRedo(session: GameSession, action: Action): GameSession {
-  let newSession = { ...session };
-  newSession.board = session.board.map(r => [...r]);
-  newSession.cells = session.cells.map(r => r.map(c => ({ ...c })));
+  let newSession = createUpdatedSession(session);
 
   if (action.type === 'SET_VALUE') {
-    const { row, col } = action.cell;
-    const value = action.newValue as CellValue;
-
-    setCell(newSession.board, row, col, value);
-    const cell = newSession.cells[row]?.[col];
-    if (cell) {
-      cell.value = value;
-
-      // Clear candidates when value is set
-      if (value !== 0) {
-        cell.manualCandidates = new Set();
-      }
-
-      // Recalculate error status
-      const isValid = value !== 0 ? isValidMove(newSession.board, action.cell, value as SudokuNumber) : true;
-      cell.isError = value !== 0 ? !isValid : false;
-
-      // Re-apply automatic candidate elimination (FR-012)
-      if (value !== 0 && isValid) {
-        const eliminatedCandidates = eliminateCandidatesFromRelatedCells(
-          newSession.board,
-          newSession.cells,
-          action.cell,
-          value as SudokuNumber
-        );
-
-        // Apply candidate elimination to cells
-        for (const [cellIndex, candidatesToRemove] of eliminatedCandidates) {
-          const affectedRow = Math.floor(cellIndex / 9);
-          const affectedCol = cellIndex % 9;
-          const affectedCell = newSession.cells[affectedRow]?.[affectedCol];
-
-          if (affectedCell) {
-            for (const candidate of candidatesToRemove) {
-              affectedCell.manualCandidates.delete(candidate);
-            }
-          }
-        }
-      }
-    }
+    applySetValueAction(newSession, action);
   } else if (action.type === 'SET_CANDIDATES') {
-    const { row, col } = action.cell;
-    const cell = newSession.cells[row]?.[col];
-    if (cell) {
-      const validCandidates = new Set<SudokuNumber>();
-      for (const num of action.newCandidates) {
-        if (isSudokuNumber(num)) {
-          validCandidates.add(num);
-        }
-      }
-      cell.manualCandidates = validCandidates;
-    }
+    applySetCandidatesAction(newSession, action);
   }
 
   newSession.isCompleted = isPuzzleCompleted(newSession);
   return newSession;
+}
+
+/**
+ * Applies a SET_VALUE action during redo
+ */
+function applySetValueAction(session: GameSession, action: SetValueAction): void {
+  const { row, col } = action.cell;
+  const value = action.newValue as CellValue;
+
+  setCell(session.board, row, col, value);
+  const cell = session.cells[row]?.[col];
+  if (!cell) return;
+
+  cell.value = value;
+
+  // Clear candidates when value is set
+  if (value !== 0) {
+    cell.manualCandidates = new Set();
+  }
+
+  // Recalculate error status
+  const isValid = value !== 0 ? isValidMove(session.board, action.cell, value as SudokuNumber) : true;
+  cell.isError = value !== 0 ? !isValid : false;
+
+  // Re-apply automatic candidate elimination (FR-012)
+  if (value !== 0 && isValid) {
+    applyCandidateElimination(session, action.cell, value as SudokuNumber);
+  }
+}
+
+/**
+ * Applies a SET_CANDIDATES action during redo
+ */
+function applySetCandidatesAction(session: GameSession, action: SetCandidatesAction): void {
+  const { row, col } = action.cell;
+  const cell = session.cells[row]?.[col];
+  if (!cell) return;
+
+  const validCandidates = new Set<SudokuNumber>();
+  for (const num of action.newCandidates) {
+    if (isSudokuNumber(num)) {
+      validCandidates.add(num);
+    }
+  }
+  cell.manualCandidates = validCandidates;
 }
