@@ -11,35 +11,25 @@
   export interface Props {
     /** The cell to display candidates for */
     cell: Cell;
-    /** Whether auto-candidates should be shown (global setting) */
-    showAutoCandidates: boolean;
   }
 
-  const { cell, showAutoCandidates }: Props = $props();
+  const { cell }: Props = $props();
 
-  // Compute candidates reactively
-  const manualCandidates = $derived(cell.manualCandidates);
-  const autoCandidates = $derived(
-    showAutoCandidates && cell.autoCandidates
-      ? Array.from(cell.autoCandidates)
-      : []
-  );
-  const allCandidates = $derived([...new Set([...Array.from(manualCandidates), ...autoCandidates])].sort());
-  const hasCandidates = $derived(allCandidates.length > 0);
+  // Compute candidates reactively - only manual candidates now
+  const manualCandidates = $derived(Array.from(cell.manualCandidates).sort());
+  const hasCandidates = $derived(manualCandidates.length > 0);
   const isEmpty = $derived(cell.value === 0 && !cell.isClue);
 </script>
 
 {#if isEmpty}
-  <div class="candidates-container" data-testid="candidates-container" aria-label="Candidate numbers: {allCandidates.join(', ')}">
+  <div class="candidates-container" data-testid="candidates-container" aria-label="Candidate numbers: {manualCandidates.join(', ')}">
     {#if hasCandidates}
       <div class="candidates-grid">
         <!-- Row 1 -->
         {#each [1, 2, 3] as num}
-          {#if allCandidates.includes(num)}
+          {#if manualCandidates.includes(num)}
             <span
               class="candidate-number"
-              class:auto-candidate={autoCandidates.includes(num)}
-              class:manual-candidate={manualCandidates.has(num)}
               data-testid={`candidate-${num}`}
               aria-label={`Candidate number ${num}`}
             >
@@ -51,11 +41,9 @@
         {/each}
         <!-- Row 2 -->
         {#each [4, 5, 6] as num}
-          {#if allCandidates.includes(num)}
+          {#if manualCandidates.includes(num)}
             <span
               class="candidate-number"
-              class:auto-candidate={autoCandidates.includes(num)}
-              class:manual-candidate={manualCandidates.has(num)}
               data-testid={`candidate-${num}`}
               aria-label={`Candidate number ${num}`}
             >
@@ -67,11 +55,9 @@
         {/each}
         <!-- Row 3 -->
         {#each [7, 8, 9] as num}
-          {#if allCandidates.includes(num)}
+          {#if manualCandidates.includes(num)}
             <span
               class="candidate-number"
-              class:auto-candidate={autoCandidates.includes(num)}
-              class:manual-candidate={manualCandidates.has(num)}
               data-testid={`candidate-${num}`}
               aria-label={`Candidate number ${num}`}
             >
@@ -126,21 +112,8 @@
     visibility: hidden;
   }
 
-  /* Manual candidates (user pencil marks) */
-  .candidate-number.manual-candidate {
-    color: #000;
-    font-weight: 500;
-  }
-
-  /* Auto-generated candidates (system-generated) */
-  .candidate-number.auto-candidate {
-    color: #000;
-    font-weight: 400;
-    opacity: 0.9;
-  }
-
-  /* When a number is both manual and auto (shouldn't happen, but handle gracefully) */
-  .candidate-number.manual-candidate.auto-candidate {
+  /* All candidates are manual now */
+  .candidate-number:not(.empty) {
     color: #000;
     font-weight: 500;
   }

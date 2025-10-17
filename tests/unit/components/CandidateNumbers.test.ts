@@ -99,73 +99,17 @@ describe('CandidateNumbers Component - Manual Candidates Display', () => {
     expect(screen.queryByText('6')).toBeNull();
   });
 
-  it('should apply correct CSS classes to manual candidates', () => {
+  it('should apply correct CSS classes to candidates', () => {
     render(CandidateNumbers, { cell: mockCell });
 
     const candidate1 = screen.getByText('1');
     const candidate2 = screen.getByText('2');
     const candidate3 = screen.getByText('3');
 
-    // Manual candidates should have manual-candidate class
-    expect(candidate1).toHaveClass('manual-candidate');
-    expect(candidate2).toHaveClass('manual-candidate');
-    expect(candidate3).toHaveClass('manual-candidate');
-  });
-});
-
-describe('CandidateNumbers Component - Auto Candidates Display', () => {
-  it('should display auto candidates when enabled', () => {
-    const cellWithAuto = { ...mockCell, autoCandidates: new Set([7, 8, 9]) };
-
-    render(CandidateNumbers, {
-      cell: cellWithAuto,
-      showAutoCandidates: true
-    });
-
-    // Should show both manual and auto candidates
-    expect(screen.getByText('1')).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText('7')).toBeInTheDocument();
-    expect(screen.getByText('8')).toBeInTheDocument();
-    expect(screen.getByText('9')).toBeInTheDocument();
-  });
-
-  it('should not display auto candidates when disabled', () => {
-    const cellWithAuto = { ...mockCell, autoCandidates: new Set([7, 8, 9]) };
-
-    render(CandidateNumbers, {
-      cell: cellWithAuto,
-      showAutoCandidates: false
-    });
-
-    // Should only show manual candidates
-    expect(screen.getByText('1')).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
-
-    // Should not show auto candidates
-    expect(screen.queryByText('7')).toBeNull();
-    expect(screen.queryByText('8')).toBeNull();
-    expect(screen.queryByText('9')).toBeNull();
-  });
-
-  it('should apply correct CSS classes to auto candidates', () => {
-    const cellWithAuto = { ...mockCell, autoCandidates: new Set([7, 8, 9]) };
-
-    render(CandidateNumbers, {
-      cell: cellWithAuto,
-      showAutoCandidates: true
-    });
-
-    const candidate7 = screen.getByText('7');
-    const candidate8 = screen.getByText('8');
-    const candidate9 = screen.getByText('9');
-
-    // Auto candidates should have auto-candidate class
-    expect(candidate7).toHaveClass('auto-candidate');
-    expect(candidate8).toHaveClass('auto-candidate');
-    expect(candidate9).toHaveClass('auto-candidate');
+    // All candidates should have candidate-number class
+    expect(candidate1).toHaveClass('candidate-number');
+    expect(candidate2).toHaveClass('candidate-number');
+    expect(candidate3).toHaveClass('candidate-number');
   });
 });
 

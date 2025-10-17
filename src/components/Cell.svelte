@@ -19,8 +19,11 @@
     onSelect();
   }
 
-  // Check if candidates should be shown (global setting from gameStore)
-  const showCandidates = $derived(gameStore.session?.showAutoCandidates ?? false);
+  // Create a reactive getter that properly tracks both dependencies
+  // This ensures Svelte 5 tracks changes to both isSelected and notesMode
+  const shouldShowNotesMode = $derived.by(() => {
+    return isSelected && gameStore.notesMode;
+  });
 </script>
 
 <button
@@ -28,6 +31,7 @@
   class="cell"
   class:clue={cell.isClue}
   class:selected={isSelected}
+  class:selected-notes-mode={shouldShowNotesMode}
   class:related={isRelated}
   class:error={cell.isError}
   onclick={onSelect}
@@ -39,7 +43,7 @@
   {#if cell.value !== 0}
     <span class="value">{cell.value}</span>
   {:else}
-    <CandidateNumbers {cell} showAutoCandidates={showCandidates} />
+    <CandidateNumbers {cell} />
   {/if}
 </button>
 
@@ -58,7 +62,7 @@
     font-size: 1.5rem;
     font-weight: 500;
     padding: 0;
-    transition: background-color 0.1s, border-color 0.1s;
+    transition: background-color 0.1s, border-color 0.1s, border-width 0.1s;
     touch-action: manipulation; /* Prevents double-tap zoom on mobile */
     -webkit-tap-highlight-color: transparent; /* Removes tap highlight on iOS */
   }
@@ -84,6 +88,13 @@
   .cell.selected {
     background-color: #bbdefb;
     border-color: #2196f3;
+    border-width: 2px;
+  }
+
+  /* Purple border when Notes Mode is active - higher specificity to override */
+  .cell.selected.selected-notes-mode {
+    background-color: #e9d5ff;
+    border-color: #8b5cf6;
     border-width: 2px;
   }
 

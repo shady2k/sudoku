@@ -8,9 +8,12 @@
  */
 
 import type { GameSession, CellPosition, CellValue, DifficultyLevel } from '../models/types';
-import { createGameSession, makeMove, selectCell, toggleAutoCandidates, setManualCandidates } from '../services/GameSession';
+import { createGameSession, makeMove, selectCell, fillCandidatesOnce, setManualCandidates } from '../services/GameSession';
 import { updateTimer, pauseTimer, resumeTimer, shouldAutoPause, formatTime } from '../services/TimerService';
 import { saveGameSession, loadGameSession, hasSavedGame } from '../services/StorageService';
+
+// Top-level reactive state for notesMode to ensure proper tracking
+let notesModeState = $state(false);
 
 class GameStore {
   // Reactive state
@@ -18,6 +21,15 @@ class GameStore {
   isLoading = $state(false);
   error = $state<string | null>(null);
   currentTime = $state(Date.now());
+
+  // Getter/setter for notesMode that accesses top-level state
+  get notesMode(): boolean {
+    return notesModeState;
+  }
+
+  set notesMode(value: boolean) {
+    notesModeState = value;
+  }
 
   // Auto-save throttling (save at most every 2 seconds)
   private lastSaveTime = 0;
@@ -106,10 +118,14 @@ class GameStore {
     this.throttledSave(); // Auto-save after selection
   }
 
-  toggleCandidates(): void {
+  fillCandidates(): void {
     if (!this.session) return;
-    this.session = toggleAutoCandidates(this.session);
-    this.throttledSave(); // Auto-save after toggle
+    this.session = fillCandidatesOnce(this.session);
+    this.throttledSave(); // Auto-save after fill
+  }
+
+  toggleNotesMode(): void {
+    this.notesMode = !this.notesMode;
   }
 
   setManualCandidates(position: CellPosition, candidates: Set<number>): void {

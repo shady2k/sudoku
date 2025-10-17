@@ -1,6 +1,7 @@
 <script lang="ts">
   import { gameStore } from '../lib/stores/gameStore.svelte';
   import type { CellValue } from '../lib/models/types';
+  import NotesModeToggle from './NotesModeToggle.svelte';
 
   interface Props {
     onNewGame: () => Promise<void>;
@@ -16,8 +17,8 @@
     }
   }
 
-  function handleToggleCandidates(): void {
-    gameStore.toggleCandidates();
+  function handleFillCandidates(): void {
+    gameStore.fillCandidates();
   }
 
   function handleNumberPadClick(value: CellValue): void {
@@ -29,7 +30,20 @@
     // Don't allow editing clue cells
     if (cell?.isClue) return;
 
-    gameStore.makeMove(gameStore.session.selectedCell, value);
+    // Check if in notes mode
+    if (gameStore.notesMode && cell.value === 0) {
+      // Toggle candidate
+      const currentCandidates = new Set(cell.manualCandidates);
+      if (currentCandidates.has(value)) {
+        currentCandidates.delete(value);
+      } else {
+        currentCandidates.add(value);
+      }
+      gameStore.setManualCandidates({ row, col }, currentCandidates);
+    } else {
+      // Normal move
+      gameStore.makeMove(gameStore.session.selectedCell, value);
+    }
   }
 
   function handleClearCell(): void {
@@ -47,6 +61,7 @@
 
 <div class="controls">
   {#if gameStore.session && !gameStore.session.isCompleted}
+    <NotesModeToggle />
     <div class="number-pad">
       <div class="number-pad-grid">
         {#each Array.from({ length: 9 }, (_, i) => i + 1) as num}
@@ -104,11 +119,10 @@
       <button
         type="button"
         class="btn"
-        onclick={handleToggleCandidates}
-        class:active={gameStore.session.showAutoCandidates}
-        title={gameStore.session.showAutoCandidates ? 'Hide Candidates (C)' : 'Show Candidates (C)'}
+        onclick={handleFillCandidates}
+        title="Fill Candidates (C)"
       >
-        <span class="btn-text">{gameStore.session.showAutoCandidates ? 'Hide' : 'Show'} Candidates</span>
+        <span class="btn-text">Fill Candidates</span>
         <span class="hotkey">C</span>
       </button>
     {/if}
@@ -204,18 +218,6 @@
     color: white;
   }
 
-  .btn.active {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-    border-color: #059669;
-    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
-  }
-
-  .btn.active:hover:not(:disabled) {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
-    border-color: #047857;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-  }
 
   .number-pad {
     display: flex;

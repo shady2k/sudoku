@@ -15,12 +15,12 @@
 - Q: Should the timer automatically resume when the page regains focus after being unfocused? → A: No, keep paused until user interacts
 - Q: Should players be able to manually add/edit their own notes or pencil marks in cells? → A: Yes, manual notes/candidates supported alongside auto-fill candidates feature
 - Q: How should auto-pause idle timeout work? → A: Track timestamp of last user interaction; if no interaction for 3 minutes, pause timer at the last interaction timestamp
-- Q: How should players enter "note/candidate mode" to add pencil marks versus entering a final number in a cell? → A: Toggle mode via dedicated button (click "Notes Mode" button, then all number entries are notes until toggled off) with keyboard hotkey support
+- Q: How should players enter "note/candidate mode" to add pencil marks versus entering a final number in a cell? → A: Toggle mode via dedicated segmented control toggle (FILL | NOTES) above number pad, then all number entries are notes until toggled off; hotkey 'N' toggles mode globally
 - Q: What specific keyboard hotkey should toggle Notes Mode? → A: 'N' key
 - Q: What should happen if puzzle generation fails (e.g., algorithm timeout or unable to create valid puzzle)? → A: Display error message asking user to try again manually
 - Q: Should the game provide an undo function that also reverses candidate/note changes, or only final number entries? → A: Undo reverses both final number entries AND manual candidate/note changes
 - Q: How should the difficulty scale be presented to users (what range/units)? → A: Percentage scale 0-100% (0% = hardest, 100% = easiest)
-- Q: What keyboard hotkeys should be assigned to the main game control buttons (Show/Hide Candidates, Undo, New Game, Pause/Resume)? → A: C (Candidates toggle), Z/Ctrl+Z (Undo), Space (Pause/Resume), Ctrl+N (New Game)
+- Q: What keyboard hotkeys should be assigned to the main game control buttons (Fill Candidates, Undo, New Game, Pause/Resume, Notes Mode)? → A: C (Fill Candidates), N (Toggle Notes Mode), Z/Ctrl+Z (Undo), Space (Pause/Resume), Ctrl+N (New Game)
 - Q: Where exactly should the pause indicator icon be positioned relative to the timer display? → A: Icon immediately to the left of timer text (e.g., "⏸ 05:23")
 - Q: What specific UI layout constraint is meant by "static layout - we don't move elements"? → A: UI elements maintain fixed positions and sizes regardless of state changes (e.g., buttons don't shift when text changes, timer doesn't resize container)
 - Q: Should all button labels display their keyboard shortcut hints in the UI (e.g., "Notes (N)", "Undo (Z)")? → A: Yes, all buttons show their hotkey in the label or tooltip (e.g., "Notes (N)")
@@ -86,8 +86,8 @@ A player can choose to play using only the keyboard, only the mouse, or a combin
 1. **Given** the player is viewing the puzzle, **When** they use arrow keys (↑ ↓ ← →), **Then** the cell selection moves in the corresponding direction
 2. **Given** the player has selected a cell with keyboard navigation, **When** they press a number key (1-9), **Then** that number is entered into the cell
 3. **Given** the player has selected a cell, **When** they press the Delete or Backspace key, **Then** the cell is cleared
-4. **Given** the player is playing the game, **When** they press 'N' key, **Then** Notes Mode is toggled on/off
-5. **Given** the player is playing the game, **When** they press 'C' key, **Then** the Show/Hide Candidates feature is toggled
+4. **Given** the player is playing the game, **When** they press 'N' key, **Then** Notes Mode is toggled on/off (FILL ↔ NOTES)
+5. **Given** the player is playing the game, **When** they press 'C' key, **Then** the Fill Candidates action is triggered (one-time fill)
 6. **Given** the player is playing the game, **When** they press 'Z' or 'Ctrl+Z' key, **Then** the last action is undone
 7. **Given** the player is playing the game, **When** they press 'Space' key, **Then** the timer is paused/resumed
 8. **Given** the player is on any screen, **When** they press 'Ctrl+N' key, **Then** the New Game modal dialog is opened with difficulty slider, "Start New Game" button, and "Cancel" button (with warning if active game exists)
@@ -99,22 +99,22 @@ A player can choose to play using only the keyboard, only the mouse, or a combin
 
 ### User Story 4 - Manual and Auto Candidate Numbers (Priority: P2)
 
-A player can manually enter candidate numbers (pencil marks/notes) in empty cells to track their solving strategy. Additionally, players who need assistance can press a button to automatically fill all empty cells with small candidate numbers showing all possible values that don't violate Sudoku rules. This supports both manual solving techniques and computational assistance.
+A player can manually enter candidate numbers (pencil marks/notes) in empty cells to track their solving strategy using a dedicated Notes Mode toggle. Additionally, players who need assistance can press a "Fill Candidates" button to automatically fill all empty cells with candidate numbers showing all possible values that don't violate Sudoku rules. Once filled, candidates become manual and fully editable. This supports both manual solving techniques and computational assistance.
 
 **Why this priority**: This is a valuable assistance feature that enhances the learning experience and helps prevent frustration. However, the core game is playable without it, making it a P2 feature.
 
-**Independent Test**: Can be fully tested by manually entering candidate numbers in cells, verifying they persist, then clicking the "Show Candidates" button and verifying that all empty cells show the correct auto-generated possible numbers based on current board state.
+**Independent Test**: Can be fully tested by toggling Notes Mode, manually entering candidate numbers, verifying they persist, then clicking "Fill Candidates" to auto-fill all cells, manually editing some candidates, clicking "Fill Candidates" again to verify it overwrites all candidates.
 
 **Acceptance Scenarios**:
 
-1. **Given** the player is viewing the game, **When** they click the "Notes Mode" button or press the 'N' key, **Then** the game enters note/candidate mode and the button shows an active state
-2. **Given** the player is in note/candidate mode with an empty cell selected, **When** they type numbers 1-9 (keyboard) or click numbers on the number pad (mouse), **Then** those numbers appear as small candidate marks in the cell
-3. **Given** the player is in note/candidate mode, **When** they click the "Notes Mode" button again or press the hotkey, **Then** the mode is toggled off and subsequent number entries are treated as final numbers
-4. **Given** the player has manually entered candidate numbers in a cell, **When** they enter note mode and type the same numbers again (or click them), **Then** those candidates are removed (toggle behavior)
-5. **Given** the player is in the middle of a game with some cells filled, **When** they click the "Show Candidates" button or press 'C' key, **Then** all empty cells display small auto-generated numbers (1-9) representing valid possibilities based on Sudoku rules
-6. **Given** auto-generated candidates are showing, **When** the player enters a number in a cell, **Then** the auto-generated candidates in related cells (same row, column, and square) are automatically updated to remove that number, but manual candidates remain unchanged
-7. **Given** auto-generated candidates are showing, **When** they click the "Hide Candidates" button or press 'C' key again, **Then** all auto-generated candidates are removed from the display but manual candidates remain visible
-8. **Given** a cell has candidate numbers (manual or auto), **When** the player (not in note mode) enters a final number in that cell, **Then** the candidate numbers are replaced by the entered number
+1. **Given** the player is viewing the game, **When** they see the Notes Mode toggle above the number pad (desktop) or below the grid (mobile), **Then** it displays as a segmented control with two options: "FILL" (blue, active by default) and "NOTES" (purple when active)
+2. **Given** the player clicks the "NOTES" segment or presses the 'N' key, **When** Notes Mode is activated, **Then** the "NOTES" segment shows purple highlight, selected cell borders turn purple, and subsequent number entries become candidates
+3. **Given** the player is in Notes Mode with an empty cell selected, **When** they type numbers 1-9 (keyboard) or click numbers on the number pad (mouse), **Then** those numbers are toggled as small candidate marks in the cell (add if not present, remove if already present)
+4. **Given** the player is in Notes Mode, **When** they press Delete or Backspace, **Then** all candidate numbers in the selected cell are cleared
+5. **Given** the player clicks the "FILL" segment or presses 'N' key again, **When** Notes Mode is deactivated, **Then** the "FILL" segment shows blue highlight, selected cell borders return to blue, and subsequent number entries fill cells with final values
+6. **Given** the player is in the middle of a game with some cells filled, **When** they click the "Fill Candidates" button or press 'C' key, **Then** ALL empty cells are filled with auto-generated candidate numbers representing valid possibilities, and these candidates become manual (fully editable) immediately
+7. **Given** the player has candidates in cells (either manually entered or from "Fill Candidates"), **When** they edit some candidates and then click "Fill Candidates" again, **Then** ALL existing candidates in empty cells are overwritten with freshly generated candidates
+8. **Given** a cell has candidate numbers, **When** the player (not in Notes Mode) enters a final number in that cell, **Then** the candidate numbers are replaced by the entered number
 
 ---
 
@@ -207,13 +207,13 @@ Players can view a history of their completed games, including completion time, 
 - **FR-004**: System MUST display a New Game modal dialog ONLY when: (a) no saved game exists on initial load, OR (b) player explicitly triggers new game via Ctrl+N or New Game button; modal contains difficulty slider and "Start New Game" button; "Cancel" button is included ONLY when an active game exists (to prevent accidental loss), not shown when no game to return to; Escape key closes modal (same behavior as "Cancel" button when present)
 - **FR-005**: System MUST validate each number entry in real-time and immediately indicate when a number violates Sudoku rules
 - **FR-006**: System MUST provide visual highlighting of the selected cell's row, column, and 3x3 square
-- **FR-007**: System MUST support keyboard-only operation with hotkeys for all controls: arrow keys (cell navigation), 1-9 (number entry), Delete/Backspace (clear cell), N (toggle Notes Mode), C (toggle Show/Hide Candidates), Z/Ctrl+Z (Undo), Space (Pause/Resume timer), Ctrl+N (open New Game modal with difficulty slider and warning if active game exists)
+- **FR-007**: System MUST support keyboard-only operation with hotkeys for all controls: arrow keys (cell navigation), 1-9 (number entry), Delete/Backspace (clear cell), N (toggle Notes Mode between FILL and NOTES), C (Fill Candidates action), Z/Ctrl+Z (Undo), Space (Pause/Resume timer), Ctrl+N (open New Game modal with difficulty slider and warning if active game exists)
 - **FR-008**: System MUST support mouse/touch input for all game interactions including cell selection; on desktop, system MUST display an on-screen number pad positioned to the right of the grid for mouse-based number entry (number pad buttons do not display keyboard hints as they are for mouse users only); on mobile devices, number pad MUST NOT be displayed as users interact directly with cells via touch
 - **FR-009**: System MUST track and display elapsed game time in MM:SS or HH:MM:SS format with pause indicator icon positioned immediately to the left of the timer text when paused (e.g., "⏸ 05:23")
 - **FR-010**: System MUST track and display the count of errors made during the game (an error is counted only when an invalid entry remains in a cell when the player moves selection to another cell)
-- **FR-011**: System MUST provide a toggleable "Notes Mode" (via button and 'N' key) that switches between entering final numbers and entering candidate numbers (notes/pencil marks) in empty cells; when active, number entries add/remove candidates instead of final values
-- **FR-011a**: System MUST provide a "Show Candidates" feature (via button and 'C' key) that automatically fills empty cells with all possible valid numbers
-- **FR-012**: System MUST automatically update auto-generated candidate numbers when the player enters values that eliminate possibilities (manual notes are not auto-updated)
+- **FR-011**: System MUST provide a toggleable "Notes Mode" via segmented control (FILL | NOTES) positioned above number pad (desktop) or below grid (mobile), with 'N' key hotkey; when NOTES is active, the toggle shows purple highlight, selected cell borders become purple, and number entries (1-9) toggle candidate marks (add/remove) in empty cells instead of entering final values; when FILL is active (default), the toggle shows blue highlight, selected cell borders are blue, and number entries fill cells with final values
+- **FR-011a**: System MUST provide a "Fill Candidates" button (via button and 'C' key) that performs a one-time action to fill ALL empty cells with auto-generated candidate numbers based on current board state; once filled, all candidates become manual (user-editable); pressing "Fill Candidates" again overwrites ALL existing candidates in empty cells with freshly generated values
+- **FR-012**: ~~System MUST automatically update auto-generated candidate numbers when the player enters values that eliminate possibilities (manual notes are not auto-updated)~~ [REMOVED: Candidates are now manual-only after Fill Candidates action; no auto-updates]
 - **FR-013**: System MUST highlight all instances of a selected number throughout the puzzle grid
 - **FR-014**: System MUST detect puzzle completion, display a summary screen with final time and error count, and automatically show the New Game modal (without "Cancel" button) after the completion message is dismissed
 - **FR-015**: System MUST save completed game records to local storage including date, time, errors, and difficulty
@@ -221,7 +221,7 @@ Players can view a history of their completed games, including completion time, 
 - **FR-017**: System MUST track the timestamp of the last user interaction and auto-pause the timer at that timestamp after 3 minutes of inactivity
 - **FR-018**: System MUST auto-resume the timer when the user interacts with the game after an idle pause
 - **FR-019**: System MUST persist game state when the browser is closed and restore it when reopened
-- **FR-020**: System MUST provide a modern, responsive user interface that works on desktop and mobile devices with static layout where UI elements maintain fixed positions and sizes regardless of state changes (no layout shifts when content updates); on desktop, the layout MUST position the Sudoku grid on the left with the number pad to its right; on mobile, the number pad is omitted; all interactive buttons MUST display their keyboard shortcut hints in labels or tooltips (e.g., "Notes (N)", "Undo (Z)")
+- **FR-020**: System MUST provide a modern, responsive user interface that works on desktop and mobile devices with static layout where UI elements maintain fixed positions and sizes regardless of state changes (no layout shifts when content updates); on desktop, the layout MUST position the Sudoku grid on the left with the Notes Mode toggle and number pad to its right; on mobile, the Notes Mode toggle appears below the grid and the number pad is omitted; all interactive buttons MUST display their keyboard shortcut hints in labels or tooltips (e.g., "NOTES MODE (N)", "Fill Candidates (C)", "Undo (Z)")
 - **FR-021**: System MUST allow players to customize difficulty using a percentage scale (0-100%, where 0% is hardest and 100% is easiest) that adjusts the number of pre-filled clues rather than fixed presets
 - **FR-022**: System MUST provide an undo function (via button and Z/Ctrl+Z keys) to revert the last action, including both final number entries and manual candidate/note changes (preserving up to 50 steps of history)
 - **FR-023**: System MUST pause the timer when the page loses focus and keep it paused until the user explicitly interacts with the game (does not auto-resume on focus)
@@ -232,11 +232,11 @@ Players can view a history of their completed games, including completion time, 
 
 - **Puzzle**: Represents the Sudoku grid with initial clues and solution. Attributes include: 9x9 grid of cells, initial pre-filled cells (clues), solution grid, difficulty rating (percentage 0-100%, mapped to number of clues provided), guarantee of logical solvability without guessing.
 
-- **Cell**: Represents a single position in the 9x9 grid. Attributes include: row position (0-8), column position (0-8), current value (1-9 or empty), whether it's a pre-filled clue or user-entered, error state (valid/invalid), manual candidate numbers (user pencil marks), auto-generated candidate numbers (if shown).
+- **Cell**: Represents a single position in the 9x9 grid. Attributes include: row position (0-8), column position (0-8), current value (1-9 or empty), whether it's a pre-filled clue or user-entered, error state (valid/invalid), manual candidate numbers (user pencil marks; can be manually entered or generated via "Fill Candidates" action).
 
 - **Game Record**: Represents a completed game stored in history. Attributes include: completion date/time, total elapsed time, total error count, difficulty level (percentage), puzzle identifier (for potential replay), personal best flags.
 
-- **User Preferences**: Represents player settings and preferences. Attributes include: preferred difficulty level (percentage), notes mode state (toggled on/off), candidate display mode (auto-show/manual/off), theme/appearance settings, keyboard shortcuts configuration (including notes mode hotkey), history display preferences (sort order, filters), auto-pause timeout setting.
+- **User Preferences**: Represents player settings and preferences. Attributes include: preferred difficulty level (percentage), notes mode state (FILL or NOTES), theme/appearance settings, keyboard shortcuts configuration (including notes mode hotkey 'N', fill candidates hotkey 'C'), history display preferences (sort order, filters), auto-pause timeout setting.
 
 - **Action History**: Represents the undo/redo stack for game actions. Attributes include: sequence of actions (cell, action type [final number entry or candidate change], previous state, new state, timestamp), current position in history, maximum history size (50 steps).
 

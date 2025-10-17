@@ -211,9 +211,17 @@ This document provides a dependency-ordered task list for implementing the offli
 
 ## Phase 6: User Story 4 - Manual and Auto Candidate Numbers (P2) (9 tasks)
 
-**Goal**: Implement manual pencil marks and auto-generated candidates per FR-011, FR-011a, FR-012.
+**Goal**: Implement manual pencil marks and Fill Candidates one-time action per FR-011, FR-011a (UPDATED: Changed from toggle to one-time fill approach).
 
-**Independent Test Criteria**: Manually enter candidates, verify persistence, click "Show Candidates", verify auto-generation and updates.
+**Independent Test Criteria**: Toggle Notes Mode, manually enter candidates, verify persistence, click "Fill Candidates" to auto-fill all cells, manually edit some, click "Fill Candidates" again to verify overwrite.
+
+**IMPLEMENTATION NOTE (2025-10-17)**: During implementation, the approach was changed from auto-updating candidates (FR-012) to a simpler "Fill Candidates" one-time action. Key changes:
+- Replaced `toggleAutoCandidates()` with `fillCandidatesOnce()`
+- Candidates are now manual-only (no auto-updates after moves)
+- Created Notes Mode toggle UI (segmented control: FILL | NOTES)
+- "Show Candidates" button renamed to "Fill Candidates" (one-time action)
+- All candidates become manual/editable after fill
+- Pressing "Fill Candidates" again overwrites ALL existing candidates
 
 ### Tasks
 
@@ -222,20 +230,27 @@ This document provides a dependency-ordered task list for implementing the offli
 - [X] T081 [P] [US4] TEST: Write candidate generation tests in tests/unit/services/GameValidator.test.ts
 - [X] T082 [US4] Implement generateCandidates() in GameValidator.ts per game-api.ts contract
 - [X] T083 [US4] Implement setManualCandidates() in gameStore per game-api.ts contract
-- [X] T084 [US4] Implement toggleAutoCandidates() in gameStore with auto-update logic per FR-012
+- [X] T084 [US4] ~~Implement toggleAutoCandidates() in gameStore with auto-update logic per FR-012~~ CHANGED: Implemented fillCandidatesOnce() instead - one-time action that converts auto to manual candidates
 
 #### UI Components
 
-- [ ] T085 [P] [US4] TEST: Write CandidateNumbers component tests in tests/unit/components/CandidateNumbers.test.ts
-- [ ] T086 [US4] Implement CandidateNumbers.svelte to display manual and auto candidates
-- [ ] T087 [US4] Add "Show/Hide Candidates" button to Controls.svelte
-- [ ] T088 [US4] Integrate candidate mode toggle with Cell.svelte
+- [X] T085 [P] [US4] TEST: Write CandidateNumbers component tests in tests/unit/components/CandidateNumbers.test.ts (Updated for manual-only)
+- [X] T086 [US4] Implement CandidateNumbers.svelte to display manual candidates (removed auto-candidates logic)
+- [X] T087 [US4] Add "Fill Candidates" button to Controls.svelte (renamed from "Show/Hide Candidates")
+- [X] T088 [US4] Integrate Notes Mode toggle (FILL | NOTES segmented control) with Cell.svelte - purple border when NOTES active
+
+#### Additional Tasks (Not in original plan)
+
+- [X] T088a [US4] Create NotesModeToggle.svelte component with segmented control UI (FILL | NOTES)
+- [X] T088b [US4] Add notesMode state to gameStore and toggleNotesMode() action
+- [X] T088c [US4] Update keyboard handler in SudokuGrid to check notesMode for candidate toggling
+- [X] T088d [US4] Update number pad clicks to respect notesMode state
 
 #### E2E Tests
 
-- [ ] T089 [US4] Implement E2E test for candidate numbers in tests/e2e/candidates.spec.ts
+- [ ] T089 [US4] Implement E2E test for candidate numbers in tests/e2e/candidates.spec.ts (NEEDS UPDATE for new approach)
 
-**Deliverable**: Manual pencil marks and auto-generated candidates with automatic updates.
+**Deliverable**: Manual pencil marks via Notes Mode toggle and Fill Candidates one-time action (simpler than original auto-updating approach).
 
 ---
 

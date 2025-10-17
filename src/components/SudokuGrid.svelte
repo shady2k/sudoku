@@ -49,8 +49,9 @@
 
       const value = parseInt(event.key);
 
-      if (event.shiftKey || event.altKey) {
-        // Toggle as candidate
+      // Check if in notes mode
+      if (gameStore.notesMode) {
+        // Toggle as candidate (only for empty cells)
         if (cell.value === 0) {
           toggleManualCandidate(row, col, value);
         }
@@ -66,14 +67,14 @@
     if (event.key === 'Delete' || event.key === 'Backspace') {
       if (!canModifyCell(cell)) return;
 
-      if (event.shiftKey || event.altKey) {
-        // Clear all manual candidates
-        if (cell.value === 0) {
-          gameStore.setManualCandidates({ row, col }, new Set());
-        }
+      // In notes mode, clear all manual candidates for empty cells
+      if (gameStore.notesMode && cell.value === 0) {
+        gameStore.setManualCandidates({ row, col }, new Set());
       } else {
-        // Clear cell value
-        gameStore.makeMove({ row, col }, 0);
+        // Clear cell value (or do nothing if in notes mode and cell has value)
+        if (!gameStore.notesMode) {
+          gameStore.makeMove({ row, col }, 0);
+        }
       }
       event.preventDefault();
     }

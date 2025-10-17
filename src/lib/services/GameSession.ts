@@ -346,41 +346,32 @@ export function setManualCandidates(
 
 
 /**
- * Toggles auto-candidate display with auto-update logic
+ * Fills candidates once by converting auto-generated candidates to manual candidates
+ * This is a one-time action - candidates become manual and can be edited by user
+ * Overwrites ALL existing candidates in empty cells (Option A behavior)
  */
-export function toggleAutoCandidates(session: GameSession): GameSession {
-  const newShowAutoCandidates = !session.showAutoCandidates;
-
+export function fillCandidatesOnce(session: GameSession): GameSession {
   // Create new session (immutable update)
   const newSession = { ...session };
   newSession.board = session.board.map(r => [...r]);
   newSession.cells = session.cells.map(r => r.map(c => ({ ...c })));
   newSession.lastActivityAt = Date.now();
-  newSession.showAutoCandidates = newShowAutoCandidates;
 
-  // Generate or clear auto-candidates for all empty cells
-  if (newShowAutoCandidates) {
-    // Generate auto-candidates using the validation service
-    const allCandidates = generateCandidates(newSession.board);
+  // Generate candidates using the validation service
+  const allCandidates = generateCandidates(newSession.board);
 
-    // Update each empty cell with auto-candidates
-    for (let row = 0; row < 9; row++) {
-      for (let col = 0; col < 9; col++) {
-        const cell = newSession.cells[row]?.[col];
-        if (cell && !cell.isClue && cell.value === 0) {
-          const key = `${row},${col}`;
-          cell.autoCandidates = allCandidates.get(key) || null;
-        }
-      }
-    }
-  } else {
-    // Clear all auto-candidates
-    for (let row = 0; row < 9; row++) {
-      for (let col = 0; col < 9; col++) {
-        const cell = newSession.cells[row]?.[col];
-        if (cell) {
-          cell.autoCandidates = null;
-        }
+  // Fill all empty cells with auto-generated candidates as manual candidates
+  // This overwrites any existing manual candidates (Option A)
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      const cell = newSession.cells[row]?.[col];
+      if (cell && !cell.isClue && cell.value === 0) {
+        const key = `${row},${col}`;
+        const candidates = allCandidates.get(key);
+        // Convert auto-candidates to manual candidates
+        cell.manualCandidates = candidates ? new Set(candidates) : new Set();
+        // Clear any auto-candidates (not used in new approach)
+        cell.autoCandidates = null;
       }
     }
   }

@@ -12,16 +12,19 @@ vi.mock('../../../src/lib/stores/gameStore.svelte', () => {
   const mockNewGame = vi.fn();
   const mockPauseGame = vi.fn();
   const mockResumeGame = vi.fn();
-  const mockToggleCandidates = vi.fn();
+  const mockFillCandidates = vi.fn();
+  const mockToggleNotesMode = vi.fn();
 
   const gameStore = {
     session: null as any,
     isLoading: false,
     error: null as string | null,
+    notesMode: false,
     newGame: mockNewGame,
     pauseGame: mockPauseGame,
     resumeGame: mockResumeGame,
-    toggleCandidates: mockToggleCandidates,
+    fillCandidates: mockFillCandidates,
+    toggleNotesMode: mockToggleNotesMode,
   };
 
   return {
@@ -36,7 +39,7 @@ import { gameStore } from '../../../src/lib/stores/gameStore.svelte';
 const _mockNewGame = gameStore.newGame as ReturnType<typeof vi.fn>;
 const mockPauseGame = gameStore.pauseGame as ReturnType<typeof vi.fn>;
 const mockResumeGame = gameStore.resumeGame as ReturnType<typeof vi.fn>;
-const mockToggleCandidates = gameStore.toggleCandidates as ReturnType<typeof vi.fn>;
+const mockFillCandidates = gameStore.fillCandidates as ReturnType<typeof vi.fn>;
 
 describe('Controls Component', () => {
   const user = userEvent.setup();
@@ -129,42 +132,27 @@ describe('Controls Component', () => {
     });
   });
 
-  describe('Candidates Toggle Button', () => {
-    it('should not show candidates button when no session', () => {
+  describe('Fill Candidates Button', () => {
+    it('should not show fill candidates button when no session', () => {
       render(Controls, { onNewGame: mockOnNewGame });
-      expect(screen.queryByRole('button', { name: /Candidates/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Fill Candidates/i })).not.toBeInTheDocument();
     });
 
-    it('should show "Show Candidates" when candidates are hidden', () => {
-      gameStore.session = { showAutoCandidates: false, isCompleted: false } as any;
+    it('should show "Fill Candidates" button when game is active', () => {
+      gameStore.session = { isCompleted: false } as any;
       render(Controls, { onNewGame: mockOnNewGame });
 
-      expect(screen.getByRole('button', { name: /Show Candidates/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Fill Candidates/ })).toBeInTheDocument();
     });
 
-    it('should show "Hide Candidates" when candidates are visible', () => {
-      gameStore.session = { showAutoCandidates: true, isCompleted: false } as any;
+    it('should call fillCandidates when clicked', async () => {
+      gameStore.session = { isCompleted: false } as any;
       render(Controls, { onNewGame: mockOnNewGame });
 
-      expect(screen.getByRole('button', { name: /Hide Candidates/ })).toBeInTheDocument();
-    });
-
-    it('should call toggleCandidates when clicked', async () => {
-      gameStore.session = { showAutoCandidates: false, isCompleted: false } as any;
-      render(Controls, { onNewGame: mockOnNewGame });
-
-      const button = screen.getByRole('button', { name: /Show Candidates/ });
+      const button = screen.getByRole('button', { name: /Fill Candidates/ });
       await user.click(button);
 
-      expect(mockToggleCandidates).toHaveBeenCalled();
-    });
-
-    it('should have active class when candidates are shown', () => {
-      gameStore.session = { showAutoCandidates: true, isCompleted: false } as any;
-      render(Controls, { onNewGame: mockOnNewGame });
-
-      const button = screen.getByRole('button', { name: /Hide Candidates/ });
-      expect(button).toHaveClass('active');
+      expect(mockFillCandidates).toHaveBeenCalled();
     });
   });
 });
