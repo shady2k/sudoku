@@ -177,44 +177,74 @@ interface GameSession {
 
 ### ActionHistory
 
-Represents the undo/redo stack for game moves.
+Represents the undo/redo stack for game moves with full state snapshots.
+
+**IMPLEMENTATION NOTE (2025-10-17)**: Uses full grid snapshots instead of tracking individual changes. This approach is simpler, more robust, and automatically handles automatic candidate elimination (FR-012) without additional complexity.
 
 **TypeScript Definition:**
 ```typescript
 interface ActionHistory {
   /** Stack of actions (most recent last) */
-  actions: Action[];
+  actions: readonly Action[];
 
   /** Current position in history (for undo/redo) */
   currentIndex: number;
 
-  /** Maximum history size (50 steps per clarification) */
-  maxSize: number;
+  /** Maximum history size (50 steps per FR-022) */
+  readonly maxSize: number;
 }
 
-interface Action {
-  /** Type of action */
-  type: 'SET_VALUE' | 'CLEAR_VALUE' | 'SET_CANDIDATES' | 'CLEAR_CANDIDATES';
+type Action =
+  | SetValueAction
+  | ClearValueAction
+  | SetCandidatesAction
+  | ClearCandidatesAction;
 
-  /** Cell affected */
-  cell: { row: number; col: number };
-
-  /** Previous value/state (for undo) */
-  previousValue: number | Set<number>;
-
-  /** New value/state (for redo) */
-  newValue: number | Set<number>;
-
-  /** Timestamp when action occurred */
+interface SetValueAction {
+  type: 'SET_VALUE';
+  cell: CellPosition;
+  newValue: number;
   timestamp: number;
-
   /**
-   * Candidates eliminated by automatic elimination (FR-012)
-   * Only populated when type is 'SET_VALUE' and the value is valid
-   * Maps cell index to Set of candidates that were removed
-   * Used for full state restoration on undo
+   * Full grid snapshot BEFORE the move (for undo restoration)
+   * Stores complete state including board values and all candidates
+   * This simplifies undo/redo logic and makes it more robust (FR-022, FR-012)
    */
-  eliminatedCandidates?: Map<number, Set<number>>;
+  snapshot: {
+    board: number[][];
+    candidates: Map<string, Set<number>>; // key: "row,col"
+  };
+}
+
+interface ClearValueAction {
+  type: 'CLEAR_VALUE';
+  cell: CellPosition;
+  timestamp: number;
+  snapshot: {
+    board: number[][];
+    candidates: Map<string, Set<number>>;
+  };
+}
+
+interface SetCandidatesAction {
+  type: 'SET_CANDIDATES';
+  cell: CellPosition;
+  newCandidates: readonly number[];
+  timestamp: number;
+  snapshot: {
+    board: number[][];
+    candidates: Map<string, Set<number>>;
+  };
+}
+
+interface ClearCandidatesAction {
+  type: 'CLEAR_CANDIDATES';
+  cell: CellPosition;
+  timestamp: number;
+  snapshot: {
+    board: number[][];
+    candidates: Map<string, Set<number>>;
+  };
 }
 ```
 
@@ -223,15 +253,24 @@ interface Action {
 - Oldest actions removed when limit exceeded (FIFO)
 - `currentIndex` must be within `actions` bounds
 - `maxSize` fixed at 50
+- Snapshots are sparse (only non-empty candidates stored for efficiency)
 
 **Operations:**
-- **Push**: Add new action, truncate future actions if not at end, enforce size limit; for 'SET_VALUE' actions with valid moves, capture `eliminatedCandidates` snapshot for undo restoration (FR-012, FR-022)
-- **Undo**: Revert to `actions[currentIndex - 1]`, decrement `currentIndex`; if action has `eliminatedCandidates`, restore all eliminated candidates to affected cells (full state restoration per FR-022)
-- **Redo**: Apply `actions[currentIndex + 1]`, increment `currentIndex`; re-apply candidate elimination if action has `eliminatedCandidates`
+- **Push**: Capture full grid snapshot BEFORE action, add new action, truncate future actions if not at end, enforce size limit (FR-022)
+- **Undo**: Restore complete state from `actions[currentIndex - 1].snapshot`, decrement `currentIndex`; automatically restores eliminated candidates without additional tracking (FR-012, FR-022)
+- **Redo**: Re-apply action including automatic candidate elimination for valid moves, increment `currentIndex` (FR-012, FR-022)
 
-**Pers istance:**
+**Why Snapshot Approach?**
+- **Simplicity**: No need to track individual candidate eliminations
+- **Robustness**: Full state restoration guarantees correctness
+- **Automatic FR-012 Support**: Eliminated candidates restored automatically on undo
+- **Memory Efficiency**: Sparse storage (only non-empty candidates), 50-action limit
+- **Predictable**: Same restoration logic for all action types
+
+**Persistence:**
 - Saved with `GameSession` to LocalStorage
 - Restored on session resume
+- Snapshots serialized with Set → Array conversion for JSON compatibility
 
 ---
 

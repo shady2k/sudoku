@@ -273,20 +273,20 @@ This document provides a dependency-ordered task list for implementing the offli
 
 #### Automatic Elimination Logic (TDD)
 
-- [ ] T089a [P] [US4] TEST: Write automatic candidate elimination tests in tests/integration/candidate-elimination.test.ts - verify elimination on valid move, no elimination on invalid move, affected cells identified correctly
-- [ ] T089b [US4] Implement eliminateCandidatesFromRelatedCells() function in src/lib/services/GameValidator.ts per FR-012 - takes cell position and value, returns Map of affected cells and eliminated candidates
-- [ ] T089c [US4] Update makeMove() in GameSession.ts to call eliminateCandidatesFromRelatedCells() ONLY when move is valid (passes Sudoku rules) per FR-012
-- [ ] T089d [US4] Add eliminatedCandidates field to Action interface in ActionHistory.ts per updated data-model.md - stores Map<cellIndex, Set<number>> for undo restoration
+- [X] T089a [P] [US4] TEST: Write automatic candidate elimination tests in tests/integration/candidate-elimination.test.ts - verify elimination on valid move, no elimination on invalid move, affected cells identified correctly
+- [X] T089b [US4] Implement eliminateCandidatesFromRelatedCells() function in src/lib/services/GameValidator.ts per FR-012 - takes cell position and value, returns Map of affected cells and eliminated candidates
+- [X] T089c [US4] Update makeMove() in GameSession.ts to call eliminateCandidatesFromRelatedCells() ONLY when move is valid (passes Sudoku rules) per FR-012
+- [X] T089d [US4] CHANGED: Used full snapshot approach in Action interface instead of tracking individual eliminatedCandidates - simpler and more robust for undo/redo per FR-022
 
 #### Undo/Redo Integration (TDD)
 
-- [ ] T089e [P] [US4] TEST: Write undo with candidate restoration tests in tests/unit/stores/gameStore.test.ts - verify undoing valid move restores eliminated candidates to exact previous state per FR-022
-- [ ] T089f [US4] Update undoMove() in gameStore.svelte.ts to restore eliminatedCandidates from action history per FR-022 - iterate through Map and restore each candidate to affected cells
-- [ ] T089g [US4] Update redoMove() in gameStore.svelte.ts to re-apply candidate elimination when redoing a valid move
+- [X] T089e [P] [US4] TEST: Integration tests in tests/integration/candidate-elimination.test.ts cover undo/redo scenarios with candidate restoration verification per FR-022
+- [X] T089f [US4] undoMove() in GameSession.ts restores full grid state from snapshot - automatically restores eliminated candidates per FR-022
+- [X] T089g [US4] redoMove() in GameSession.ts re-applies moves including candidate elimination when redoing a valid move per FR-022
 
 #### E2E Tests
 
-- [ ] T089h [US4] Implement E2E test for automatic candidate elimination flow in tests/e2e/auto-elimination.spec.ts - complete scenario: add candidates, make valid moves, verify elimination, undo, verify restoration
+- [X] T089h [US4] Implement E2E tests for automatic candidate elimination flow in tests/e2e/candidates.spec.ts - complete scenarios: make valid moves, verify elimination, undo, verify restoration, redo, verify re-elimination
 
 **Deliverable**: Automatic candidate elimination on valid moves with full undo/redo support. Completes FR-012 requirement clarified 2025-10-17.
 

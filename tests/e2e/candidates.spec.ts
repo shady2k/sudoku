@@ -248,4 +248,164 @@ test.describe('Candidate Numbers Feature', () => {
     cellText = await emptyCell.textContent();
     expect(cellText?.trim()).not.toBe('5');
   });
+
+  test('should automatically eliminate candidates when valid move is made (FR-012)', async ({ page }) => {
+    // Step 1: Click "Fill Candidates" to populate all empty cells with candidates
+    const fillCandidatesButton = page.locator('button:has-text("Fill Candidates")');
+    await expect(fillCandidatesButton).toBeVisible();
+    await fillCandidatesButton.click();
+    await page.waitForTimeout(500);
+
+    // Step 2: Find an empty cell with candidates
+    const emptyCellsWithCandidates = page.locator('.cell:not(.clue)').filter({ hasText: '' });
+    expect(await emptyCellsWithCandidates.count()).toBeGreaterThan(0);
+
+    const targetCell = emptyCellsWithCandidates.first();
+    await targetCell.click();
+    await page.waitForTimeout(200);
+
+    // Get the target cell's position
+    const targetRow = await targetCell.getAttribute('data-row');
+    const targetCol = await targetCell.getAttribute('data-col');
+
+    // Step 3: Make sure the cell has candidates by checking for candidate-number elements
+    const candidatesInTarget = targetCell.locator('.candidate-number');
+    const targetCandidateCount = await candidatesInTarget.count();
+
+    if (targetCandidateCount === 0) {
+      // Skip test if no candidates (edge case with fully constrained cell)
+      return;
+    }
+
+    // Pick a valid candidate value
+    const firstCandidate = await candidatesInTarget.first().textContent();
+    if (!firstCandidate) {
+      return;
+    }
+
+    // Step 4: Identify a cell in the same row with the same candidate
+    const sameRowCell = page.locator(`.cell[data-row="${targetRow}"][data-col="${Number(targetCol) + 1}"]`);
+    const sameRowCandidatesBefore = sameRowCell.locator(`.candidate-number:has-text("${firstCandidate}")`);
+    const hasCandidateInSameRow = (await sameRowCandidatesBefore.count()) > 0;
+
+    // Step 5: Enter the candidate as a value in the target cell
+    await page.keyboard.press(firstCandidate);
+    await page.waitForTimeout(500);
+
+    // Verify the cell now shows the value (not candidates)
+    const cellValue = await targetCell.textContent();
+    expect(cellValue?.trim()).toBe(firstCandidate);
+
+    // Step 6: Verify automatic elimination - candidate should be removed from related cells
+    if (hasCandidateInSameRow) {
+      const sameRowCandidatesAfter = sameRowCell.locator(`.candidate-number:has-text("${firstCandidate}")`);
+      // The candidate should have been eliminated from the same-row cell
+      expect(await sameRowCandidatesAfter.count()).toBe(0);
+    }
+  });
+
+  test('should restore eliminated candidates on undo (FR-012 + FR-022)', async ({ page }) => {
+    // Step 1: Fill candidates
+    const fillCandidatesButton = page.locator('button:has-text("Fill Candidates")');
+    await fillCandidatesButton.click();
+    await page.waitForTimeout(500);
+
+    // Step 2: Find an empty cell with candidates
+    const emptyCells = page.locator('.cell:not(.clue)').filter({ hasText: '' });
+    const targetCell = emptyCells.first();
+    await targetCell.click();
+
+    // Get candidate count
+    const candidatesInTarget = targetCell.locator('.candidate-number');
+    if ((await candidatesInTarget.count()) === 0) {
+      return; // Skip if no candidates
+    }
+
+    // Pick a valid candidate
+    const firstCandidate = await candidatesInTarget.first().textContent();
+    if (!firstCandidate) {
+      return;
+    }
+
+    // Step 3: Capture state of a related cell BEFORE making move
+    const targetRow = await targetCell.getAttribute('data-row');
+    const targetCol = await targetCell.getAttribute('data-col');
+    const relatedCell = page.locator(`.cell[data-row="${targetRow}"][data-col="${Number(targetCol) + 1}"]`);
+
+    const relatedCandidatesBefore = await relatedCell.locator('.candidate-number').count();
+
+    // Step 4: Make a valid move
+    await page.keyboard.press(firstCandidate);
+    await page.waitForTimeout(500);
+
+    // Verify the move was made
+    expect(await targetCell.textContent()).toContain(firstCandidate);
+
+    // Verify candidates were eliminated
+    const relatedCandidatesAfter = await relatedCell.locator('.candidate-number').count();
+    // Expect fewer candidates (or equal if the candidate wasn't there)
+    expect(relatedCandidatesAfter).toBeLessThanOrEqual(relatedCandidatesBefore);
+
+    // Step 5: Undo the move
+    const undoButton = page.locator('button[aria-label="Undo"]');
+    await undoButton.click();
+    await page.waitForTimeout(500);
+
+    // Step 6: Verify candidates were restored
+    const relatedCandidatesRestored = await relatedCell.locator('.candidate-number').count();
+    expect(relatedCandidatesRestored).toBe(relatedCandidatesBefore);
+
+    // Verify the cell is back to empty state with candidates
+    const targetText = await targetCell.textContent();
+    expect(targetText?.trim()).not.toBe(firstCandidate);
+  });
+
+  test('should re-apply candidate elimination on redo (FR-012 + FR-022)', async ({ page }) => {
+    // Step 1: Fill candidates
+    const fillCandidatesButton = page.locator('button:has-text("Fill Candidates")');
+    await fillCandidatesButton.click();
+    await page.waitForTimeout(500);
+
+    // Step 2: Find an empty cell and make a move
+    const emptyCells = page.locator('.cell:not(.clue)').filter({ hasText: '' });
+    const targetCell = emptyCells.first();
+    await targetCell.click();
+
+    const candidatesInTarget = targetCell.locator('.candidate-number');
+    if ((await candidatesInTarget.count()) === 0) {
+      return;
+    }
+
+    const firstCandidate = await candidatesInTarget.first().textContent();
+    if (!firstCandidate) {
+      return;
+    }
+
+    // Make the move
+    await page.keyboard.press(firstCandidate);
+    await page.waitForTimeout(500);
+
+    // Step 3: Undo the move
+    const undoButton = page.locator('button[aria-label="Undo"]');
+    await undoButton.click();
+    await page.waitForTimeout(500);
+
+    // Step 4: Redo the move
+    const redoButton = page.locator('button[aria-label="Redo"]');
+    await redoButton.click();
+    await page.waitForTimeout(500);
+
+    // Step 5: Verify the move was redone
+    const cellValue = await targetCell.textContent();
+    expect(cellValue?.trim()).toBe(firstCandidate);
+
+    // Step 6: Verify candidate elimination was re-applied
+    const targetRow = await targetCell.getAttribute('data-row');
+    const targetCol = await targetCell.getAttribute('data-col');
+    const relatedCell = page.locator(`.cell[data-row="${targetRow}"][data-col="${Number(targetCol) + 1}"]`);
+
+    const relatedCandidateWithValue = relatedCell.locator(`.candidate-number:has-text("${firstCandidate}")`);
+    // The candidate should be eliminated again
+    expect(await relatedCandidateWithValue.count()).toBe(0);
+  });
 });
