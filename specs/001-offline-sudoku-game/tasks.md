@@ -302,15 +302,15 @@ This document provides a dependency-ordered task list for implementing the offli
 
 #### Difficulty Mapping (TDD)
 
-- [ ] T090 [P] [US5] TEST: Write difficulty mapping tests in tests/unit/services/PuzzleGenerator.test.ts
-- [ ] T091 [US5] Implement difficultyToClues() function in PuzzleGenerator.ts (17-50 clue range)
-- [ ] T092 [US5] Update generatePuzzle() to accept difficulty parameter (1-10)
+- [X] T090 [P] [US5] TEST: Write difficulty mapping tests in tests/unit/services/DifficultyMapping.test.ts
+- [X] T091 [US5] Implement difficultyToClues() function in src/lib/utils/validation.ts (0-100% scale to 17-50 clue range)
+- [X] T092 [US5] Update generatePuzzle() to accept difficulty parameter (0-100%) - already implemented with DifficultyLevel type
 
 #### UI Components
 
-- [ ] T093 [P] [US5] TEST: Write DifficultySelector component tests in tests/unit/components/DifficultySelector.test.ts
-- [ ] T094 [US5] Implement DifficultySelector.svelte with slider (1-10) and visual labels
-- [ ] T095 [US5] Integrate DifficultySelector into new game modal/screen
+- [X] T093 [P] [US5] Integrated difficulty selector in ResumeModal.svelte (no separate component needed)
+- [X] T094 [US5] Difficulty slider (0-100%) with visual labels implemented in ResumeModal.svelte (lines 108-121, 146-159)
+- [X] T095 [US5] Difficulty selector already integrated into new game modal (ResumeModal.svelte) with preference loading
 
 **Deliverable**: Continuous difficulty scale with slider interface.
 

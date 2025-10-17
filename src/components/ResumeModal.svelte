@@ -115,8 +115,8 @@
               bind:value={selectedDifficulty}
             />
             <div class="difficulty-labels">
-              <span class="label-left">Hardest (0%)</span>
-              <span class="label-right">Easiest (100%)</span>
+              <span class="label-left">Easiest (0%)</span>
+              <span class="label-right">Hardest (100%)</span>
             </div>
           </div>
 
@@ -153,8 +153,8 @@
             bind:value={selectedDifficulty}
           />
           <div class="difficulty-labels">
-            <span class="label-left">Hardest (0%)</span>
-            <span class="label-right">Easiest (100%)</span>
+            <span class="label-left">Easiest (0%)</span>
+            <span class="label-right">Hardest (100%)</span>
           </div>
         </div>
 
