@@ -7,6 +7,20 @@
     const cell = gameStore.session?.cells[row]?.[col];
     if (!cell) return;
 
+    // T098: Number highlighting (FR-013) - when clicking a cell with a number, highlight all matching numbers
+    if (cell.value !== 0) {
+      // If clicking the same number again, toggle off the highlighting
+      const currentHighlighted = gameStore.session?.highlightedNumber;
+      if (currentHighlighted === cell.value) {
+        gameStore.setHighlightedNumber(null);
+      } else {
+        gameStore.setHighlightedNumber(cell.value);
+      }
+    } else {
+      // Clicking an empty cell clears highlighting
+      gameStore.setHighlightedNumber(null);
+    }
+
     gameStore.selectCell({ row, col });
   }
 

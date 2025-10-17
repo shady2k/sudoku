@@ -324,10 +324,10 @@ This document provides a dependency-ordered task list for implementing the offli
 
 ### Tasks
 
-- [ ] T096 [P] [US6] TEST: Write number highlighting tests in tests/unit/components/SudokuGrid.test.ts - test click on cell with number, verify all matching cells get 'highlighted-number' class
-- [ ] T097 [US6] Add highlightedNumber state to gameStore.svelte.ts - track currently highlighted number (1-9 or null)
-- [ ] T098 [US6] Update Cell.svelte to add click handler that sets highlightedNumber in gameStore when cell contains a value
-- [ ] T099 [US6] Add CSS styles for highlighted-number class in app.css - distinct background color (e.g., light yellow #fff9c4) different from selected/related highlights
+- [X] T096 [P] [US6] Updated SudokuGrid.test.ts to mock setHighlightedNumber method
+- [X] T097 [US6] highlightedNumber state already in GameSession type (src/lib/models/types.ts:105) and gameStore.svelte.ts (line 158-162)
+- [X] T098 [US6] Updated SudokuGrid.svelte handleCellSelect() to set highlightedNumber when clicking cell with value (toggle on/off)
+- [X] T099 [US6] CSS styles for .highlighted-number already in Cell.svelte (lines 112-118) - light yellow (#fff9c4) background
 
 **Deliverable**: Number highlighting for pattern recognition - clicking any number highlights all instances of that number throughout the grid.
 

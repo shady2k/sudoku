@@ -27,8 +27,9 @@
 
   // Check if this cell's number matches the highlighted number (FR-013)
   const isHighlighted = $derived.by(() => {
-    if (!gameStore.session?.highlightedNumber || cell.value === 0) return false;
-    return cell.value === gameStore.session.highlightedNumber;
+    const highlighted = gameStore.session?.highlightedNumber;
+    const matches = highlighted && cell.value !== 0 && cell.value === highlighted;
+    return !!matches;
   });
 </script>
 
@@ -109,12 +110,13 @@
     background-color: #e3f2fd;
   }
 
+  /* Highlighted number - higher specificity to override related/selected */
   .cell.highlighted-number {
-    background-color: #fff9c4;
+    background-color: #fff9c4 !important;
   }
 
   .cell.highlighted-number:hover:not(.clue) {
-    background-color: #fff59d;
+    background-color: #fff59d !important;
   }
 
   .cell.error {

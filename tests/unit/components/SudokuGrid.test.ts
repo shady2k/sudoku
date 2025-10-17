@@ -18,6 +18,7 @@ vi.mock('../../../src/lib/stores/gameStore.svelte', () => {
   const mockMakeMove = vi.fn();
   const mockSetManualCandidates = vi.fn();
   const mockClearCell = vi.fn();
+  const mockSetHighlightedNumber = vi.fn();
 
   return {
     gameStore: {
@@ -30,6 +31,7 @@ vi.mock('../../../src/lib/stores/gameStore.svelte', () => {
       makeMove: mockMakeMove,
       setManualCandidates: mockSetManualCandidates,
       clearCell: mockClearCell,
+      setHighlightedNumber: mockSetHighlightedNumber,
     },
   };
 });
@@ -81,6 +83,7 @@ describe('SudokuGrid Component', () => {
       lastActivityAt: Date.now(),
       selectedCell: null,
       showAutoCandidates: false,
+      highlightedNumber: null,
       history: {
         actions: [],
         currentIndex: -1,
@@ -466,6 +469,67 @@ describe('SudokuGrid Component', () => {
 
       expect(mockSelectCell).toHaveBeenCalledWith({ row: 4, col: 5 });
       expect(mockMakeMove).toHaveBeenCalledWith({ row: 4, col: 4 }, 7);
+    });
+  });
+
+  describe('Number Highlighting (FR-013)', () => {
+    const mockSetHighlightedNumber = gameStore.setHighlightedNumber as ReturnType<typeof vi.fn>;
+
+    it('should call setHighlightedNumber when clicking a cell with a number', async () => {
+      const session = createMockSession();
+      session.cells[2][3].value = 5;
+      session.cells[2][3].isClue = true;
+      gameStore.session = session;
+
+      render(SudokuGrid);
+
+      const cell = document.querySelector('[data-row="2"][data-col="3"]') as HTMLElement;
+      await user.click(cell);
+
+      expect(mockSetHighlightedNumber).toHaveBeenCalledWith(5);
+    });
+
+    it('should toggle highlighting off when clicking the same number again', async () => {
+      const session = createMockSession();
+      session.cells[1][1].value = 7;
+      session.highlightedNumber = 7; // Already highlighted
+      gameStore.session = session;
+
+      render(SudokuGrid);
+
+      const cell = document.querySelector('[data-row="1"][data-col="1"]') as HTMLElement;
+      await user.click(cell);
+
+      expect(mockSetHighlightedNumber).toHaveBeenCalledWith(null);
+    });
+
+    it('should clear highlighting when clicking an empty cell', async () => {
+      const session = createMockSession();
+      session.cells[0][0].value = 0; // Empty cell
+      session.highlightedNumber = 5; // Some number highlighted
+      gameStore.session = session;
+
+      render(SudokuGrid);
+
+      const cell = document.querySelector('[data-row="0"][data-col="0"]') as HTMLElement;
+      await user.click(cell);
+
+      expect(mockSetHighlightedNumber).toHaveBeenCalledWith(null);
+    });
+
+    it('should highlight different number when clicking cell with different value', async () => {
+      const session = createMockSession();
+      session.cells[0][0].value = 3;
+      session.cells[1][1].value = 8;
+      session.highlightedNumber = 3; // 3 is currently highlighted
+      gameStore.session = session;
+
+      render(SudokuGrid);
+
+      const cell = document.querySelector('[data-row="1"][data-col="1"]') as HTMLElement;
+      await user.click(cell);
+
+      expect(mockSetHighlightedNumber).toHaveBeenCalledWith(8);
     });
   });
 });
