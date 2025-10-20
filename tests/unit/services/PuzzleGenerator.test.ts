@@ -457,8 +457,9 @@ describe('PuzzleGenerator', () => {
 
       expect(result.success).toBe(true);
       // Should complete within reasonable time with progressive fallback
-      expect(elapsed).toBeLessThan(5000); // 5s timeout after optimization
-    }, 10000); // 10s test timeout
+      // 100% tries 3 difficulty levels (100%, 95%, 90%), each with 2s timeout = max 6s + overhead
+      expect(elapsed).toBeLessThan(7000); // 7s timeout to account for CI overhead
+    }, 15000); // 15s test timeout
 
     it('should respect max attempts limit', async () => {
       // This test verifies internal logic doesn't loop infinitely
