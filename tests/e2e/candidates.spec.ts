@@ -446,13 +446,198 @@ test.describe('Candidate Numbers Feature', () => {
     }
   });
 
-  test.skip('should restore eliminated candidates on undo (FR-012 + FR-022)', async () => {
-    // Note: This test requires undo functionality to be implemented
-    // Currently skipped as undo buttons may not be available
+  test('should restore eliminated candidates on undo (FR-012 + FR-022)', async ({ page }) => {
+    // Step 1: Fill candidates
+    const fillCandidatesButton = page.locator('button:has-text("Fill Candidates")');
+    await expect(fillCandidatesButton).toBeVisible();
+    await fillCandidatesButton.click();
+
+    // Wait for candidates to appear
+    await page.locator('.candidate-number:not(.empty)').first().waitFor({ state: 'visible', timeout: 5000 });
+
+    // Step 2: Find an empty cell with candidates and a related cell that will have candidates eliminated
+    const cells = page.locator('button.cell');
+    const cellCount = await cells.count();
+
+    let targetCell = null;
+    let targetRow: string | null = null;
+    let targetCol: string | null = null;
+    let relatedCell = null;
+    let candidateValue: string | null = null;
+
+    // Search for a suitable scenario
+    outerLoop: for (let i = 0; i < cellCount; i++) {
+      const cell = cells.nth(i);
+      const hasClueClass = await cell.evaluate((el) => el.classList.contains('clue'));
+      const hasValue = await cell.locator('span.value').count();
+
+      if (!hasClueClass && hasValue === 0) {
+        const candidates = cell.locator('.candidate-number:not(.empty)');
+        const candidateCount = await candidates.count();
+
+        if (candidateCount > 0) {
+          const row = await cell.getAttribute('data-row');
+          const col = await cell.getAttribute('data-col');
+
+          // Get all candidates for this cell
+          for (let j = 0; j < candidateCount; j++) {
+            const candidate = await candidates.nth(j).textContent();
+            if (!candidate) continue;
+
+            // Check all cells in the same row for this candidate
+            for (let c = 0; c < 9; c++) {
+              if (c === Number(col)) continue; // Skip the target cell itself
+
+              const relatedCellCandidate = page.locator(
+                `button.cell[data-row="${row}"][data-col="${c}"] .candidate-number[data-testid="candidate-${candidate.trim()}"]`
+              );
+
+              if (await relatedCellCandidate.isVisible().catch(() => false)) {
+                // Found a suitable scenario!
+                targetCell = cell;
+                targetRow = row;
+                targetCol = col;
+                relatedCell = page.locator(`button.cell[data-row="${row}"][data-col="${c}"]`);
+                candidateValue = candidate.trim();
+                break outerLoop;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (!targetCell || !targetRow || !targetCol || !relatedCell || !candidateValue) {
+      throw new Error('No suitable cell combination found for testing candidate elimination');
+    }
+
+    await targetCell.click();
+
+    // Step 3: Verify the related cell has the candidate before making the move
+    const relatedCandidateBefore = relatedCell.locator(`.candidate-number[data-testid="candidate-${candidateValue}"]`);
+    await expect(relatedCandidateBefore).toBeVisible();
+
+    // Step 4: Enter the candidate as a value in the target cell
+    await page.keyboard.press(candidateValue);
+
+    // Verify the cell now shows the value
+    await expect(targetCell).toContainText(candidateValue);
+
+    // Step 5: Verify automatic elimination - candidate should be removed from related cells
+    await expect(relatedCandidateBefore).not.toBeVisible();
+
+    // Step 6: Click the Undo button
+    const undoButton = page.locator('button:has-text("Undo")');
+    await expect(undoButton).toBeEnabled();
+    await undoButton.click();
+
+    // Step 7: Verify the cell no longer has the value
+    const valueSpan = targetCell.locator('span.value');
+    await expect(valueSpan).not.toBeVisible();
+
+    // Step 8: Verify the candidate is restored in the related cell
+    await expect(relatedCandidateBefore).toBeVisible();
   });
 
-  test.skip('should re-apply candidate elimination on redo (FR-012 + FR-022)', async () => {
-    // Note: This test requires redo functionality to be implemented
-    // Currently skipped as redo buttons may not be available
+  test('should re-apply candidate elimination on redo (FR-012 + FR-022)', async ({ page }) => {
+    // Step 1: Fill candidates
+    const fillCandidatesButton = page.locator('button:has-text("Fill Candidates")');
+    await expect(fillCandidatesButton).toBeVisible();
+    await fillCandidatesButton.click();
+
+    // Wait for candidates to appear
+    await page.locator('.candidate-number:not(.empty)').first().waitFor({ state: 'visible', timeout: 5000 });
+
+    // Step 2: Find an empty cell with candidates and a related cell that will have candidates eliminated
+    const cells = page.locator('button.cell');
+    const cellCount = await cells.count();
+
+    let targetCell = null;
+    let targetRow: string | null = null;
+    let targetCol: string | null = null;
+    let relatedCell = null;
+    let candidateValue: string | null = null;
+
+    // Search for a suitable scenario
+    outerLoop: for (let i = 0; i < cellCount; i++) {
+      const cell = cells.nth(i);
+      const hasClueClass = await cell.evaluate((el) => el.classList.contains('clue'));
+      const hasValue = await cell.locator('span.value').count();
+
+      if (!hasClueClass && hasValue === 0) {
+        const candidates = cell.locator('.candidate-number:not(.empty)');
+        const candidateCount = await candidates.count();
+
+        if (candidateCount > 0) {
+          const row = await cell.getAttribute('data-row');
+          const col = await cell.getAttribute('data-col');
+
+          // Get all candidates for this cell
+          for (let j = 0; j < candidateCount; j++) {
+            const candidate = await candidates.nth(j).textContent();
+            if (!candidate) continue;
+
+            // Check all cells in the same row for this candidate
+            for (let c = 0; c < 9; c++) {
+              if (c === Number(col)) continue; // Skip the target cell itself
+
+              const relatedCellCandidate = page.locator(
+                `button.cell[data-row="${row}"][data-col="${c}"] .candidate-number[data-testid="candidate-${candidate.trim()}"]`
+              );
+
+              if (await relatedCellCandidate.isVisible().catch(() => false)) {
+                // Found a suitable scenario!
+                targetCell = cell;
+                targetRow = row;
+                targetCol = col;
+                relatedCell = page.locator(`button.cell[data-row="${row}"][data-col="${c}"]`);
+                candidateValue = candidate.trim();
+                break outerLoop;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (!targetCell || !targetRow || !targetCol || !relatedCell || !candidateValue) {
+      throw new Error('No suitable cell combination found for testing candidate elimination');
+    }
+
+    await targetCell.click();
+
+    // Step 3: Verify the related cell has the candidate before making the move
+    const relatedCandidateBefore = relatedCell.locator(`.candidate-number[data-testid="candidate-${candidateValue}"]`);
+    await expect(relatedCandidateBefore).toBeVisible();
+
+    // Step 4: Enter the candidate as a value in the target cell
+    await page.keyboard.press(candidateValue);
+
+    // Verify the cell now shows the value
+    await expect(targetCell).toContainText(candidateValue);
+
+    // Step 5: Verify automatic elimination - candidate should be removed from related cells
+    await expect(relatedCandidateBefore).not.toBeVisible();
+
+    // Step 6: Click the Undo button
+    const undoButton = page.locator('button:has-text("Undo")');
+    await expect(undoButton).toBeEnabled();
+    await undoButton.click();
+
+    // Verify the undo worked
+    const valueSpan = targetCell.locator('span.value');
+    await expect(valueSpan).not.toBeVisible();
+    await expect(relatedCandidateBefore).toBeVisible();
+
+    // Step 7: Click the Redo button
+    const redoButton = page.locator('button:has-text("Redo")');
+    await expect(redoButton).toBeEnabled();
+    await redoButton.click();
+
+    // Step 8: Verify the cell shows the value again
+    await expect(targetCell).toContainText(candidateValue);
+
+    // Step 9: Verify the candidate is eliminated again from the related cell
+    await expect(relatedCandidateBefore).not.toBeVisible();
   });
 });
