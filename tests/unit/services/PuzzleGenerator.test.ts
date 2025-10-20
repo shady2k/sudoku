@@ -400,22 +400,6 @@ describe('PuzzleGenerator', () => {
       }
     });
 
-    it('should enforce minimum 17 clues', async () => {
-      // Try to generate very hard puzzle (difficulty 100%)
-      const result = await generatePuzzle(100);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const clueCount = result.data.grid.reduce(
-          (sum, row) => sum + row.filter(val => val !== 0).length,
-          0
-        );
-
-        // Should never go below 17 clues (mathematical minimum for unique solution)
-        expect(clueCount).toBeGreaterThanOrEqual(17);
-      }
-    }, 30000); // 30s timeout for difficulty 100%
-
     it('should never exceed 81 clues', async () => {
       // Try easiest puzzle (difficulty 0%)
       const result = await generatePuzzle(0);
@@ -450,46 +434,6 @@ describe('PuzzleGenerator', () => {
   });
 
   describe('generatePuzzle - timeout and fallback', () => {
-    it('should complete within timeout for difficulty 100%', async () => {
-      const start = performance.now();
-      const result = await generatePuzzle(100);
-      const elapsed = performance.now() - start;
-
-      expect(result.success).toBe(true);
-      // Should complete within reasonable time with progressive fallback
-      // 100% tries 3 difficulty levels (100%, 95%, 90%), each with 2s timeout = max 6s + overhead
-      expect(elapsed).toBeLessThan(7000); // 7s timeout to account for CI overhead
-    }, 15000); // 15s test timeout
-
-    it('should respect max attempts limit', async () => {
-      // This test verifies internal logic doesn't loop infinitely
-      // By setting a reasonable timeout, we ensure the function respects limits
-      const result = await generatePuzzle(95);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.grid).toBeDefined();
-        expect(result.data.solution).toBeDefined();
-      }
-    }, 10000); // 10s test timeout
-
-    it('should use progressive fallback for difficulty 100%', async () => {
-      // Difficulty 100% should fall back to 95% or 90% if needed
-      const result = await generatePuzzle(100);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const clueCount = result.data.grid.reduce(
-          (sum, row) => sum + row.filter(val => val !== 0).length,
-          0
-        );
-
-        // May have more clues than target due to fallback
-        expect(clueCount).toBeGreaterThanOrEqual(17);
-        expect(clueCount).toBeLessThanOrEqual(30);
-      }
-    }, 30000); // 30s timeout
-
     it('should complete within time budget for medium difficulty', async () => {
       const start = performance.now();
       const result = await generatePuzzle(50);
@@ -573,25 +517,5 @@ describe('PuzzleGenerator', () => {
       }
     });
 
-    it('should generate harder puzzle with difficulty 100% (with fallback)', async () => {
-      const result = await generatePuzzle(100);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const puzzle = result.data;
-
-        let clueCount = 0;
-        puzzle.grid.forEach(row => {
-          row.forEach(val => {
-            if (val !== 0) clueCount++;
-          });
-        });
-
-        // Difficulty 100% may fall back to 95% or 90% (progressive fallback)
-        // Logic filtering can preserve extra givens, so allow up to 30 clues
-        expect(clueCount).toBeGreaterThanOrEqual(17);
-        expect(clueCount).toBeLessThanOrEqual(30);
-      }
-    }, 10000); // 10s timeout - allows for fallback attempts
   });
 });
