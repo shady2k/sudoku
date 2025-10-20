@@ -116,6 +116,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    pointer-events: none;
   }
 
   .candidates-grid {

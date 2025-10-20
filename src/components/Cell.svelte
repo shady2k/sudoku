@@ -66,13 +66,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
+    cursor: default;
     font-size: 1.5rem;
     font-weight: 500;
     padding: 0;
     transition: background-color 0.1s, border-color 0.1s, border-width 0.1s;
     touch-action: manipulation; /* Prevents double-tap zoom on mobile */
     -webkit-tap-highlight-color: transparent; /* Removes tap highlight on iOS */
+  }
+
+  .cell:hover {
+    cursor: pointer;
   }
 
   .cell:hover:not(.clue) {
@@ -90,7 +94,6 @@
   .cell.clue {
     background-color: #f5f5f5;
     font-weight: 700;
-    cursor: default;
   }
 
   .cell.selected {
