@@ -42,21 +42,35 @@ test.describe('Puzzle Completion', () => {
           continue;
         }
 
+        // Wait for cell to be ready (helps with WebKit timing)
+        await cell.waitFor({ state: 'visible', timeout: 5000 });
+
         // Click the cell to select it
-        await cell.click();
+        await cell.click({ timeout: 15000 });
 
-        // Type the correct value from solution
+        // Type the correct value from solution with delay for WebKit
         const correctValue = solution[row][col];
-        await page.keyboard.press(correctValue.toString());
+        await page.keyboard.press(correctValue.toString(), { delay: 100 });
 
-        // Small delay to let the UI update
-        await page.waitForTimeout(50);
+        // Increased delay for WebKit event processing
+        await page.waitForTimeout(150);
       }
     }
 
-    // Wait for congratulations modal to appear (with reasonable timeout)
+    // Wait for completion state to propagate to localStorage
+    await expect(async () => {
+      const isCompleted = await page.evaluate(() => {
+        const sessionData = localStorage.getItem('sudoku:current-session');
+        if (!sessionData) return false;
+        const parsed = JSON.parse(sessionData);
+        return parsed.data.isCompleted === true;
+      });
+      expect(isCompleted).toBe(true);
+    }).toPass({ timeout: 5000, intervals: [100] });
+
+    // Wait for congratulations modal to appear (increased timeout for WebKit)
     const congratsModal = page.locator('.modal-overlay:has-text("Congratulations")');
-    await expect(congratsModal).toBeVisible({ timeout: 3000 });
+    await expect(congratsModal).toBeVisible({ timeout: 5000 });
 
     // Verify congratulations message
     await expect(page.locator('text=You\'ve successfully completed the puzzle!')).toBeVisible();
@@ -105,15 +119,27 @@ test.describe('Puzzle Completion', () => {
         const cellClasses = await cell.getAttribute('class');
         if (cellClasses?.includes('clue')) continue;
 
-        await cell.click();
-        await page.keyboard.press(solution[row][col].toString());
-        await page.waitForTimeout(50);
+        await cell.waitFor({ state: 'visible', timeout: 5000 });
+        await cell.click({ timeout: 15000 });
+        await page.keyboard.press(solution[row][col].toString(), { delay: 100 });
+        await page.waitForTimeout(150);
       }
     }
 
-    // Wait for modal
+    // Wait for completion state to propagate
+    await expect(async () => {
+      const isCompleted = await page.evaluate(() => {
+        const sessionData = localStorage.getItem('sudoku:current-session');
+        if (!sessionData) return false;
+        const parsed = JSON.parse(sessionData);
+        return parsed.data.isCompleted === true;
+      });
+      expect(isCompleted).toBe(true);
+    }).toPass({ timeout: 5000, intervals: [100] });
+
+    // Wait for modal (increased timeout for WebKit)
     const congratsModal = page.locator('.modal-overlay:has-text("Congratulations")');
-    await expect(congratsModal).toBeVisible({ timeout: 3000 });
+    await expect(congratsModal).toBeVisible({ timeout: 5000 });
 
     // Verify time format (should be MM:SS format like "00:05" or "01:23")
     const timeValue = await congratsModal.locator('.stat-item:has(.stat-label:has-text("Time")) .stat-value').textContent();
@@ -138,14 +164,26 @@ test.describe('Puzzle Completion', () => {
         const cellClasses = await cell.getAttribute('class');
         if (cellClasses?.includes('clue')) continue;
 
-        await cell.click();
-        await page.keyboard.press(solution[row][col].toString());
-        await page.waitForTimeout(50);
+        await cell.waitFor({ state: 'visible', timeout: 5000 });
+        await cell.click({ timeout: 15000 });
+        await page.keyboard.press(solution[row][col].toString(), { delay: 100 });
+        await page.waitForTimeout(150);
       }
     }
 
-    // Verify modal appears
-    await page.waitForSelector('.modal-overlay:has-text("Congratulations")', { timeout: 3000 });
+    // Wait for completion state to propagate
+    await expect(async () => {
+      const isCompleted = await page.evaluate(() => {
+        const sessionData = localStorage.getItem('sudoku:current-session');
+        if (!sessionData) return false;
+        const parsed = JSON.parse(sessionData);
+        return parsed.data.isCompleted === true;
+      });
+      expect(isCompleted).toBe(true);
+    }).toPass({ timeout: 5000, intervals: [100] });
+
+    // Verify modal appears (increased timeout for WebKit)
+    await page.waitForSelector('.modal-overlay:has-text("Congratulations")', { timeout: 5000 });
 
     // Wait a bit to ensure modal doesn't disappear/reappear
     await page.waitForTimeout(1000);

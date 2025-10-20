@@ -34,7 +34,12 @@ export default defineConfig({
     },
     {
       name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      use: {
+        ...devices['Desktop Safari'],
+        actionTimeout: 15000, // Increased from 10s for WebKit-specific timing
+        navigationTimeout: 15000, // Increased from 10s for WebKit-specific timing
+      },
+      timeout: 90000, // 90 seconds instead of 60 for WebKit tests
     },
     // Mobile testing
     // {
