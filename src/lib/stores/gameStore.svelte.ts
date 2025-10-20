@@ -276,8 +276,8 @@ class GameStore {
     const now = Date.now();
     this.currentTime = now;
 
-    // Check for auto-pause (1 minute for testing, will be 3 minutes in production)
-    if (shouldAutoPause(this.session, now, 1)) {
+    // Check for auto-pause (3 minutes of inactivity)
+    if (shouldAutoPause(this.session, now, 3)) {
       // Auto-pause using the pauseTimer function
       // Need to revert elapsed time before pausing
       const timeSinceLastActivity = now - this.session.lastActivityAt;

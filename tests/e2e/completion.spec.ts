@@ -31,8 +31,6 @@ test.describe('Puzzle Completion', () => {
       return parsed.data.puzzle.solution;
     });
 
-    console.log('Solution loaded from game session');
-
     // Fill in all empty cells with correct values
     for (let row = 0; row < 9; row++) {
       for (let col = 0; col < 9; col++) {
@@ -55,8 +53,6 @@ test.describe('Puzzle Completion', () => {
         await page.waitForTimeout(50);
       }
     }
-
-    console.log('All cells filled with correct values');
 
     // Wait for congratulations modal to appear (with reasonable timeout)
     const congratsModal = page.locator('.modal-overlay:has-text("Congratulations")');
@@ -88,8 +84,6 @@ test.describe('Puzzle Completion', () => {
     // Verify New Game modal opens with "Start New Game" button (indicating the difficulty selector modal)
     const modalStartButton = page.getByRole('button', { name: /^start new game$/i });
     await expect(modalStartButton).toBeVisible({ timeout: 2000 });
-
-    console.log('Congratulations modal flow completed successfully!');
   });
 
   test('should display correct time in congratulations modal', async ({ page }) => {

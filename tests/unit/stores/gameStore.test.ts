@@ -379,7 +379,7 @@ describe('GameStore', () => {
 
       gameStore.updateTime();
 
-      expect(TimerService.shouldAutoPause).toHaveBeenCalledWith(currentSession, expect.any(Number), 1);
+      expect(TimerService.shouldAutoPause).toHaveBeenCalledWith(currentSession, expect.any(Number), 3);
       // Expects a reverted session (elapsed time adjusted) and current time for pause
       expect(TimerService.pauseTimer).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -412,7 +412,7 @@ describe('GameStore', () => {
 
       gameStore.updateTime();
 
-      expect(TimerService.shouldAutoPause).toHaveBeenCalledWith(currentSession, expect.any(Number), 1);
+      expect(TimerService.shouldAutoPause).toHaveBeenCalledWith(currentSession, expect.any(Number), 3);
       expect(TimerService.updateTimer).toHaveBeenCalledWith(currentSession, expect.any(Number));
       expect(gameStore.session).toStrictEqual(updatedSession);
       expect(gameStore.currentTime).toBeGreaterThan(0);
