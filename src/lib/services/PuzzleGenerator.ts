@@ -161,18 +161,15 @@ export async function generatePuzzle(
    * Falls back to timestamp if invalid to maintain backward compatibility
    * Negative seeds are allowed as they're mathematically valid for seeding
    */
-  let validSeed = seed;
-  if (seed !== undefined) {
-    if (!Number.isFinite(seed) || seed < Number.MIN_SAFE_INTEGER || seed > Number.MAX_SAFE_INTEGER) {
-      // Fall back to timestamp if invalid
-      validSeed = Date.now();
-    }
+  let validSeed: number;
+  if (seed !== undefined && Number.isFinite(seed) && seed >= Number.MIN_SAFE_INTEGER && seed <= Number.MAX_SAFE_INTEGER) {
+    validSeed = seed;
   } else {
     validSeed = Date.now();
   }
 
   // Progressive fallback: Try 100% → 95% → 90% → error
-  const difficultyAttempts = [difficulty];
+  const difficultyAttempts: DifficultyLevel[] = [difficulty];
   if (difficulty === 100) {
     difficultyAttempts.push(95, 90);
   } else if (difficulty >= 95) {
@@ -311,8 +308,10 @@ function removeCells(
   for (const pos of positions) {
     if (currentClueCount <= targetClues) break;
 
-    const currentValue = puzzle[pos.row]![pos.col]!;
-    if (currentValue === 0) continue;
+    const row = puzzle[pos.row];
+    if (!row) continue;
+    const currentValue = row[pos.col];
+    if (currentValue === undefined || currentValue === 0) continue;
 
     setCell(puzzle, pos.row, pos.col, 0);
 
@@ -379,6 +378,125 @@ export function hasUniqueSolution(puzzle: readonly (readonly number[])[]): boole
 }
 
 /**
+ * Helper: Check for contradictions (empty cells without candidates)
+ */
+function hasContradiction(board: number[][], candidatesMap: Map<string, Set<number>>): boolean {
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      if (board[row]?.[col] === 0 && !candidatesMap.has(`${row},${col}`)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Helper: Apply naked singles technique
+ */
+function applyNakedSingles(board: number[][], candidatesMap: Map<string, Set<number>>): boolean {
+  let progress = false;
+  for (const [key, candidates] of candidatesMap) {
+    if (candidates.size === 1) {
+      const [row, col] = parseKey(key);
+      const value = candidates.values().next().value as number | undefined;
+      if (value !== undefined) {
+        setCell(board, row, col, value);
+        progress = true;
+      }
+    }
+  }
+  return progress;
+}
+
+/**
+ * Helper: Apply hidden singles technique for a region
+ */
+function applyHiddenSingles(
+  board: number[][],
+  candidatesMap: Map<string, Set<number>>,
+  getCells: () => Array<[number, number]>
+): boolean {
+  const candidatePositions = new Map<number, Array<[number, number]>>();
+
+  for (const [row, col] of getCells()) {
+    if (board[row]?.[col] !== 0) continue;
+    const key = `${row},${col}`;
+    const candidates = candidatesMap.get(key);
+    if (!candidates) continue;
+
+    for (const candidate of candidates) {
+      const positions = candidatePositions.get(candidate) ?? [];
+      positions.push([row, col]);
+      candidatePositions.set(candidate, positions);
+    }
+  }
+
+  let progress = false;
+  for (const [candidate, positions] of candidatePositions) {
+    if (positions.length === 1) {
+      const pos = positions[0];
+      if (pos) {
+        const [r, c] = pos;
+        setCell(board, r, c, candidate);
+        progress = true;
+      }
+    }
+  }
+  return progress;
+}
+
+/**
+ * Helper: Apply hidden singles for all regions (rows, columns, boxes)
+ */
+function applyAllHiddenSingles(board: number[][], candidatesMap: Map<string, Set<number>>): boolean {
+  let progress = false;
+
+  // Rows
+  for (let row = 0; row < 9; row++) {
+    if (applyHiddenSingles(board, candidatesMap, () => {
+      const cells: Array<[number, number]> = [];
+      for (let col = 0; col < 9; col++) cells.push([row, col]);
+      return cells;
+    })) {
+      progress = true;
+    }
+  }
+  if (progress) return true;
+
+  // Columns
+  for (let col = 0; col < 9; col++) {
+    if (applyHiddenSingles(board, candidatesMap, () => {
+      const cells: Array<[number, number]> = [];
+      for (let row = 0; row < 9; row++) cells.push([row, col]);
+      return cells;
+    })) {
+      progress = true;
+    }
+  }
+  if (progress) return true;
+
+  // Boxes
+  for (let boxRow = 0; boxRow < 3; boxRow++) {
+    for (let boxCol = 0; boxCol < 3; boxCol++) {
+      if (applyHiddenSingles(board, candidatesMap, () => {
+        const cells: Array<[number, number]> = [];
+        for (let r = boxRow * 3; r < boxRow * 3 + 3; r++) {
+          for (let c = boxCol * 3; c < boxCol * 3 + 3; c++) {
+            cells.push([r, c]);
+          }
+        }
+        return cells;
+      })) {
+        progress = true;
+      }
+    }
+  }
+
+  return progress;
+}
+
+/**
  * Checks whether a puzzle can be solved using deterministic logic (no guessing)
  *
  * Supported strategies:
@@ -395,122 +513,23 @@ export function isLogicallySolvable(puzzle: readonly (readonly number[])[]): boo
     }
 
     const candidatesMap = generateAllCandidates(board);
-    let progress = false;
 
-    // Detect contradictions (empty cell without candidates)
-    for (let row = 0; row < 9; row++) {
-      for (let col = 0; col < 9; col++) {
-        if (board[row]?.[col] === 0 && !candidatesMap.has(`${row},${col}`)) {
-          return false;
-        }
-      }
+    // Check for contradictions
+    if (hasContradiction(board, candidatesMap)) {
+      return false;
     }
 
-    // Naked singles
-    for (const [key, candidates] of candidatesMap) {
-      if (candidates.size === 1) {
-        const [row, col] = parseKey(key);
-        const value = candidates.values().next().value;
-        setCell(board, row, col, value);
-        progress = true;
-      }
-    }
-    if (progress) {
+    // Try naked singles
+    if (applyNakedSingles(board, candidatesMap)) {
       continue;
     }
 
-    // Hidden singles - rows
-    for (let row = 0; row < 9; row++) {
-      const candidatePositions = new Map<number, Array<[number, number]>>();
-
-      for (let col = 0; col < 9; col++) {
-        if (board[row]?.[col] !== 0) continue;
-        const key = `${row},${col}`;
-        const candidates = candidatesMap.get(key);
-        if (!candidates) continue;
-
-        for (const candidate of candidates) {
-          const positions = candidatePositions.get(candidate) ?? [];
-          positions.push([row, col]);
-          candidatePositions.set(candidate, positions);
-        }
-      }
-
-      for (const [candidate, positions] of candidatePositions) {
-        if (positions.length === 1) {
-          const [r, c] = positions[0]!;
-          setCell(board, r, c, candidate);
-          progress = true;
-        }
-      }
-    }
-    if (progress) {
+    // Try hidden singles
+    if (applyAllHiddenSingles(board, candidatesMap)) {
       continue;
     }
 
-    // Hidden singles - columns
-    for (let col = 0; col < 9; col++) {
-      const candidatePositions = new Map<number, Array<[number, number]>>();
-
-      for (let row = 0; row < 9; row++) {
-        if (board[row]?.[col] !== 0) continue;
-        const key = `${row},${col}`;
-        const candidates = candidatesMap.get(key);
-        if (!candidates) continue;
-
-        for (const candidate of candidates) {
-          const positions = candidatePositions.get(candidate) ?? [];
-          positions.push([row, col]);
-          candidatePositions.set(candidate, positions);
-        }
-      }
-
-      for (const [candidate, positions] of candidatePositions) {
-        if (positions.length === 1) {
-          const [r, c] = positions[0]!;
-          setCell(board, r, c, candidate);
-          progress = true;
-        }
-      }
-    }
-    if (progress) {
-      continue;
-    }
-
-    // Hidden singles - boxes
-    for (let boxRow = 0; boxRow < 3; boxRow++) {
-      for (let boxCol = 0; boxCol < 3; boxCol++) {
-        const candidatePositions = new Map<number, Array<[number, number]>>();
-
-        for (let r = boxRow * 3; r < boxRow * 3 + 3; r++) {
-          for (let c = boxCol * 3; c < boxCol * 3 + 3; c++) {
-            if (board[r]?.[c] !== 0) continue;
-            const key = `${r},${c}`;
-            const candidates = candidatesMap.get(key);
-            if (!candidates) continue;
-
-            for (const candidate of candidates) {
-              const positions = candidatePositions.get(candidate) ?? [];
-              positions.push([r, c]);
-              candidatePositions.set(candidate, positions);
-            }
-          }
-        }
-
-        for (const [candidate, positions] of candidatePositions) {
-          if (positions.length === 1) {
-            const [r, c] = positions[0]!;
-            setCell(board, r, c, candidate);
-            progress = true;
-          }
-        }
-      }
-    }
-    if (progress) {
-      continue;
-    }
-
-    // No logical progress possible without guessing
+    // No progress made
     return false;
   }
 
