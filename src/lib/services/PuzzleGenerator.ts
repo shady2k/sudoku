@@ -13,7 +13,7 @@
 import type { Puzzle, Result, DifficultyLevel } from '../models/types';
 import { success, failure, isDifficultyLevel } from '../models/types';
 import { SeededRandom } from '../utils/seededRandom';
-import { difficultyToClues } from '../utils/validation';
+import { difficultyToClues, generateAllCandidates } from '../utils/validation';
 import { getCell, setCell } from '../utils/gridHelpers';
 
 /**
@@ -136,7 +136,40 @@ export async function generatePuzzle(
     return failure('INVALID_DIFFICULTY', `Invalid difficulty: ${difficulty}%. Must be 0-100.`);
   }
 
-  const actualSeed = seed ?? Date.now();
+  /**
+   * Input Validation
+   * Validates difficulty parameter to ensure it's a valid integer between 0-100
+   * and sanitizes the seed to prevent invalid or dangerous values
+   */
+
+  // Validate difficulty parameter
+  if (!Number.isFinite(difficulty)) {
+    return failure('INVALID_DIFFICULTY', `Difficulty must be a finite number, received: ${difficulty}`);
+  }
+
+  if (difficulty < 0 || difficulty > 100) {
+    return failure('INVALID_DIFFICULTY', `Difficulty must be between 0 and 100, received: ${difficulty}`);
+  }
+
+  if (!Number.isInteger(difficulty)) {
+    return failure('INVALID_DIFFICULTY', `Difficulty must be an integer, received: ${difficulty}`);
+  }
+
+  /**
+   * Seed Validation and Sanitization
+   * Ensures seed is a valid finite number within safe integer range
+   * Falls back to timestamp if invalid to maintain backward compatibility
+   * Negative seeds are allowed as they're mathematically valid for seeding
+   */
+  let validSeed = seed;
+  if (seed !== undefined) {
+    if (!Number.isFinite(seed) || seed < Number.MIN_SAFE_INTEGER || seed > Number.MAX_SAFE_INTEGER) {
+      // Fall back to timestamp if invalid
+      validSeed = Date.now();
+    }
+  } else {
+    validSeed = Date.now();
+  }
 
   // Progressive fallback: Try 100% → 95% → 90% → error
   const difficultyAttempts = [difficulty];
@@ -147,17 +180,17 @@ export async function generatePuzzle(
   }
 
   for (const attemptDifficulty of difficultyAttempts) {
-    const result = await generatePuzzleWithTimeout(attemptDifficulty, actualSeed, 2000);
+    const result = await generatePuzzleWithTimeout(attemptDifficulty, validSeed, 2000);
 
     if (result.success) {
       return result;
     }
   }
 
-  // All attempts failed
+  // All attempts failed - provide helpful error message
   return failure(
     'PUZZLE_GENERATION_FAILED',
-    `Failed to generate valid puzzle with unique solution within time limit`
+    `Failed to generate valid puzzle at difficulty ${difficulty}% after ${difficultyAttempts.length} difficulty level attempts (tried: ${difficultyAttempts.join('%, ')}%). Consider using difficulty ${difficultyAttempts[difficultyAttempts.length - 1] ?? difficulty}% for faster generation.`
   );
 }
 
@@ -176,8 +209,15 @@ async function generatePuzzleWithTimeout(
 
   // Time-based circuit breaker: Keep trying until timeout or max attempts
   while (Date.now() - startTime < maxTimeMs && attempt < maxAttempts) {
-    // Use different seed for each attempt to get different puzzles
-    const attemptSeed = seed + attempt;
+    /**
+     * Improved Seed Variation using Linear Congruential Generator (LCG)
+     * Uses LCG constants for better distribution across attempts:
+     * - Multiplier: 1664525 (common LCG constant)
+     * - Increment: 1013904223 * attempt (varies per attempt)
+     * - >>> 0 converts to unsigned 32-bit integer for consistent behavior
+     */
+    // Use linear congruential generator (LCG) constants for better distribution
+    const attemptSeed = (seed * 1664525 + attempt * 1013904223) >>> 0;
     const rng = new SeededRandom(attemptSeed);
 
     // Step 1: Generate complete grid
@@ -206,12 +246,10 @@ async function generatePuzzleWithTimeout(
 
     // Step 4: Validate uniqueness with timeout protection
     const uniquenessStartTime = Date.now();
-    if (Date.now() - uniquenessStartTime > 500) { // 500ms max for uniqueness check
-      attempt++;
-      continue;
-    }
+    const uniqueSolution = hasUniqueSolution(puzzle);
+    const uniquenessDuration = Date.now() - uniquenessStartTime;
 
-    if (!hasUniqueSolution(puzzle)) {
+    if (uniquenessDuration > 500 || !uniqueSolution) {
       attempt++;
       continue; // Try next attempt
     }
@@ -268,15 +306,26 @@ function removeCells(
   rng.shuffle(positions);
 
   // Remove cells until we reach target clue count
-  const targetRemovals = 81 - targetClues;
-  let removed = 0;
+  let currentClueCount = 81;
 
   for (const pos of positions) {
-    if (removed >= targetRemovals) break;
+    if (currentClueCount <= targetClues) break;
 
-    // Remove cell
+    const currentValue = puzzle[pos.row]![pos.col]!;
+    if (currentValue === 0) continue;
+
     setCell(puzzle, pos.row, pos.col, 0);
-    removed++;
+
+    const unique = hasUniqueSolution(puzzle);
+    const logical = unique && isLogicallySolvable(puzzle);
+
+    if (unique && logical) {
+      currentClueCount--;
+      continue;
+    }
+
+    // Revert removal if constraints are not met
+    setCell(puzzle, pos.row, pos.col, currentValue);
   }
 
   return puzzle;
@@ -296,14 +345,14 @@ export function hasUniqueSolution(puzzle: readonly (readonly number[])[]): boole
   let solutionCount = 0;
 
   function solve(): boolean {
-    // Early exit if we already found more than one solution
-    if (solutionCount > 1) return false;
+    if (solutionCount > 1) {
+      return true; // Early termination signal
+    }
 
     const empty = findEmptyCell(grid);
     if (!empty) {
-      // Found a complete solution
       solutionCount++;
-      return solutionCount === 1; // Continue searching if this is the first solution
+      return solutionCount > 1;
     }
 
     const { row, col } = empty;
@@ -312,13 +361,13 @@ export function hasUniqueSolution(puzzle: readonly (readonly number[])[]): boole
       if (isValidPlacement(grid, row, col, num)) {
         setCell(grid, row, col, num);
 
-        if (solve()) {
-          // Found a solution, continue searching to see if there are others
-          setCell(grid, row, col, 0); // Backtrack
-          return true;
-        }
+        const shouldTerminate = solve();
 
         setCell(grid, row, col, 0); // Backtrack
+
+        if (shouldTerminate) {
+          return true;
+        }
       }
     }
 
@@ -327,4 +376,154 @@ export function hasUniqueSolution(puzzle: readonly (readonly number[])[]): boole
 
   solve();
   return solutionCount === 1;
+}
+
+/**
+ * Checks whether a puzzle can be solved using deterministic logic (no guessing)
+ *
+ * Supported strategies:
+ * - Naked singles
+ * - Hidden singles (row, column, 3x3 box)
+ */
+export function isLogicallySolvable(puzzle: readonly (readonly number[])[]): boolean {
+  const board = puzzle.map(row => [...row]);
+
+  const maxIterations = 81;
+  for (let iteration = 0; iteration < maxIterations; iteration++) {
+    if (isBoardComplete(board)) {
+      return true;
+    }
+
+    const candidatesMap = generateAllCandidates(board);
+    let progress = false;
+
+    // Detect contradictions (empty cell without candidates)
+    for (let row = 0; row < 9; row++) {
+      for (let col = 0; col < 9; col++) {
+        if (board[row]?.[col] === 0 && !candidatesMap.has(`${row},${col}`)) {
+          return false;
+        }
+      }
+    }
+
+    // Naked singles
+    for (const [key, candidates] of candidatesMap) {
+      if (candidates.size === 1) {
+        const [row, col] = parseKey(key);
+        const value = candidates.values().next().value;
+        setCell(board, row, col, value);
+        progress = true;
+      }
+    }
+    if (progress) {
+      continue;
+    }
+
+    // Hidden singles - rows
+    for (let row = 0; row < 9; row++) {
+      const candidatePositions = new Map<number, Array<[number, number]>>();
+
+      for (let col = 0; col < 9; col++) {
+        if (board[row]?.[col] !== 0) continue;
+        const key = `${row},${col}`;
+        const candidates = candidatesMap.get(key);
+        if (!candidates) continue;
+
+        for (const candidate of candidates) {
+          const positions = candidatePositions.get(candidate) ?? [];
+          positions.push([row, col]);
+          candidatePositions.set(candidate, positions);
+        }
+      }
+
+      for (const [candidate, positions] of candidatePositions) {
+        if (positions.length === 1) {
+          const [r, c] = positions[0]!;
+          setCell(board, r, c, candidate);
+          progress = true;
+        }
+      }
+    }
+    if (progress) {
+      continue;
+    }
+
+    // Hidden singles - columns
+    for (let col = 0; col < 9; col++) {
+      const candidatePositions = new Map<number, Array<[number, number]>>();
+
+      for (let row = 0; row < 9; row++) {
+        if (board[row]?.[col] !== 0) continue;
+        const key = `${row},${col}`;
+        const candidates = candidatesMap.get(key);
+        if (!candidates) continue;
+
+        for (const candidate of candidates) {
+          const positions = candidatePositions.get(candidate) ?? [];
+          positions.push([row, col]);
+          candidatePositions.set(candidate, positions);
+        }
+      }
+
+      for (const [candidate, positions] of candidatePositions) {
+        if (positions.length === 1) {
+          const [r, c] = positions[0]!;
+          setCell(board, r, c, candidate);
+          progress = true;
+        }
+      }
+    }
+    if (progress) {
+      continue;
+    }
+
+    // Hidden singles - boxes
+    for (let boxRow = 0; boxRow < 3; boxRow++) {
+      for (let boxCol = 0; boxCol < 3; boxCol++) {
+        const candidatePositions = new Map<number, Array<[number, number]>>();
+
+        for (let r = boxRow * 3; r < boxRow * 3 + 3; r++) {
+          for (let c = boxCol * 3; c < boxCol * 3 + 3; c++) {
+            if (board[r]?.[c] !== 0) continue;
+            const key = `${r},${c}`;
+            const candidates = candidatesMap.get(key);
+            if (!candidates) continue;
+
+            for (const candidate of candidates) {
+              const positions = candidatePositions.get(candidate) ?? [];
+              positions.push([r, c]);
+              candidatePositions.set(candidate, positions);
+            }
+          }
+        }
+
+        for (const [candidate, positions] of candidatePositions) {
+          if (positions.length === 1) {
+            const [r, c] = positions[0]!;
+            setCell(board, r, c, candidate);
+            progress = true;
+          }
+        }
+      }
+    }
+    if (progress) {
+      continue;
+    }
+
+    // No logical progress possible without guessing
+    return false;
+  }
+
+  return isBoardComplete(board);
+}
+
+function parseKey(key: string): [number, number] {
+  const [rowString, colString] = key.split(',');
+  const row = Number.parseInt(rowString ?? '', 10);
+  const col = Number.parseInt(colString ?? '', 10);
+  return [row, col];
+}
+
+function isBoardComplete(board: readonly (readonly number[])[]): boolean {
+  return board.every(row => row.every(value => value !== 0));
 }
