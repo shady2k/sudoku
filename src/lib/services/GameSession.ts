@@ -211,6 +211,20 @@ function updateCellValue(
 ): Result<{ isValid: boolean }> {
   const { row, col } = position;
 
+  // Validate move: check both Sudoku rules AND solution correctness
+  let isValid = true;
+  if (value !== 0) {
+    // First check if it violates Sudoku rules (duplicates)
+    const followsSudokuRules = isValidMove(session.board, position, value as SudokuNumber);
+
+    // Then check if it matches the solution
+    const solutionValue = session.puzzle.solution[row]?.[col];
+    const matchesSolution = value === solutionValue;
+
+    // Move is valid only if it follows rules AND matches solution
+    isValid = followsSudokuRules && matchesSolution;
+  }
+
   setCell(session.board, row, col, value);
   const cellRow = session.cells[row];
   if (!cellRow) {
@@ -224,8 +238,7 @@ function updateCellValue(
 
   cell.value = value;
 
-  // Validate and mark mistakes
-  const isValid = value !== 0 ? isValidMove(session.board, position, value as SudokuNumber) : true;
+  // Mark mistakes
   const wasMistake = cell.isMistake;
   cell.isMistake = value !== 0 ? !isValid : false;
 
@@ -463,10 +476,15 @@ export function setManualCandidates(
     return failure('INVALID_MOVE', 'Cannot set candidates on clue or filled cells');
   }
 
-  // Validate candidates (must be numbers 1-9)
+  // Validate candidates (must be numbers 1-9 and not conflict with board state)
   for (const candidate of candidates) {
     if (candidate < 1 || candidate > 9) {
       return failure('INVALID_CANDIDATES', `Invalid candidate: ${candidate}`);
+    }
+
+    // Check if candidate would be valid according to Sudoku rules
+    if (!isValidMove(session.board, position, candidate)) {
+      return failure('INVALID_CANDIDATES', `Candidate ${candidate} conflicts with existing numbers in row, column, or box`);
     }
   }
 
@@ -632,6 +650,20 @@ function applySetValueAction(session: GameSession, action: SetValueAction): void
   const { row, col } = action.cell;
   const value = action.newValue as CellValue;
 
+  // Validate move: check both Sudoku rules AND solution correctness
+  let isValid = true;
+  if (value !== 0) {
+    // First check if it violates Sudoku rules (duplicates)
+    const followsSudokuRules = isValidMove(session.board, action.cell, value as SudokuNumber);
+
+    // Then check if it matches the solution
+    const solutionValue = session.puzzle.solution[row]?.[col];
+    const matchesSolution = value === solutionValue;
+
+    // Move is valid only if it follows rules AND matches solution
+    isValid = followsSudokuRules && matchesSolution;
+  }
+
   setCell(session.board, row, col, value);
   const cell = session.cells[row]?.[col];
   if (!cell) return;
@@ -643,8 +675,7 @@ function applySetValueAction(session: GameSession, action: SetValueAction): void
     cell.manualCandidates = new Set();
   }
 
-  // Recalculate mistake status
-  const isValid = value !== 0 ? isValidMove(session.board, action.cell, value as SudokuNumber) : true;
+  // Mark mistake status
   cell.isMistake = value !== 0 ? !isValid : false;
 
   // Re-apply automatic candidate elimination (FR-012)

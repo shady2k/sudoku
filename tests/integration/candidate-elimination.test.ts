@@ -89,7 +89,11 @@ describe('Automatic Candidate Elimination (FR-012)', () => {
         return;
       }
 
-      const value = Array.from(cell.manualCandidates)[0] as SudokuNumber;
+      // Use the solution value instead of just any candidate
+      const value = session.puzzle.solution[targetCell.row]?.[targetCell.col] as SudokuNumber;
+      if (!value) {
+        return;
+      }
 
       const eliminated = eliminateCandidatesFromRelatedCells(
         session.board,
