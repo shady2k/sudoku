@@ -144,8 +144,8 @@ export function makeMove(
     return updateResult;
   }
 
-  // Apply candidate elimination for valid moves
-  if (value !== 0 && updateResult.data.isValid) {
+  // Apply candidate elimination for moves that follow Sudoku rules (even if they don't match solution)
+  if (value !== 0 && updateResult.data.followsSudokuRules) {
     applyCandidateElimination(newSession, position, value as SudokuNumber);
   }
 
@@ -208,14 +208,15 @@ function updateCellValue(
   session: GameSession,
   position: CellPosition,
   value: CellValue
-): Result<{ isValid: boolean }> {
+): Result<{ isValid: boolean; followsSudokuRules: boolean }> {
   const { row, col } = position;
 
   // Validate move: check both Sudoku rules AND solution correctness
   let isValid = true;
+  let followsSudokuRules = true;
   if (value !== 0) {
     // First check if it violates Sudoku rules (duplicates)
-    const followsSudokuRules = isValidMove(session.board, position, value as SudokuNumber);
+    followsSudokuRules = isValidMove(session.board, position, value as SudokuNumber);
 
     // Then check if it matches the solution
     const solutionValue = session.puzzle.solution[row]?.[col];
@@ -252,7 +253,7 @@ function updateCellValue(
     cell.manualCandidates = new Set();
   }
 
-  return success({ isValid });
+  return success({ isValid, followsSudokuRules });
 }
 
 /**
@@ -476,15 +477,10 @@ export function setManualCandidates(
     return failure('INVALID_MOVE', 'Cannot set candidates on clue or filled cells');
   }
 
-  // Validate candidates (must be numbers 1-9 and not conflict with board state)
+  // Validate candidates (must be numbers 1-9)
   for (const candidate of candidates) {
     if (candidate < 1 || candidate > 9) {
       return failure('INVALID_CANDIDATES', `Invalid candidate: ${candidate}`);
-    }
-
-    // Check if candidate would be valid according to Sudoku rules
-    if (!isValidMove(session.board, position, candidate)) {
-      return failure('INVALID_CANDIDATES', `Candidate ${candidate} conflicts with existing numbers in row, column, or box`);
     }
   }
 
@@ -652,9 +648,10 @@ function applySetValueAction(session: GameSession, action: SetValueAction): void
 
   // Validate move: check both Sudoku rules AND solution correctness
   let isValid = true;
+  let followsSudokuRules = true;
   if (value !== 0) {
     // First check if it violates Sudoku rules (duplicates)
-    const followsSudokuRules = isValidMove(session.board, action.cell, value as SudokuNumber);
+    followsSudokuRules = isValidMove(session.board, action.cell, value as SudokuNumber);
 
     // Then check if it matches the solution
     const solutionValue = session.puzzle.solution[row]?.[col];
@@ -678,8 +675,8 @@ function applySetValueAction(session: GameSession, action: SetValueAction): void
   // Mark mistake status
   cell.isMistake = value !== 0 ? !isValid : false;
 
-  // Re-apply automatic candidate elimination (FR-012)
-  if (value !== 0 && isValid) {
+  // Re-apply automatic candidate elimination (FR-012) for moves that follow Sudoku rules
+  if (value !== 0 && followsSudokuRules) {
     applyCandidateElimination(session, action.cell, value as SudokuNumber);
   }
 }
