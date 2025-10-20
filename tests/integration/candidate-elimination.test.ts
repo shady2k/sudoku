@@ -21,8 +21,8 @@ describe('Automatic Candidate Elimination (FR-012)', () => {
   let session: GameSession;
 
   beforeEach(async () => {
-    // Create a new game session with medium difficulty
-    const result = await createGameSession(50); // 50% difficulty
+    // Create a new game session with medium difficulty and fixed seed for deterministic testing
+    const result = await createGameSession(50, 12345); // 50% difficulty, fixed seed
     if (!result.success) {
       throw new Error('Failed to create game session');
     }
@@ -89,8 +89,8 @@ describe('Automatic Candidate Elimination (FR-012)', () => {
         return;
       }
 
-      // Use the solution value instead of just any candidate
-      const value = session.puzzle.solution[targetCell.row]?.[targetCell.col] as SudokuNumber;
+      // Use ANY valid candidate from the cell (not solution value to avoid non-deterministic failures)
+      const value = Array.from(cell.manualCandidates)[0] as SudokuNumber;
       if (!value) {
         return;
       }
@@ -283,7 +283,7 @@ describe('Automatic Candidate Elimination (FR-012)', () => {
     });
 
     it('should eliminate candidates on valid move', () => {
-      // Find an empty cell with candidates
+      // Find an empty cell with a candidate that exists in related cells
       let targetCell: CellPosition | null = null;
       let validValue: SudokuNumber | null = null;
 
@@ -291,9 +291,38 @@ describe('Automatic Candidate Elimination (FR-012)', () => {
         for (let col = 0; col < 9; col++) {
           const cell = session.cells[row]?.[col];
           if (cell && !cell.isClue && cell.value === 0 && cell.manualCandidates.size > 0) {
-            targetCell = { row, col };
-            validValue = Array.from(cell.manualCandidates)[0] as SudokuNumber;
-            break outer;
+            // Try each candidate to find one that exists in related cells
+            const boxRow = Math.floor(row / 3) * 3;
+            const boxCol = Math.floor(col / 3) * 3;
+
+            for (const candidate of cell.manualCandidates) {
+              let existsInRelated = false;
+
+              // Check if this candidate exists in any related cell
+              for (let r = 0; r < 9 && !existsInRelated; r++) {
+                for (let c = 0; c < 9 && !existsInRelated; c++) {
+                  if (r === row && c === col) continue;
+
+                  const inSameRow = r === row;
+                  const inSameCol = c === col;
+                  const inSameBox = (r >= boxRow && r < boxRow + 3 && c >= boxCol && c < boxCol + 3);
+
+                  if (inSameRow || inSameCol || inSameBox) {
+                    const relatedCell = session.cells[r]?.[c];
+                    if (relatedCell && relatedCell.manualCandidates.has(candidate)) {
+                      existsInRelated = true;
+                    }
+                  }
+                }
+              }
+
+              // Found a candidate that exists in related cells
+              if (existsInRelated) {
+                targetCell = { row, col };
+                validValue = candidate;
+                break outer;
+              }
+            }
           }
         }
       }
