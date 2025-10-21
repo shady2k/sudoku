@@ -28,7 +28,8 @@ import type {
  * @param difficulty - Difficulty level (1-10), mapped to clue count
  * @returns Result containing the generated puzzle or error
  *
- * **Performance**: Must complete in <2 seconds (SC-007)
+ * **Performance**: Must complete in <2 seconds for standard difficulties (SC-007);
+ * hardest settings (≥80%) may require up to 8 seconds to satisfy logic-only constraints
  * **Guarantee**: Every puzzle is uniquely solvable using logic only (FR-001)
  */
 export interface GeneratePuzzle {

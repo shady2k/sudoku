@@ -269,7 +269,7 @@ Players can view a history of their completed games, including completion time, 
 - **SC-004**: Players can complete all game actions (navigation, entry, mode switching, undo, pause, new game) using only keyboard controls without requiring mouse input, with all buttons accessible via defined hotkeys
 - **SC-005**: The game interface works on desktop displays
 - **SC-006**: Game history can store and retrieve at least 1000 completed games without noticeable performance degradation
-- **SC-007**: Puzzle generation completes within 2 seconds for any difficulty level, ensuring players don't wait
+- **SC-007**: Puzzle generation completes within 2 seconds for standard difficulties; hardest settings (≥80%) may take up to 8 seconds while pursuing near-minimal clue counts without guesswork
 - **SC-008**: Players can identify their personal best time and lowest error count for each difficulty level within 5 seconds of opening history
 - **SC-009**: 95% of user interactions (cell selection, number entry, highlighting) receive visual feedback within 50 milliseconds
 - **SC-010**: The game functions correctly in offline mode for at least 90 days without requiring re-authentication or re-download

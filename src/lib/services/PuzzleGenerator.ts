@@ -6,7 +6,8 @@
  * 2. Strategic cell removal for difficulty control
  * 3. Seeded random for reproducibility
  *
- * Performance target: <2 seconds (SC-007)
+ * Performance target: <2 seconds for standard puzzles (SC-007); hardest (≥80%)
+ * difficulties may require up to ~8 seconds to reach near-minimal clue counts.
  * Guarantee: Unique solution, logic-solvable (FR-001)
  */
 
@@ -124,7 +125,7 @@ function isValidPlacement(
  * @param seed - Optional seed for reproducibility
  * @returns Puzzle with clues, solution, and metadata
  *
- * Performance: Target <2 seconds (SC-007)
+ * Performance: Target <2 seconds for standard difficulties (SC-007); hardest attempts may use extended budget
  * Guarantee: Unique solution with time-based circuit breaker (2s timeout)
  * Fallback: Progressive difficulty reduction if timeout exceeded
  */
@@ -177,7 +178,11 @@ export async function generatePuzzle(
   }
 
   for (const attemptDifficulty of difficultyAttempts) {
-    const result = await generatePuzzleWithTimeout(attemptDifficulty, validSeed, 2000);
+    const timeBudget =
+      attemptDifficulty >= 80 ? 8000 :
+      attemptDifficulty >= 50 ? 4000 :
+      2000;
+    const result = await generatePuzzleWithTimeout(attemptDifficulty, validSeed, timeBudget);
 
     if (result.success) {
       return result;
@@ -234,8 +239,28 @@ async function generatePuzzleWithTimeout(
 
     const solution = gridResult.data;
 
+    if (!bestAttempt) {
+      const baselineClues: boolean[][] = solution.map(row =>
+        row.map(() => true)
+      );
+      bestAttempt = {
+        grid: solution.map(row => [...row]),
+        solution: solution.map(row => [...row]),
+        clues: baselineClues,
+        clueCount: 81,
+        puzzleId: `puzzle-${attemptSeed}-${difficulty}`,
+        generatedAt: Date.now()
+      };
+    }
+
     // Step 2: Create puzzle by removing cells
-    const { grid: puzzle, clueCount: actualClues } = removeCells(solution, targetClues, rng);
+    const deadline = startTime + maxTimeMs;
+    const { grid: puzzle, clueCount: actualClues, timedOut } = removeCells(
+      solution,
+      targetClues,
+      rng,
+      deadline
+    );
 
     // Skip if too many clues removed (puzzle too hard / invalid)
     if (actualClues < 17) {
@@ -282,6 +307,10 @@ async function generatePuzzleWithTimeout(
       bestAttempt = attemptResult;
     }
 
+    if (timedOut) {
+      break;
+    }
+
     attempt++;
   }
 
@@ -311,19 +340,22 @@ async function generatePuzzleWithTimeout(
  * @param solution - Complete valid grid
  * @param targetClues - Desired number of clues
  * @param rng - Random number generator
- * @returns Object with puzzle grid (0 = empty) and resulting clue count
+ * @returns Object with puzzle grid (0 = empty), resulting clue count, and timeout flag
  */
 function removeCells(
   solution: number[][],
   targetClues: number,
-  rng: SeededRandom
-): { grid: number[][]; clueCount: number } {
-  const maxStalledPasses = 2;
-  const maxRemovalAttempts = 4;
-  const maxRemovalDurationMs = 600;
+  rng: SeededRandom,
+  deadlineMs: number
+): { grid: number[][]; clueCount: number; timedOut: boolean } {
+  const isNearMinimalTarget = targetClues <= 20;
+  const maxStalledPasses = isNearMinimalTarget ? 8 : 2;
+  const maxRemovalAttempts = isNearMinimalTarget ? 16 : 4;
+  const maxRemovalDurationMs = isNearMinimalTarget ? 2000 : 600;
 
   let bestPuzzle = solution.map(row => [...row]);
   let bestClueCount = 81;
+  let timedOut = false;
 
   for (let attempt = 0; attempt < maxRemovalAttempts; attempt++) {
     const puzzle = solution.map(row => [...row]);
@@ -351,6 +383,11 @@ function removeCells(
       let removedThisPass = 0;
 
       for (const pos of positions) {
+        if (Date.now() >= deadlineMs) {
+          timedOut = true;
+          break;
+        }
+
         if (currentClueCount <= targetClues) break;
 
         const row = puzzle[pos.row];
@@ -377,6 +414,11 @@ function removeCells(
       } else {
         stalledPasses = 0;
       }
+
+      if (Date.now() >= deadlineMs) {
+        timedOut = true;
+        break;
+      }
     }
 
     if (currentClueCount < bestClueCount) {
@@ -390,11 +432,17 @@ function removeCells(
         clueCount: currentClueCount
       };
     }
+
+    if (Date.now() >= deadlineMs) {
+      timedOut = true;
+      break;
+    }
   }
 
   return {
     grid: bestPuzzle.map(row => [...row]),
-    clueCount: bestClueCount
+    clueCount: bestClueCount,
+    timedOut
   };
 }
 

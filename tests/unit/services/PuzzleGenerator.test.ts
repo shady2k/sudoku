@@ -443,7 +443,7 @@ describe('PuzzleGenerator', () => {
         );
 
         expect(clueCount).toBeGreaterThanOrEqual(17);
-        expect(clueCount).toBeLessThanOrEqual(26);
+        expect(clueCount).toBeLessThanOrEqual(24);
       }
     });
   });
