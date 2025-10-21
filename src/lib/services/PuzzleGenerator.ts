@@ -203,6 +203,14 @@ async function generatePuzzleWithTimeout(
   const targetClues = difficultyToClues(difficulty);
   let attempt = 0;
   const maxAttempts = 100; // Prevent infinite loops
+  let bestAttempt: {
+    grid: number[][];
+    solution: number[][];
+    clues: boolean[][];
+    clueCount: number;
+    puzzleId: string;
+    generatedAt: number;
+  } | null = null;
 
   // Time-based circuit breaker: Keep trying until timeout or max attempts
   while (Date.now() - startTime < maxTimeMs && attempt < maxAttempts) {
@@ -227,21 +235,15 @@ async function generatePuzzleWithTimeout(
     const solution = gridResult.data;
 
     // Step 2: Create puzzle by removing cells
-    const puzzle = removeCells(solution, targetClues, rng);
+    const { grid: puzzle, clueCount: actualClues } = removeCells(solution, targetClues, rng);
 
-    // Step 3: Quick validation before expensive uniqueness check
-    const actualClues = puzzle.reduce(
-      (sum, row) => sum + row.filter(val => val !== 0).length,
-      0
-    );
-
-    // Skip if too many clues removed (puzzle too hard)
+    // Skip if too many clues removed (puzzle too hard / invalid)
     if (actualClues < 17) {
       attempt++;
       continue;
     }
 
-    // Step 4: Validate uniqueness with timeout protection
+    // Step 3: Validate uniqueness with timeout protection
     const uniquenessStartTime = Date.now();
     const uniqueSolution = hasUniqueSolution(puzzle);
     const uniquenessDuration = Date.now() - uniquenessStartTime;
@@ -251,18 +253,46 @@ async function generatePuzzleWithTimeout(
       continue; // Try next attempt
     }
 
-    // Step 5: Create clue markers
+    // Step 4: Create clue markers
     const clues: boolean[][] = puzzle.map(row =>
       row.map(val => val !== 0)
     );
 
-    return success({
-      grid: puzzle.map(row => [...row]), // Make readonly
-      solution: solution.map(row => [...row]), // Make readonly
-      clues: clues.map(row => [...row]), // Make readonly
-      difficultyRating: actualClues,
+    const attemptResult = {
+      grid: puzzle.map(row => [...row]),
+      solution: solution.map(row => [...row]),
+      clues: clues.map(row => [...row]),
+      clueCount: actualClues,
       puzzleId: `puzzle-${attemptSeed}-${difficulty}`,
       generatedAt: Date.now()
+    };
+
+    if (actualClues <= targetClues) {
+      return success({
+        grid: attemptResult.grid,
+        solution: attemptResult.solution,
+        clues: attemptResult.clues,
+        difficultyRating: actualClues,
+        puzzleId: attemptResult.puzzleId,
+        generatedAt: attemptResult.generatedAt
+      });
+    }
+
+    if (!bestAttempt || actualClues < bestAttempt.clueCount) {
+      bestAttempt = attemptResult;
+    }
+
+    attempt++;
+  }
+
+  if (bestAttempt) {
+    return success({
+      grid: bestAttempt.grid,
+      solution: bestAttempt.solution,
+      clues: bestAttempt.clues,
+      difficultyRating: bestAttempt.clueCount,
+      puzzleId: bestAttempt.puzzleId,
+      generatedAt: bestAttempt.generatedAt
     });
   }
 
@@ -281,53 +311,91 @@ async function generatePuzzleWithTimeout(
  * @param solution - Complete valid grid
  * @param targetClues - Desired number of clues
  * @param rng - Random number generator
- * @returns Grid with cells removed (0 = empty)
+ * @returns Object with puzzle grid (0 = empty) and resulting clue count
  */
 function removeCells(
   solution: number[][],
   targetClues: number,
   rng: SeededRandom
-): number[][] {
-  // Create copy of solution
-  const puzzle = solution.map(row => [...row]);
+): { grid: number[][]; clueCount: number } {
+  const maxStalledPasses = 2;
+  const maxRemovalAttempts = 4;
+  const maxRemovalDurationMs = 600;
 
-  // Create list of all positions
-  const positions: Array<{ row: number; col: number }> = [];
-  for (let row = 0; row < 9; row++) {
-    for (let col = 0; col < 9; col++) {
-      positions.push({ row, col });
+  let bestPuzzle = solution.map(row => [...row]);
+  let bestClueCount = 81;
+
+  for (let attempt = 0; attempt < maxRemovalAttempts; attempt++) {
+    const puzzle = solution.map(row => [...row]);
+    let currentClueCount = 81;
+    let stalledPasses = 0;
+    const attemptStart = Date.now();
+
+    // Continue removing until we hit the target clue count or stall repeatedly
+    while (
+      currentClueCount > targetClues &&
+      stalledPasses < maxStalledPasses &&
+      Date.now() - attemptStart < maxRemovalDurationMs
+    ) {
+      const positions: Array<{ row: number; col: number }> = [];
+      for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+          if (puzzle[row]?.[col]) {
+            positions.push({ row, col });
+          }
+        }
+      }
+
+      rng.shuffle(positions);
+
+      let removedThisPass = 0;
+
+      for (const pos of positions) {
+        if (currentClueCount <= targetClues) break;
+
+        const row = puzzle[pos.row];
+        if (!row) continue;
+        const currentValue = row[pos.col];
+        if (currentValue === undefined || currentValue === 0) continue;
+
+        setCell(puzzle, pos.row, pos.col, 0);
+
+        const unique = hasUniqueSolution(puzzle);
+        const logical = unique && isLogicallySolvable(puzzle);
+
+        if (unique && logical) {
+          currentClueCount--;
+          removedThisPass++;
+        } else {
+          // Revert removal if constraints are not met
+          setCell(puzzle, pos.row, pos.col, currentValue);
+        }
+      }
+
+      if (removedThisPass === 0) {
+        stalledPasses++;
+      } else {
+        stalledPasses = 0;
+      }
+    }
+
+    if (currentClueCount < bestClueCount) {
+      bestClueCount = currentClueCount;
+      bestPuzzle = puzzle.map(row => [...row]);
+    }
+
+    if (currentClueCount <= targetClues) {
+      return {
+        grid: puzzle.map(row => [...row]),
+        clueCount: currentClueCount
+      };
     }
   }
 
-  // Shuffle positions for random removal
-  rng.shuffle(positions);
-
-  // Remove cells until we reach target clue count
-  let currentClueCount = 81;
-
-  for (const pos of positions) {
-    if (currentClueCount <= targetClues) break;
-
-    const row = puzzle[pos.row];
-    if (!row) continue;
-    const currentValue = row[pos.col];
-    if (currentValue === undefined || currentValue === 0) continue;
-
-    setCell(puzzle, pos.row, pos.col, 0);
-
-    const unique = hasUniqueSolution(puzzle);
-    const logical = unique && isLogicallySolvable(puzzle);
-
-    if (unique && logical) {
-      currentClueCount--;
-      continue;
-    }
-
-    // Revert removal if constraints are not met
-    setCell(puzzle, pos.row, pos.col, currentValue);
-  }
-
-  return puzzle;
+  return {
+    grid: bestPuzzle.map(row => [...row]),
+    clueCount: bestClueCount
+  };
 }
 
 /**
@@ -378,31 +446,14 @@ export function hasUniqueSolution(puzzle: readonly (readonly number[])[]): boole
 }
 
 /**
- * Helper: Check for contradictions (empty cells without candidates)
- */
-function hasContradiction(board: number[][], candidatesMap: Map<string, Set<number>>): boolean {
-  for (let row = 0; row < 9; row++) {
-    for (let col = 0; col < 9; col++) {
-      if (board[row]?.[col] === 0 && !candidatesMap.has(`${row},${col}`)) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-/**
  * Checks whether a puzzle can be solved using deterministic logic (no guessing)
  *
- * Currently limited to contradiction detection and duplicate pair rectangle detection.
+ * Currently limited to detecting forbidden rectangle patterns where four cells
+ * share the same candidate pair, which would force guesswork.
  */
 export function isLogicallySolvable(puzzle: readonly (readonly number[])[]): boolean {
   const board = puzzle.map(row => [...row]);
   const candidatesMap = generateAllCandidates(board);
-
-  if (hasContradiction(board, candidatesMap)) {
-    return false;
-  }
 
   if (hasDuplicatePairRectangle(candidatesMap)) {
     return false;

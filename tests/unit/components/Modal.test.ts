@@ -40,8 +40,8 @@ describe('Modal Component', () => {
     expect(slider).toHaveValue('50');
 
     // Check labels
-    expect(screen.getByText('Hardest (0%)')).toBeInTheDocument();
-    expect(screen.getByText('Easiest (100%)')).toBeInTheDocument();
+    expect(screen.getByText('Easiest (0%)')).toBeInTheDocument();
+    expect(screen.getByText('Hardest (100%)')).toBeInTheDocument();
 
     // Check buttons
     expect(screen.getByRole('button', { name: 'Start New Game' })).toBeInTheDocument();
@@ -221,8 +221,8 @@ describe('Modal Component', () => {
         }
       });
 
-      expect(screen.getByText('Hardest (0%)')).toBeInTheDocument();
-      expect(screen.getByText('Easiest (100%)')).toBeInTheDocument();
+      expect(screen.getByText('Easiest (0%)')).toBeInTheDocument();
+      expect(screen.getByText('Hardest (100%)')).toBeInTheDocument();
       expect(screen.getByText('Difficulty: 50%')).toBeInTheDocument();
     });
   });

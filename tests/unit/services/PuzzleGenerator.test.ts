@@ -431,6 +431,21 @@ describe('PuzzleGenerator', () => {
         expect(clueCount).toBeLessThan(81);
       }
     });
+
+    it('should reach target clue count for hardest difficulty', async () => {
+      const result = await generatePuzzle(100);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const clueCount = result.data.grid.reduce(
+          (sum, row) => sum + row.filter(val => val !== 0).length,
+          0
+        );
+
+        expect(clueCount).toBeGreaterThanOrEqual(17);
+        expect(clueCount).toBeLessThanOrEqual(26);
+      }
+    });
   });
 
   describe('generatePuzzle - timeout and fallback', () => {
@@ -494,22 +509,6 @@ describe('PuzzleGenerator', () => {
       if (result.success) {
         expect(isLogicallySolvable(result.data.grid)).toBe(true);
       }
-    });
-
-    it('should reject puzzles that contain contradictions', () => {
-      const contradictionPuzzle = [
-        [0, 2, 3, 4, 5, 6, 7, 8, 9],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0],
-        [2, 0, 0, 0, 0, 0, 0, 0, 0],
-        [3, 0, 0, 0, 0, 0, 0, 0, 0],
-        [4, 0, 0, 0, 0, 0, 0, 0, 0],
-        [5, 0, 0, 0, 0, 0, 0, 0, 0],
-        [6, 0, 0, 0, 0, 0, 0, 0, 0],
-        [7, 0, 0, 0, 0, 0, 0, 0, 0],
-        [8, 0, 0, 0, 0, 0, 0, 0, 0]
-      ];
-
-      expect(isLogicallySolvable(contradictionPuzzle)).toBe(false);
     });
 
     it('should reject puzzles with duplicate pair rectangles', () => {

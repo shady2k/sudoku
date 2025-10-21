@@ -81,8 +81,8 @@
           bind:value={selectedDifficulty}
         />
         <div class="difficulty-labels">
-          <span class="label-left">Hardest (0%)</span>
-          <span class="label-right">Easiest (100%)</span>
+          <span class="label-left">Easiest (0%)</span>
+          <span class="label-right">Hardest (100%)</span>
         </div>
       </div>
 
@@ -188,7 +188,7 @@
     width: 100%;
     height: 8px;
     border-radius: 4px;
-    background: linear-gradient(to right, #f44336 0%, #ffeb3b 50%, #4caf50 100%);
+    background: linear-gradient(to right, #4caf50 0%, #ffeb3b 50%, #f44336 100%);
     outline: none;
     -webkit-appearance: none;
   }

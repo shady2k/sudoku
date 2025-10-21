@@ -19,7 +19,7 @@
 - Q: What specific keyboard hotkey should toggle Notes Mode? → A: 'N' key
 - Q: What should happen if puzzle generation fails (e.g., algorithm timeout or unable to create valid puzzle)? → A: Display error message asking user to try again manually
 - Q: Should the game provide an undo function that also reverses candidate/note changes, or only final number entries? → A: Undo reverses both final number entries AND manual candidate/note changes
-- Q: How should the difficulty scale be presented to users (what range/units)? → A: Percentage scale 0-100% (0% = hardest, 100% = easiest)
+- Q: How should the difficulty scale be presented to users (what range/units)? → A: Percentage scale 0-100% (0% = easiest, 100% = hardest)
 - Q: What keyboard hotkeys should be assigned to the main game control buttons (Fill Candidates, Undo, New Game, Pause/Resume, Notes Mode)? → A: C (Fill Candidates), N (Toggle Notes Mode), Z/Ctrl+Z (Undo), Space (Pause/Resume), Ctrl+N (New Game)
 - Q: Where exactly should the pause indicator icon be positioned relative to the timer display? → A: Icon immediately to the left of timer text (e.g., "⏸ 05:23")
 - Q: What specific UI layout constraint is meant by "static layout - we don't move elements"? → A: UI elements maintain fixed positions and sizes regardless of state changes (e.g., buttons don't shift when text changes, timer doesn't resize container)
@@ -144,8 +144,8 @@ Instead of fixed difficulty presets, players can customize their game difficulty
 
 **Acceptance Scenarios**:
 
-1. **Given** the player is on the new game screen, **When** they view difficulty options, **Then** they see a slider for adjusting difficulty level with a percentage scale from 0% (hardest) to 100% (easiest)
-2. **Given** the player adjusts the difficulty slider, **When** they start a new game, **Then** the puzzle generated has a number of pre-filled clues corresponding to the selected percentage (higher percentage = more clues = easier)
+1. **Given** the player is on the new game screen, **When** they view difficulty options, **Then** they see a slider for adjusting difficulty level with a percentage scale from 0% (easiest) to 100% (hardest)
+2. **Given** the player adjusts the difficulty slider, **When** they start a new game, **Then** the puzzle generated has a number of pre-filled clues corresponding to the selected percentage (higher percentage = fewer clues = harder)
 3. **Given** the player has started a new game at a specific difficulty level, **When** they later open the New Game modal (via Ctrl+N or New Game button), **Then** the difficulty slider is pre-populated with the last used difficulty level
 4. **Given** the player opens the app for the first time (or after clearing browser data), **When** the New Game modal appears, **Then** the difficulty slider defaults to 50% (medium difficulty)
 5. **Given** the player has played games at different difficulties, **When** they view their game history, **Then** each game shows the difficulty percentage it was played at for accurate comparison
@@ -220,7 +220,7 @@ Players can view a history of their completed games, including completion time, 
 
 ### Functional Requirements
 
-- **FR-001**: System MUST generate valid Sudoku puzzles with configurable difficulty levels based on user selection, where difficulty is controlled by the number of pre-filled clues (more clues = easier), and every puzzle MUST be solvable using logic without guessing; if generation fails, system MUST display an error message with a "Try Again" button for manual retry
+- **FR-001**: System MUST generate valid Sudoku puzzles with configurable difficulty levels based on user selection, where difficulty is controlled by the number of pre-filled clues (fewer clues = harder), and every puzzle MUST be solvable using logic without guessing; if generation fails, system MUST display an error message with a "Try Again" button for manual retry
 - **FR-002**: System MUST store all game state (current puzzle, progress, timer, errors) in browser local storage after every user action
 - **FR-003**: System MUST automatically load and display the most recent saved game immediately when the application loads ONLY if the saved game is in progress (not completed); if saved game is completed, system MUST show the New Game modal instead
 - **FR-004**: System MUST display a New Game modal dialog when: (a) no saved game exists on initial load, OR (b) saved game is completed, OR (c) player explicitly triggers new game via Ctrl+N or New Game button; modal contains difficulty slider and "Start New Game" button; "Cancel" button is included ONLY when an active game exists (to prevent accidental loss), not shown when no game to return to; Escape key closes modal (same behavior as "Cancel" button when present)
@@ -241,7 +241,7 @@ Players can view a history of their completed games, including completion time, 
 - **FR-018**: System MUST auto-resume the timer when the user interacts with the game after an idle pause
 - **FR-019**: System MUST persist game state when the browser is closed and restore it when reopened
 - **FR-020**: System MUST provide a modern user interface with static layout where UI elements maintain fixed positions and sizes regardless of state changes (no layout shifts when content updates); the layout MUST position the Sudoku grid on the left with the Notes Mode toggle and number pad to its right; all interactive buttons MUST display their keyboard shortcut hints in labels or tooltips (e.g., "NOTES MODE (N)", "Fill Candidates (C)", "Undo (Z)")
-- **FR-021**: System MUST allow players to customize difficulty using a percentage scale (0-100%, where 0% is hardest and 100% is easiest) that adjusts the number of pre-filled clues rather than fixed presets; the system MUST persist the selected difficulty level to user preferences after each new game and automatically pre-populate the difficulty slider with the last used value when the New Game modal is opened
+- **FR-021**: System MUST allow players to customize difficulty using a percentage scale (0-100%, where 0% is easiest and 100% is hardest) that adjusts the number of pre-filled clues rather than fixed presets; the system MUST persist the selected difficulty level to user preferences after each new game and automatically pre-populate the difficulty slider with the last used value when the New Game modal is opened
 - **FR-022**: System MUST provide an undo function (via button and Z/Ctrl+Z keys) to revert the last action, including both final number entries and manual candidate/note changes (preserving up to 50 steps of history); when undoing a valid number entry that triggered automatic candidate elimination (FR-012), the system MUST restore all candidates that were automatically eliminated to their exact previous state (full state restoration)
 - **FR-023**: System MUST pause the timer when the page loses focus and keep it paused until the user explicitly interacts with the game (does not auto-resume on focus)
 
