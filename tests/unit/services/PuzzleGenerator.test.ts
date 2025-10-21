@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   generatePuzzle,
   generateCompleteGrid,
-  hasUniqueSolution
+  hasUniqueSolution,
+  measureSolvingComplexity,
+  measureConstraintPropagation
 } from '../../../src/lib/services/PuzzleGenerator';
 import { isValidMove } from '../../../src/lib/utils/validation';
 
@@ -554,7 +556,7 @@ describe('PuzzleGenerator', () => {
     }, 10000);
 
     it('should generate Level 5 (Evil) puzzles with 22-27 clues', async () => {
-      const result = await generatePuzzle(90); // Level 5: 81-100%
+      const result = await generatePuzzle(100); // Level 5: 100% (hardest)
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -565,8 +567,18 @@ describe('PuzzleGenerator', () => {
 
         expect(clueCount).toBeGreaterThanOrEqual(22);
         expect(clueCount).toBeLessThanOrEqual(27);
+
+        // Debug: Analyze the actual difficulty of the generated puzzle
+        const complexity = measureSolvingComplexity(result.data.grid);
+        const propagation = measureConstraintPropagation(result.data.grid);
+        console.log(`100% puzzle - Clues: ${clueCount}`);
+        console.log(`Search complexity: Level ${complexity.complexity} (${complexity.searchAttempts} attempts)`);
+        console.log(`Obvious moves: ${propagation.obviousMoves}, Score: ${propagation.propagationScore}`);
+
+        // The puzzle should actually be hard
+        expect(complexity.complexity).toBeGreaterThanOrEqual(3); // Should be medium or harder
       }
-    }, 30000); // Evil level can take longer with certain random seeds
+    }, 45000); // Increased timeout for complexity analysis
 
     it('should generate puzzles with unique solutions across all levels', async () => {
       const levels = [10, 30, 50, 70, 90];

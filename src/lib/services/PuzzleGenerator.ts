@@ -411,7 +411,219 @@ function solvePuzzleWithTimeout(grid: number[][], timeoutMs: number): boolean {
 }
 
 /**
- * Dig holes strategy with pruning optimization and time budget
+ * Measures puzzle solving complexity by counting search attempts (with limits for performance)
+ * This implements the paper's "enumerating search times" metric
+ */
+function measureSolvingComplexity(grid: readonly (readonly number[])[], maxAttempts: number = 50000): { complexity: number; searchAttempts: number } {
+  const testGrid = grid.map(row => [...row]);
+  let searchAttempts = 0;
+
+  function solve(): boolean {
+    // Early termination for performance
+    if (searchAttempts > maxAttempts) return false;
+
+    const empty = findEmptyCell(testGrid);
+    if (!empty) return true; // Solved
+
+    const { row, col } = empty;
+
+    for (let num = 1; num <= 9; num++) {
+      searchAttempts++; // Count each trial as a search attempt
+
+      if (isValidPlacement(testGrid, row, col, num)) {
+        setCell(testGrid, row, col, num);
+
+        if (solve()) {
+          return true;
+        }
+
+        setCell(testGrid, row, col, 0); // Backtrack
+      }
+    }
+
+    return false;
+  }
+
+  solve();
+
+  // Map to paper's difficulty levels based on search attempts
+  let complexity = 1; // Level 1: < 100 attempts
+  if (searchAttempts >= maxAttempts) {
+    complexity = 5; // Treat maxed out attempts as Level 5 (evil)
+  } else if (searchAttempts >= 10000) {
+    complexity = 4; // Level 4: 10,000-99,999 attempts
+  } else if (searchAttempts >= 1000) {
+    complexity = 3; // Level 3: 1,000-9,999 attempts
+  } else if (searchAttempts >= 100) {
+    complexity = 2; // Level 2: 100-999 attempts
+  }
+
+  return { complexity, searchAttempts };
+}
+
+/**
+ * Analyzes how "constrained" each cell is - cells with fewer valid options are more critical
+ * Optimized version with early termination
+ */
+function analyzeCellConstraints(grid: readonly (readonly number[])[]): Array<{ row: number; col: number; options: number }> {
+  const constraints: Array<{ row: number; col: number; options: number }> = [];
+
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      if (getCell(grid, row, col) === 0) {
+        // Count how many numbers can legally go here - early termination for optimization
+        let options = 0;
+        for (let num = 1; num <= 9; num++) {
+          if (isValidPlacement(grid, row, col, num)) {
+            options++;
+            if (options > 3) break; // We only care about highly constrained cells (1-3 options)
+          }
+        }
+        constraints.push({ row, col, options });
+      }
+    }
+  }
+
+  // Sort by constraints and return only the most constrained cells
+  return constraints
+    .sort((a, b) => a.options - b.options)
+    .filter(cell => cell.options <= 3) // Only keep cells with 1-3 options
+    .slice(0, 20); // Limit to top 20 most constrained cells for performance
+}
+
+/**
+ * Measures constraint propagation difficulty - simplified for performance
+ * Returns a score where higher means more difficult (fewer obvious moves)
+ */
+function measureConstraintPropagation(grid: readonly (readonly number[])[]): { obviousMoves: number; propagationScore: number } {
+  let obviousMoves = 0;
+
+  // Check for naked singles only (most basic technique)
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      if (getCell(grid, row, col) === 0) {
+        let options = 0;
+        let lastOption = 0;
+
+        for (let num = 1; num <= 9; num++) {
+          if (isValidPlacement(grid, row, col, num)) {
+            options++;
+            lastOption = num;
+            if (options > 1) break; // Not a naked single
+          }
+        }
+
+        if (options === 1) {
+          obviousMoves++;
+        }
+      }
+    }
+  }
+
+  // Calculate propagation score - puzzles with fewer obvious moves are harder
+  const totalEmpty = grid.flat().filter(val => val === 0).length;
+  const propagationScore = totalEmpty - obviousMoves; // Higher = harder
+
+  return { obviousMoves, propagationScore };
+}
+
+/**
+ * Finds obvious moves using basic Sudoku techniques (naked singles, hidden singles)
+ */
+function findObviousMoves(grid: readonly (readonly number[])[]): Array<{ row: number; col: number; value: number }> {
+  const moves: Array<{ row: number; col: number; value: number }> = [];
+
+  // Check each empty cell for naked singles (only one possible value)
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      if (getCell(grid, row, col) === 0) {
+        const possibleValues: number[] = [];
+        for (let num = 1; num <= 9; num++) {
+          if (isValidPlacement(grid, row, col, num)) {
+            possibleValues.push(num);
+          }
+        }
+
+        if (possibleValues.length === 1) {
+          moves.push({ row, col, value: possibleValues[0] });
+        }
+      }
+    }
+  }
+
+  // Check for hidden singles in rows, columns, and boxes
+  // This is simplified - full implementation would check each unit systematically
+  for (let unit = 0; unit < 27; unit++) { // 9 rows + 9 cols + 9 boxes
+    const cells = getUnitCells(grid, unit);
+    const hiddenSingles = findHiddenSingles(grid, cells);
+    moves.push(...hiddenSingles);
+  }
+
+  // Remove duplicates
+  const uniqueMoves = moves.filter((move, index, self) =>
+    index === self.findIndex(m => m.row === move.row && m.col === move.col)
+  );
+
+  return uniqueMoves;
+}
+
+/**
+ * Gets cells in a specific unit (row, column, or box)
+ */
+function getUnitCells(grid: readonly (readonly number[])[], unit: number): Array<{ row: number; col: number }> {
+  const cells: Array<{ row: number; col: number }> = [];
+
+  if (unit < 9) {
+    // Row
+    for (let col = 0; col < 9; col++) {
+      cells.push({ row: unit, col });
+    }
+  } else if (unit < 18) {
+    // Column
+    const col = unit - 9;
+    for (let row = 0; row < 9; row++) {
+      cells.push({ row, col });
+    }
+  } else {
+    // Box
+    const box = unit - 18;
+    const boxRow = Math.floor(box / 3) * 3;
+    const boxCol = (box % 3) * 3;
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        cells.push({ row: boxRow + r, col: boxCol + c });
+      }
+    }
+  }
+
+  return cells.filter(cell => getCell(grid, cell.row, cell.col) === 0);
+}
+
+/**
+ * Finds hidden singles in a unit (numbers that can only go in one cell)
+ */
+function findHiddenSingles(grid: readonly (readonly number[])[], cells: Array<{ row: number; col: number }>): Array<{ row: number; col: number; value: number }> {
+  const moves: Array<{ row: number; col: number; value: number }> = [];
+
+  for (let num = 1; num <= 9; num++) {
+    const validCells: Array<{ row: number; col: number }> = [];
+
+    for (const cell of cells) {
+      if (isValidPlacement(grid, cell.row, cell.col, num)) {
+        validCells.push(cell);
+      }
+    }
+
+    if (validCells.length === 1) {
+      moves.push({ row: validCells[0].row, col: validCells[0].col, value: num });
+    }
+  }
+
+  return moves;
+}
+
+/**
+ * Dig holes strategy with complexity analysis and intelligent cell selection
  *
  * @param solution - Complete valid grid
  * @param config - Difficulty configuration
@@ -440,6 +652,14 @@ function digHoles(
   // Target random clue count within range
   const targetGivens = config.minGivens + Math.floor(rng.next() * (config.maxGivens - config.minGivens + 1));
 
+  // Target complexity based on difficulty level
+  const targetComplexity = config.minGivensPerRowCol === 0 ? 5 : // Evil: Level 5 complexity
+                          config.minGivensPerRowCol === 2 ? 4 : // Difficult: Level 4 complexity
+                          config.minGivensPerRowCol === 3 ? 3 : // Medium: Level 3 complexity
+                          config.minGivensPerRowCol === 4 ? 2 : // Easy: Level 2 complexity
+                          1; // Extremely Easy: Level 1 complexity
+
+  // First pass: remove cells to reach target clue count
   for (const pos of sequence) {
     // Check time budget if we have one
     if (actualTimeBudget !== undefined && Date.now() - startTime > actualTimeBudget) {
@@ -455,7 +675,7 @@ function digHoles(
 
     explored.add(key);
 
-    // Check if we've reached target
+    // Check if we've reached target clue count
     let currentGivens = 0;
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
@@ -464,7 +684,7 @@ function digHoles(
     }
 
     if (currentGivens <= targetGivens) {
-      break; // Reached target difficulty
+      break; // Reached target clue count
     }
 
     const originalValue = getCell(puzzle, pos.row, pos.col);
@@ -486,6 +706,37 @@ function digHoles(
       setCell(puzzle, pos.row, pos.col, originalValue);
     }
     // else: successfully removed, keep it at 0
+  }
+
+  // Second pass: strategic removal for harder puzzles (optimized approach)
+  if (targetComplexity >= 4) {
+    // For difficult and evil puzzles, try removing 1-2 additional cells from constrained positions
+    const constraints = analyzeCellConstraints(puzzle);
+
+    // Try only a few of the most constrained cells
+    const maxAttempts = Math.min(targetComplexity === 5 ? 3 : 2, constraints.length);
+    let successfulRemovals = 0;
+
+    for (let i = 0; i < maxAttempts && successfulRemovals < (targetComplexity === 5 ? 2 : 1); i++) {
+      const constraint = constraints[i];
+      if (!constraint) break;
+
+      const { row, col } = constraint;
+      if (getCell(puzzle, row, col) !== 0) {
+        const originalValue = getCell(puzzle, row, col);
+        setCell(puzzle, row, col, 0);
+
+        // Quick check: basic uniqueness (faster for common cases)
+        if (meetsRestrictions(puzzle, config) &&
+            checkUniquenessAfterRemoval(puzzle, row, col, originalValue, startTime, actualTimeBudget)) {
+          successfulRemovals++;
+          // Keep the removal - increases difficulty
+        } else {
+          // Restore - breaks constraints or uniqueness
+          setCell(puzzle, row, col, originalValue);
+        }
+      }
+    }
   }
 
   return puzzle;
@@ -616,3 +867,6 @@ export function hasUniqueSolution(puzzle: readonly (readonly number[])[], timeou
   solve();
   return solutionCount === 1;
 }
+
+// Export helper functions for testing and analysis
+export { measureSolvingComplexity, measureConstraintPropagation, analyzeCellConstraints };
