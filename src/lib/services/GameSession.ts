@@ -23,7 +23,7 @@ import type {
   Action
 } from '../models/types';
 import { success, failure, isSudokuNumber } from '../models/types';
-import { generatePuzzle } from './PuzzleGenerator';
+import { generatePuzzleInWorker } from './PuzzleGeneratorWorker';
 import { isValidMove } from '../utils/validation';
 import { getCell, setCell } from '../utils/gridHelpers';
 import { generateCandidates, eliminateCandidatesFromRelatedCells } from './GameValidator';
@@ -39,8 +39,8 @@ export async function createGameSession(
   difficulty: DifficultyLevel,
   seed?: number
 ): Promise<Result<GameSession>> {
-  // Generate puzzle
-  const puzzleResult = await generatePuzzle(difficulty, seed);
+  // Generate puzzle using Web Worker (non-blocking)
+  const puzzleResult = await generatePuzzleInWorker(difficulty, seed);
   if (!puzzleResult.success) {
     return puzzleResult;
   }

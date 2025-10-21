@@ -83,7 +83,7 @@
   }
 
   async function handleNewGameFromResume(difficulty: DifficultyLevel): Promise<void> {
-    showResumeModal = false;
+    // Don't close modal here - let ResumeModal handle it after showing loading animation
     await gameStore.newGame(difficulty);
   }
 
@@ -92,7 +92,7 @@
   }
 
   async function handleNewGameFromModal(difficulty: DifficultyLevel): Promise<void> {
-    showNewGameModal = false;
+    // Don't close modal here - let ResumeModal handle it after showing loading animation
     await gameStore.newGame(difficulty);
   }
 

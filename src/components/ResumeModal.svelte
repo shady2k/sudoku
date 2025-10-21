@@ -11,6 +11,7 @@
   import { onMount } from 'svelte';
   import type { DifficultyLevel } from '../lib/models/types';
   import { loadPreferences } from '../lib/services/StorageService';
+  import LoadingState from './LoadingState.svelte';
 
   interface Props {
     isOpen: boolean;
@@ -27,6 +28,8 @@
   }: Props = $props();
 
   let showDifficultySelector = $state(false);
+  let showLoadingState = $state(false);
+  let puzzleReady = $state(false);
   let selectedDifficulty: DifficultyLevel = $state(50); // 50% = medium (default)
 
   // Load saved difficulty preference on mount
@@ -54,10 +57,47 @@
     showDifficultySelector = true;
   }
 
-  function handleStartNewGame(): void {
-    onNewGame(selectedDifficulty);
+  async function handleStartNewGame(): Promise<void> {
+    // Show loading state first
+    showLoadingState = true;
+    puzzleReady = false;
+
+    // Give browser time to render the animation by yielding to event loop
+    // This allows the loading state to appear and animate smoothly
+    await new Promise(resolve => requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setTimeout(resolve, 0);
+      });
+    }));
+
+    const startTime = Date.now();
+
+    // NOW start puzzle generation (after animation is rendering)
+    const puzzlePromise = onNewGame(selectedDifficulty);
+
+    // Wait for minimum 1 second total
+    const minTimePromise = new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Wait for both to complete
+    await Promise.all([puzzlePromise, minTimePromise]);
+
+    // Ensure at least 1 second total has elapsed
+    const elapsed = Date.now() - startTime;
+    if (elapsed < 1000) {
+      await new Promise(resolve => setTimeout(resolve, 1000 - elapsed));
+    }
+
+    // Announce puzzle is ready for screen readers
+    puzzleReady = true;
+
+    // Small delay to allow screen reader announcement
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Hide loading and close modal
+    showLoadingState = false;
     isOpen = false;
     showDifficultySelector = false;
+    puzzleReady = false;
   }
 
   function handleBack(): void {
@@ -79,7 +119,17 @@
 {#if isOpen}
   <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal" role="document">
-      {#if showResumeOption}
+      {#if showLoadingState}
+        <!-- Loading state while generating puzzle -->
+        <LoadingState />
+
+        <!-- Screen reader announcement when puzzle is ready -->
+        {#if puzzleReady}
+          <div role="status" aria-live="polite" class="sr-only">
+            Puzzle generated. Game ready.
+          </div>
+        {/if}
+      {:else if showResumeOption}
         {#if !showDifficultySelector}
           <h2 id="modal-title">Welcome Back!</h2>
           <p class="info">You have a game in progress. Would you like to continue?</p>
@@ -306,6 +356,19 @@
 
   .btn-secondary:hover {
     background: #bdbdbd;
+  }
+
+  /* Screen reader only text */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
   }
 
   @media (max-width: 480px) {
