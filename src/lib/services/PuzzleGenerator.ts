@@ -199,71 +199,91 @@ function createTerminalPattern(rng: SeededRandom, maxAttempts = 100, solveTimeou
 }
 
 /**
+ * Generates left-to-right sequence
+ */
+function generateLeftToRightSequence(): Array<{ row: number; col: number }> {
+  const positions: Array<{ row: number; col: number }> = [];
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      positions.push({ row, col });
+    }
+  }
+  return positions;
+}
+
+/**
+ * Generates S-pattern sequence
+ */
+function generateSPatternSequence(): Array<{ row: number; col: number }> {
+  const positions: Array<{ row: number; col: number }> = [];
+  for (let row = 0; row < 9; row++) {
+    if (row % 2 === 0) {
+      // Left to right on even rows
+      for (let col = 0; col < 9; col++) {
+        positions.push({ row, col });
+      }
+    } else {
+      // Right to left on odd rows
+      for (let col = 8; col >= 0; col--) {
+        positions.push({ row, col });
+      }
+    }
+  }
+  return positions;
+}
+
+/**
+ * Generates jumping pattern sequence
+ */
+function generateJumpingSequence(): Array<{ row: number; col: number }> {
+  const positions: Array<{ row: number; col: number }> = [];
+  // First pass: even row + even col, odd row + odd col
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      if ((row + col) % 2 === 0) {
+        positions.push({ row, col });
+      }
+    }
+  }
+  // Second pass: remaining cells (even row + odd col, odd row + even col)
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      if ((row + col) % 2 === 1) {
+        positions.push({ row, col });
+      }
+    }
+  }
+  return positions;
+}
+
+/**
+ * Generates random sequence
+ */
+function generateRandomSequence(rng: SeededRandom): Array<{ row: number; col: number }> {
+  const positions: Array<{ row: number; col: number }> = [];
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      positions.push({ row, col });
+    }
+  }
+  rng.shuffle(positions);
+  return positions;
+}
+
+/**
  * Generates cell positions in specified sequence order
  */
 function generateDiggingSequence(sequence: DiggingSequence, rng: SeededRandom): Array<{ row: number; col: number }> {
-  const positions: Array<{ row: number; col: number }> = [];
-
   switch (sequence) {
     case 'left-to-right':
-      // Left to right, top to bottom
-      for (let row = 0; row < 9; row++) {
-        for (let col = 0; col < 9; col++) {
-          positions.push({ row, col });
-        }
-      }
-      break;
-
+      return generateLeftToRightSequence();
     case 's-pattern':
-      // Wandering along S pattern
-      for (let row = 0; row < 9; row++) {
-        if (row % 2 === 0) {
-          // Left to right on even rows
-          for (let col = 0; col < 9; col++) {
-            positions.push({ row, col });
-          }
-        } else {
-          // Right to left on odd rows
-          for (let col = 8; col >= 0; col--) {
-            positions.push({ row, col });
-          }
-        }
-      }
-      break;
-
+      return generateSPatternSequence();
     case 'jumping':
-      // Jumping one cell pattern as described in paper
-      // Pattern: (0,0), (0,2), (0,4), (0,6), (0,8), (1,1), (1,3), (1,5), (1,7), (2,0), (2,2), etc.
-      // First pass: even row + even col, odd row + odd col
-      for (let row = 0; row < 9; row++) {
-        for (let col = 0; col < 9; col++) {
-          if ((row + col) % 2 === 0) {
-            positions.push({ row, col });
-          }
-        }
-      }
-      // Second pass: remaining cells (even row + odd col, odd row + even col)
-      for (let row = 0; row < 9; row++) {
-        for (let col = 0; col < 9; col++) {
-          if ((row + col) % 2 === 1) {
-            positions.push({ row, col });
-          }
-        }
-      }
-      break;
-
+      return generateJumpingSequence();
     case 'random':
-      // Fully randomized
-      for (let row = 0; row < 9; row++) {
-        for (let col = 0; col < 9; col++) {
-          positions.push({ row, col });
-        }
-      }
-      rng.shuffle(positions);
-      break;
+      return generateRandomSequence(rng);
   }
-
-  return positions;
 }
 
 /**
@@ -503,12 +523,10 @@ function measureConstraintPropagation(grid: readonly (readonly number[])[]): { o
     for (let col = 0; col < 9; col++) {
       if (getCell(grid, row, col) === 0) {
         let options = 0;
-        let lastOption = 0;
 
         for (let num = 1; num <= 9; num++) {
           if (isValidPlacement(grid, row, col, num)) {
             options++;
-            lastOption = num;
             if (options > 1) break; // Not a naked single
           }
         }
@@ -528,98 +546,97 @@ function measureConstraintPropagation(grid: readonly (readonly number[])[]): { o
 }
 
 /**
- * Finds obvious moves using basic Sudoku techniques (naked singles, hidden singles)
+ * Calculate dynamic time budget based on difficulty
  */
-function findObviousMoves(grid: readonly (readonly number[])[]): Array<{ row: number; col: number; value: number }> {
-  const moves: Array<{ row: number; col: number; value: number }> = [];
-
-  // Check each empty cell for naked singles (only one possible value)
-  for (let row = 0; row < 9; row++) {
-    for (let col = 0; col < 9; col++) {
-      if (getCell(grid, row, col) === 0) {
-        const possibleValues: number[] = [];
-        for (let num = 1; num <= 9; num++) {
-          if (isValidPlacement(grid, row, col, num)) {
-            possibleValues.push(num);
-          }
-        }
-
-        if (possibleValues.length === 1) {
-          moves.push({ row, col, value: possibleValues[0] });
-        }
-      }
-    }
-  }
-
-  // Check for hidden singles in rows, columns, and boxes
-  // This is simplified - full implementation would check each unit systematically
-  for (let unit = 0; unit < 27; unit++) { // 9 rows + 9 cols + 9 boxes
-    const cells = getUnitCells(grid, unit);
-    const hiddenSingles = findHiddenSingles(grid, cells);
-    moves.push(...hiddenSingles);
-  }
-
-  // Remove duplicates
-  const uniqueMoves = moves.filter((move, index, self) =>
-    index === self.findIndex(m => m.row === move.row && m.col === move.col)
+function calculateTimeBudget(config: DifficultyConfig, timeBudget?: number): number {
+  return timeBudget ?? (
+    config.minGivensPerRowCol === 0 ? 8000 : // Evil level: 8 seconds
+    config.minGivensPerRowCol === 2 ? 3000 : // Difficult: 3 seconds
+    2000 // Others: 2 seconds
   );
-
-  return uniqueMoves;
 }
 
 /**
- * Gets cells in a specific unit (row, column, or box)
+ * Calculate target complexity level based on difficulty
  */
-function getUnitCells(grid: readonly (readonly number[])[], unit: number): Array<{ row: number; col: number }> {
-  const cells: Array<{ row: number; col: number }> = [];
-
-  if (unit < 9) {
-    // Row
-    for (let col = 0; col < 9; col++) {
-      cells.push({ row: unit, col });
-    }
-  } else if (unit < 18) {
-    // Column
-    const col = unit - 9;
-    for (let row = 0; row < 9; row++) {
-      cells.push({ row, col });
-    }
-  } else {
-    // Box
-    const box = unit - 18;
-    const boxRow = Math.floor(box / 3) * 3;
-    const boxCol = (box % 3) * 3;
-    for (let r = 0; r < 3; r++) {
-      for (let c = 0; c < 3; c++) {
-        cells.push({ row: boxRow + r, col: boxCol + c });
-      }
-    }
-  }
-
-  return cells.filter(cell => getCell(grid, cell.row, cell.col) === 0);
+function calculateTargetComplexity(config: DifficultyConfig): number {
+  if (config.minGivensPerRowCol === 0) return 5; // Evil
+  if (config.minGivensPerRowCol === 2) return 4; // Difficult
+  if (config.minGivensPerRowCol === 3) return 3; // Medium
+  if (config.minGivensPerRowCol === 4) return 2; // Easy
+  return 1; // Extremely Easy
 }
 
 /**
- * Finds hidden singles in a unit (numbers that can only go in one cell)
+ * Count current givens in puzzle
  */
-function findHiddenSingles(grid: readonly (readonly number[])[], cells: Array<{ row: number; col: number }>): Array<{ row: number; col: number; value: number }> {
-  const moves: Array<{ row: number; col: number; value: number }> = [];
-
-  for (let num = 1; num <= 9; num++) {
-    const validCells: Array<{ row: number; col: number }> = [];
-
-    for (const cell of cells) {
-      if (isValidPlacement(grid, cell.row, cell.col, num)) {
-        validCells.push(cell);
-      }
-    }
-
-    if (validCells.length === 1) {
-      moves.push({ row: validCells[0].row, col: validCells[0].col, value: num });
+function countGivens(puzzle: readonly (readonly number[])[]): number {
+  let count = 0;
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      if (getCell(puzzle, r, c) !== 0) count++;
     }
   }
+  return count;
+}
 
-  return moves;
+/**
+ * Try to remove a cell from the puzzle
+ */
+function tryRemoveCell(
+  puzzle: number[][],
+  row: number,
+  col: number,
+  config: DifficultyConfig,
+  startTime: number,
+  timeBudget: number
+): boolean {
+  const originalValue = getCell(puzzle, row, col);
+  if (originalValue === 0) return false;
+
+  setCell(puzzle, row, col, 0);
+
+  if (!meetsRestrictions(puzzle, config)) {
+    setCell(puzzle, row, col, originalValue);
+    return false;
+  }
+
+  if (!checkUniquenessAfterRemoval(puzzle, row, col, originalValue, startTime, timeBudget)) {
+    setCell(puzzle, row, col, originalValue);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Perform strategic removal for harder puzzles
+ */
+function performStrategicRemoval(
+  puzzle: number[][],
+  targetComplexity: number,
+  config: DifficultyConfig,
+  startTime: number,
+  timeBudget: number
+): void {
+  if (targetComplexity < 4) return;
+
+  const constraints = analyzeCellConstraints(puzzle);
+  const maxAttempts = Math.min(targetComplexity === 5 ? 3 : 2, constraints.length);
+  const targetRemovals = targetComplexity === 5 ? 2 : 1;
+  let successfulRemovals = 0;
+
+  for (let i = 0; i < maxAttempts && successfulRemovals < targetRemovals; i++) {
+    const constraint = constraints[i];
+    if (!constraint) break;
+
+    const { row, col } = constraint;
+    if (getCell(puzzle, row, col) !== 0) {
+      if (tryRemoveCell(puzzle, row, col, config, startTime, timeBudget)) {
+        successfulRemovals++;
+      }
+    }
+  }
 }
 
 /**
@@ -635,109 +652,33 @@ function digHoles(
   solution: number[][],
   config: DifficultyConfig,
   rng: SeededRandom,
-  timeBudget?: number // Dynamic budget based on difficulty
+  timeBudget?: number
 ): number[][] {
   const startTime = Date.now();
   const puzzle = solution.map(row => [...row]);
   const sequence = generateDiggingSequence(config.sequence, rng);
-  const explored = new Set<string>(); // Pruning: track explored cells
+  const explored = new Set<string>();
 
-  // Dynamic time budget based on difficulty - reasonable limits even for evil level
-  const actualTimeBudget = timeBudget ?? (
-    config.minGivensPerRowCol === 0 ? 8000 : // Evil level: 8 seconds (was unlimited)
-    config.minGivensPerRowCol === 2 ? 3000 : // Difficult: 3 seconds
-    2000 // Others: 2 seconds
-  );
-
-  // Target random clue count within range
+  const actualTimeBudget = calculateTimeBudget(config, timeBudget);
   const targetGivens = config.minGivens + Math.floor(rng.next() * (config.maxGivens - config.minGivens + 1));
-
-  // Target complexity based on difficulty level
-  const targetComplexity = config.minGivensPerRowCol === 0 ? 5 : // Evil: Level 5 complexity
-                          config.minGivensPerRowCol === 2 ? 4 : // Difficult: Level 4 complexity
-                          config.minGivensPerRowCol === 3 ? 3 : // Medium: Level 3 complexity
-                          config.minGivensPerRowCol === 4 ? 2 : // Easy: Level 2 complexity
-                          1; // Extremely Easy: Level 1 complexity
+  const targetComplexity = calculateTargetComplexity(config);
 
   // First pass: remove cells to reach target clue count
   for (const pos of sequence) {
-    // Check time budget if we have one
-    if (actualTimeBudget !== undefined && Date.now() - startTime > actualTimeBudget) {
-      break; // Time budget exceeded
-    }
+    if (Date.now() - startTime > actualTimeBudget) break;
 
     const key = `${pos.row},${pos.col}`;
-
-    // Pruning: skip if already explored or empty
-    if (explored.has(key) || getCell(puzzle, pos.row, pos.col) === 0) {
-      continue;
-    }
+    if (explored.has(key) || getCell(puzzle, pos.row, pos.col) === 0) continue;
 
     explored.add(key);
 
-    // Check if we've reached target clue count
-    let currentGivens = 0;
-    for (let r = 0; r < 9; r++) {
-      for (let c = 0; c < 9; c++) {
-        if (getCell(puzzle, r, c) !== 0) currentGivens++;
-      }
-    }
+    if (countGivens(puzzle) <= targetGivens) break;
 
-    if (currentGivens <= targetGivens) {
-      break; // Reached target clue count
-    }
-
-    const originalValue = getCell(puzzle, pos.row, pos.col);
-    if (originalValue === 0) continue;
-
-    // Try removing this cell
-    setCell(puzzle, pos.row, pos.col, 0);
-
-    // Check restrictions
-    if (!meetsRestrictions(puzzle, config)) {
-      // Violates restrictions - restore
-      setCell(puzzle, pos.row, pos.col, originalValue);
-      continue;
-    }
-
-    // Check uniqueness using reduction to absurdity with time budget
-    if (!checkUniquenessAfterRemoval(puzzle, pos.row, pos.col, originalValue, startTime, actualTimeBudget)) {
-      // Not unique - restore
-      setCell(puzzle, pos.row, pos.col, originalValue);
-    }
-    // else: successfully removed, keep it at 0
+    tryRemoveCell(puzzle, pos.row, pos.col, config, startTime, actualTimeBudget);
   }
 
-  // Second pass: strategic removal for harder puzzles (optimized approach)
-  if (targetComplexity >= 4) {
-    // For difficult and evil puzzles, try removing 1-2 additional cells from constrained positions
-    const constraints = analyzeCellConstraints(puzzle);
-
-    // Try only a few of the most constrained cells
-    const maxAttempts = Math.min(targetComplexity === 5 ? 3 : 2, constraints.length);
-    let successfulRemovals = 0;
-
-    for (let i = 0; i < maxAttempts && successfulRemovals < (targetComplexity === 5 ? 2 : 1); i++) {
-      const constraint = constraints[i];
-      if (!constraint) break;
-
-      const { row, col } = constraint;
-      if (getCell(puzzle, row, col) !== 0) {
-        const originalValue = getCell(puzzle, row, col);
-        setCell(puzzle, row, col, 0);
-
-        // Quick check: basic uniqueness (faster for common cases)
-        if (meetsRestrictions(puzzle, config) &&
-            checkUniquenessAfterRemoval(puzzle, row, col, originalValue, startTime, actualTimeBudget)) {
-          successfulRemovals++;
-          // Keep the removal - increases difficulty
-        } else {
-          // Restore - breaks constraints or uniqueness
-          setCell(puzzle, row, col, originalValue);
-        }
-      }
-    }
-  }
+  // Second pass: strategic removal for harder puzzles
+  performStrategicRemoval(puzzle, targetComplexity, config, startTime, actualTimeBudget);
 
   return puzzle;
 }

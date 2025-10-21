@@ -176,7 +176,7 @@ export default [
       '@typescript-eslint/no-non-null-assertion': 'off', // Allow non-null assertions with test fixtures
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-console': 'off', // Allow console in tests for debugging
-      'max-lines-per-function': ['warn', { max: 500, skipBlankLines: true, skipComments: true }]
+      'max-lines-per-function': ['warn', { max: 600, skipBlankLines: true, skipComments: true }]
     }
   },
   {
