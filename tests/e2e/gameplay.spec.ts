@@ -331,14 +331,39 @@ test.describe('Full Gameplay Flow', () => {
 
     await page.waitForSelector('.grid');
 
-    // Find an empty cell, select it, and enter a number
+    // Find an empty cell and enter an incorrect value (that can be cleared)
+    // We need to find a cell and enter a value that is NOT the correct answer
     const emptyCell = page.locator('.cell:not(.clue)').first();
     await emptyCell.click();
-    await page.keyboard.press('7');
+
+    // Try different numbers until we find one that creates a mistake (incorrect value)
+    // This ensures we can clear it (correct values cannot be cleared)
+    let testNumber = '1';
+    for (let num = 1; num <= 9; num++) {
+      await page.keyboard.press(num.toString());
+      await page.waitForTimeout(100); // Wait for state update
+
+      // Check if it created a mistake (red cell means incorrect value)
+      const isMistake = await emptyCell.evaluate((el) => el.classList.contains('mistake'));
+      if (isMistake) {
+        testNumber = num.toString();
+        break;
+      }
+      // If not a mistake, it's correct - try clearing and try next number
+      await emptyCell.click();
+      const clearBtn = page.locator('.clear-btn');
+      const canClear = await clearBtn.isEnabled().catch(() => false);
+      if (!canClear) {
+        // This was the correct answer, undo it and try next number
+        await page.keyboard.press('u'); // Undo
+        await page.waitForTimeout(100);
+        await emptyCell.click();
+      }
+    }
 
     // Verify number was entered
     let cellText = await emptyCell.textContent();
-    expect(cellText).toContain('7');
+    expect(cellText).toContain(testNumber);
 
     // Click the Clear button
     const clearButton = page.locator('.clear-btn');
@@ -349,7 +374,7 @@ test.describe('Full Gameplay Flow', () => {
 
       // Verify cell is cleared
       cellText = await emptyCell.textContent();
-      expect(cellText).not.toContain('7');
+      expect(cellText).not.toContain(testNumber);
     }
   });
 
