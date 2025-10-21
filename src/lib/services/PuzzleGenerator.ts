@@ -119,6 +119,45 @@ function isValidPlacement(
 }
 
 /**
+ * Validates difficulty and seed parameters
+ */
+function validateInputs(difficulty: DifficultyLevel, seed?: number): Result<number> {
+  if (!isDifficultyLevel(difficulty)) {
+    return failure('INVALID_DIFFICULTY', `Invalid difficulty: ${difficulty}%. Must be 0-100.`);
+  }
+
+  if (!Number.isFinite(difficulty) || difficulty < 0 || difficulty > 100 || !Number.isInteger(difficulty)) {
+    return failure('INVALID_DIFFICULTY', `Difficulty must be an integer between 0-100, received: ${difficulty}`);
+  }
+
+  const validSeed = seed !== undefined && Number.isFinite(seed) &&
+    seed >= Number.MIN_SAFE_INTEGER && seed <= Number.MAX_SAFE_INTEGER
+    ? seed : Date.now();
+
+  return success(validSeed);
+}
+
+/**
+ * Gets fallback difficulty levels for progressive retries
+ */
+function getDifficultyAttempts(difficulty: DifficultyLevel): DifficultyLevel[] {
+  const attempts: DifficultyLevel[] = [difficulty];
+  if (difficulty === 100) {
+    attempts.push(95, 90);
+  } else if (difficulty >= 95) {
+    attempts.push(difficulty - 5);
+  }
+  return attempts;
+}
+
+/**
+ * Gets time budget based on difficulty level
+ */
+function getTimeBudget(difficulty: DifficultyLevel): number {
+  return difficulty >= 80 ? 8000 : difficulty >= 50 ? 4000 : 2000;
+}
+
+/**
  * Generates a Sudoku puzzle with specified difficulty
  *
  * @param difficulty - Difficulty level (0-100%, where 0% = easiest, 100% = hardest)
@@ -133,55 +172,16 @@ export async function generatePuzzle(
   difficulty: DifficultyLevel,
   seed?: number
 ): Promise<Result<Puzzle>> {
-  if (!isDifficultyLevel(difficulty)) {
-    return failure('INVALID_DIFFICULTY', `Invalid difficulty: ${difficulty}%. Must be 0-100.`);
+  const validationResult = validateInputs(difficulty, seed);
+  if (!validationResult.success) {
+    return validationResult;
   }
+  const validSeed = validationResult.data;
 
-  /**
-   * Input Validation
-   * Validates difficulty parameter to ensure it's a valid integer between 0-100
-   * and sanitizes the seed to prevent invalid or dangerous values
-   */
-
-  // Validate difficulty parameter
-  if (!Number.isFinite(difficulty)) {
-    return failure('INVALID_DIFFICULTY', `Difficulty must be a finite number, received: ${difficulty}`);
-  }
-
-  if (difficulty < 0 || difficulty > 100) {
-    return failure('INVALID_DIFFICULTY', `Difficulty must be between 0 and 100, received: ${difficulty}`);
-  }
-
-  if (!Number.isInteger(difficulty)) {
-    return failure('INVALID_DIFFICULTY', `Difficulty must be an integer, received: ${difficulty}`);
-  }
-
-  /**
-   * Seed Validation and Sanitization
-   * Ensures seed is a valid finite number within safe integer range
-   * Falls back to timestamp if invalid to maintain backward compatibility
-   * Negative seeds are allowed as they're mathematically valid for seeding
-   */
-  let validSeed: number;
-  if (seed !== undefined && Number.isFinite(seed) && seed >= Number.MIN_SAFE_INTEGER && seed <= Number.MAX_SAFE_INTEGER) {
-    validSeed = seed;
-  } else {
-    validSeed = Date.now();
-  }
-
-  // Progressive fallback: Try 100% → 95% → 90% → error
-  const difficultyAttempts: DifficultyLevel[] = [difficulty];
-  if (difficulty === 100) {
-    difficultyAttempts.push(95, 90);
-  } else if (difficulty >= 95) {
-    difficultyAttempts.push(difficulty - 5);
-  }
+  const difficultyAttempts = getDifficultyAttempts(difficulty);
 
   for (const attemptDifficulty of difficultyAttempts) {
-    const timeBudget =
-      attemptDifficulty >= 80 ? 8000 :
-      attemptDifficulty >= 50 ? 4000 :
-      2000;
+    const timeBudget = getTimeBudget(attemptDifficulty);
     const result = await generatePuzzleWithTimeout(attemptDifficulty, validSeed, timeBudget);
 
     if (result.success) {
@@ -189,11 +189,41 @@ export async function generatePuzzle(
     }
   }
 
-  // All attempts failed - provide helpful error message
   return failure(
     'PUZZLE_GENERATION_FAILED',
     `Failed to generate valid puzzle at difficulty ${difficulty}% after ${difficultyAttempts.length} difficulty level attempts (tried: ${difficultyAttempts.join('%, ')}%). Consider using difficulty ${difficultyAttempts[difficultyAttempts.length - 1] ?? difficulty}% for faster generation.`
   );
+}
+
+type PuzzleAttempt = {
+  grid: number[][];
+  solution: number[][];
+  clues: boolean[][];
+  clueCount: number;
+  puzzleId: string;
+  generatedAt: number;
+};
+
+function createPuzzleResult(attempt: PuzzleAttempt): Puzzle {
+  return {
+    grid: attempt.grid,
+    solution: attempt.solution,
+    clues: attempt.clues,
+    difficultyRating: attempt.clueCount,
+    puzzleId: attempt.puzzleId,
+    generatedAt: attempt.generatedAt
+  };
+}
+
+function createAttemptResult(puzzle: number[][], solution: number[][], actualClues: number, attemptSeed: number, difficulty: DifficultyLevel): PuzzleAttempt {
+  return {
+    grid: puzzle.map(row => [...row]),
+    solution: solution.map(row => [...row]),
+    clues: puzzle.map(row => row.map(val => val !== 0)),
+    clueCount: actualClues,
+    puzzleId: `puzzle-${attemptSeed}-${difficulty}`,
+    generatedAt: Date.now()
+  };
 }
 
 /**
@@ -207,53 +237,20 @@ async function generatePuzzleWithTimeout(
   const startTime = Date.now();
   const targetClues = difficultyToClues(difficulty);
   let attempt = 0;
-  const maxAttempts = 100; // Prevent infinite loops
-  let bestAttempt: {
-    grid: number[][];
-    solution: number[][];
-    clues: boolean[][];
-    clueCount: number;
-    puzzleId: string;
-    generatedAt: number;
-  } | null = null;
+  const maxAttempts = 100;
+  let bestAttempt: PuzzleAttempt | null = null;
 
-  // Time-based circuit breaker: Keep trying until timeout or max attempts
   while (Date.now() - startTime < maxTimeMs && attempt < maxAttempts) {
-    /**
-     * Improved Seed Variation using Linear Congruential Generator (LCG)
-     * Uses LCG constants for better distribution across attempts:
-     * - Multiplier: 1664525 (common LCG constant)
-     * - Increment: 1013904223 * attempt (varies per attempt)
-     * - >>> 0 converts to unsigned 32-bit integer for consistent behavior
-     */
-    // Use linear congruential generator (LCG) constants for better distribution
     const attemptSeed = (seed * 1664525 + attempt * 1013904223) >>> 0;
     const rng = new SeededRandom(attemptSeed);
 
-    // Step 1: Generate complete grid
     const gridResult = await generateCompleteGrid(attemptSeed);
     if (!gridResult.success) {
       attempt++;
-      continue; // Try next attempt
+      continue;
     }
 
     const solution = gridResult.data;
-
-    if (!bestAttempt) {
-      const baselineClues: boolean[][] = solution.map(row =>
-        row.map(() => true)
-      );
-      bestAttempt = {
-        grid: solution.map(row => [...row]),
-        solution: solution.map(row => [...row]),
-        clues: baselineClues,
-        clueCount: 81,
-        puzzleId: `puzzle-${attemptSeed}-${difficulty}`,
-        generatedAt: Date.now()
-      };
-    }
-
-    // Step 2: Create puzzle by removing cells
     const deadline = startTime + maxTimeMs;
     const { grid: puzzle, clueCount: actualClues, timedOut } = removeCells(
       solution,
@@ -262,45 +259,24 @@ async function generatePuzzleWithTimeout(
       deadline
     );
 
-    // Skip if too many clues removed (puzzle too hard / invalid)
     if (actualClues < 17) {
       attempt++;
       continue;
     }
 
-    // Step 3: Validate uniqueness with timeout protection
     const uniquenessStartTime = Date.now();
     const uniqueSolution = hasUniqueSolution(puzzle);
     const uniquenessDuration = Date.now() - uniquenessStartTime;
 
     if (uniquenessDuration > 500 || !uniqueSolution) {
       attempt++;
-      continue; // Try next attempt
+      continue;
     }
 
-    // Step 4: Create clue markers
-    const clues: boolean[][] = puzzle.map(row =>
-      row.map(val => val !== 0)
-    );
-
-    const attemptResult = {
-      grid: puzzle.map(row => [...row]),
-      solution: solution.map(row => [...row]),
-      clues: clues.map(row => [...row]),
-      clueCount: actualClues,
-      puzzleId: `puzzle-${attemptSeed}-${difficulty}`,
-      generatedAt: Date.now()
-    };
+    const attemptResult = createAttemptResult(puzzle, solution, actualClues, attemptSeed, difficulty);
 
     if (actualClues <= targetClues) {
-      return success({
-        grid: attemptResult.grid,
-        solution: attemptResult.solution,
-        clues: attemptResult.clues,
-        difficultyRating: actualClues,
-        puzzleId: attemptResult.puzzleId,
-        generatedAt: attemptResult.generatedAt
-      });
+      return success(createPuzzleResult(attemptResult));
     }
 
     if (!bestAttempt || actualClues < bestAttempt.clueCount) {
@@ -315,32 +291,96 @@ async function generatePuzzleWithTimeout(
   }
 
   if (bestAttempt) {
-    return success({
-      grid: bestAttempt.grid,
-      solution: bestAttempt.solution,
-      clues: bestAttempt.clues,
-      difficultyRating: bestAttempt.clueCount,
-      puzzleId: bestAttempt.puzzleId,
-      generatedAt: bestAttempt.generatedAt
-    });
+    return success(createPuzzleResult(bestAttempt));
   }
 
-  // Timeout exceeded or max attempts reached
   return failure(
     'PUZZLE_GENERATION_FAILED',
     `Failed to generate valid puzzle at difficulty ${difficulty}% within ${maxTimeMs}ms (tried ${attempt + 1} attempts)`
   );
 }
 
+type RemovalConfig = {
+  maxStalledPasses: number;
+  maxRemovalAttempts: number;
+  maxRemovalDurationMs: number;
+};
+
+function getRemovalConfig(targetClues: number): RemovalConfig {
+  const isNearMinimal = targetClues <= 20;
+  return {
+    maxStalledPasses: isNearMinimal ? 8 : 2,
+    maxRemovalAttempts: isNearMinimal ? 16 : 4,
+    maxRemovalDurationMs: isNearMinimal ? 2000 : 600
+  };
+}
+
+function getFilledPositions(puzzle: number[][]): Array<{ row: number; col: number }> {
+  const positions: Array<{ row: number; col: number }> = [];
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      if (puzzle[row]?.[col]) {
+        positions.push({ row, col });
+      }
+    }
+  }
+  return positions;
+}
+
+function tryRemoveCell(
+  puzzle: number[][],
+  pos: { row: number; col: number }
+): boolean {
+  const row = puzzle[pos.row];
+  if (!row) return false;
+  const currentValue = row[pos.col];
+  if (currentValue === undefined || currentValue === 0) return false;
+
+  setCell(puzzle, pos.row, pos.col, 0);
+
+  const unique = hasUniqueSolution(puzzle);
+  const logical = unique && isLogicallySolvable(puzzle);
+
+  if (unique && logical) {
+    return true;
+  }
+
+  setCell(puzzle, pos.row, pos.col, currentValue);
+  return false;
+}
+
+function performRemovalPass(
+  puzzle: number[][],
+  targetClues: number,
+  rng: SeededRandom,
+  deadlineMs: number
+): { removed: number; timedOut: boolean; currentClueCount: number } {
+  const positions = getFilledPositions(puzzle);
+  rng.shuffle(positions);
+
+  let removedThisPass = 0;
+  let currentClueCount = 81;
+  let timedOut = false;
+
+  for (const pos of positions) {
+    if (Date.now() >= deadlineMs) {
+      timedOut = true;
+      break;
+    }
+
+    if (currentClueCount <= targetClues) break;
+
+    if (tryRemoveCell(puzzle, pos)) {
+      currentClueCount--;
+      removedThisPass++;
+    }
+  }
+
+  return { removed: removedThisPass, timedOut, currentClueCount };
+}
+
 /**
  * Removes cells from a complete grid to create a puzzle
- *
- * Strategy: Random removal with target clue count
- *
- * @param solution - Complete valid grid
- * @param targetClues - Desired number of clues
- * @param rng - Random number generator
- * @returns Object with puzzle grid (0 = empty), resulting clue count, and timeout flag
  */
 function removeCells(
   solution: number[][],
@@ -348,77 +388,31 @@ function removeCells(
   rng: SeededRandom,
   deadlineMs: number
 ): { grid: number[][]; clueCount: number; timedOut: boolean } {
-  const isNearMinimalTarget = targetClues <= 20;
-  const maxStalledPasses = isNearMinimalTarget ? 8 : 2;
-  const maxRemovalAttempts = isNearMinimalTarget ? 16 : 4;
-  const maxRemovalDurationMs = isNearMinimalTarget ? 2000 : 600;
-
+  const config = getRemovalConfig(targetClues);
   let bestPuzzle = solution.map(row => [...row]);
   let bestClueCount = 81;
   let timedOut = false;
 
-  for (let attempt = 0; attempt < maxRemovalAttempts; attempt++) {
+  for (let attempt = 0; attempt < config.maxRemovalAttempts; attempt++) {
     const puzzle = solution.map(row => [...row]);
     let currentClueCount = 81;
     let stalledPasses = 0;
     const attemptStart = Date.now();
 
-    // Continue removing until we hit the target clue count or stall repeatedly
     while (
       currentClueCount > targetClues &&
-      stalledPasses < maxStalledPasses &&
-      Date.now() - attemptStart < maxRemovalDurationMs
+      stalledPasses < config.maxStalledPasses &&
+      Date.now() - attemptStart < config.maxRemovalDurationMs
     ) {
-      const positions: Array<{ row: number; col: number }> = [];
-      for (let row = 0; row < 9; row++) {
-        for (let col = 0; col < 9; col++) {
-          if (puzzle[row]?.[col]) {
-            positions.push({ row, col });
-          }
-        }
-      }
+      const result = performRemovalPass(puzzle, targetClues, rng, deadlineMs);
+      currentClueCount = result.currentClueCount;
 
-      rng.shuffle(positions);
-
-      let removedThisPass = 0;
-
-      for (const pos of positions) {
-        if (Date.now() >= deadlineMs) {
-          timedOut = true;
-          break;
-        }
-
-        if (currentClueCount <= targetClues) break;
-
-        const row = puzzle[pos.row];
-        if (!row) continue;
-        const currentValue = row[pos.col];
-        if (currentValue === undefined || currentValue === 0) continue;
-
-        setCell(puzzle, pos.row, pos.col, 0);
-
-        const unique = hasUniqueSolution(puzzle);
-        const logical = unique && isLogicallySolvable(puzzle);
-
-        if (unique && logical) {
-          currentClueCount--;
-          removedThisPass++;
-        } else {
-          // Revert removal if constraints are not met
-          setCell(puzzle, pos.row, pos.col, currentValue);
-        }
-      }
-
-      if (removedThisPass === 0) {
-        stalledPasses++;
-      } else {
-        stalledPasses = 0;
-      }
-
-      if (Date.now() >= deadlineMs) {
+      if (result.timedOut) {
         timedOut = true;
         break;
       }
+
+      stalledPasses = result.removed === 0 ? stalledPasses + 1 : 0;
     }
 
     if (currentClueCount < bestClueCount) {
@@ -427,10 +421,7 @@ function removeCells(
     }
 
     if (currentClueCount <= targetClues) {
-      return {
-        grid: puzzle.map(row => [...row]),
-        clueCount: currentClueCount
-      };
+      return { grid: puzzle.map(row => [...row]), clueCount: currentClueCount, timedOut: false };
     }
 
     if (Date.now() >= deadlineMs) {
@@ -439,11 +430,7 @@ function removeCells(
     }
   }
 
-  return {
-    grid: bestPuzzle.map(row => [...row]),
-    clueCount: bestClueCount,
-    timedOut
-  };
+  return { grid: bestPuzzle.map(row => [...row]), clueCount: bestClueCount, timedOut };
 }
 
 /**
