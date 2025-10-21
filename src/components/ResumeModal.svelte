@@ -17,8 +17,8 @@
   // Check for both Vitest (unit tests) and Playwright (E2E tests)
   const isTestEnv = import.meta.env.MODE === 'test' ||
                     (typeof window !== 'undefined' &&
-                     ((window as any).__VITEST__ ||
-                      (window as any).__PLAYWRIGHT__ ||
+                     ((window as { __VITEST__?: boolean }).__VITEST__ ||
+                      (window as { __PLAYWRIGHT__?: boolean }).__PLAYWRIGHT__ ||
                       navigator.webdriver));
 
   interface Props {

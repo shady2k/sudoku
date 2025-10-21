@@ -20,7 +20,7 @@ interface GenerateResponse {
 }
 
 // Worker message handler
-self.onmessage = async (e: MessageEvent<GenerateMessage>) => {
+self.onmessage = async (e: MessageEvent<GenerateMessage>): Promise<void> => {
   if (e.data.type === 'generate') {
     const { difficulty, seed } = e.data;
 

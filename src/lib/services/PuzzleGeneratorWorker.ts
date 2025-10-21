@@ -8,7 +8,7 @@
 import type { DifficultyLevel, Puzzle, Result } from '../models/types';
 
 let worker: Worker | null = null;
-let PuzzleWorker: any = null;
+let PuzzleWorker: { new(): Worker } | null = null;
 
 // Check if we're in a browser environment with Worker support
 const isWorkerSupported = typeof Worker !== 'undefined';
@@ -31,7 +31,7 @@ export async function generatePuzzleInWorker(
     try {
       const workerModule = await import('../../workers/puzzleGenerator.worker?worker');
       PuzzleWorker = workerModule.default;
-    } catch (error) {
+    } catch {
       // Fallback if worker import fails
       const { generatePuzzle } = await import('./PuzzleGenerator');
       return generatePuzzle(difficulty, seed);
@@ -42,7 +42,7 @@ export async function generatePuzzleInWorker(
   if (!worker && PuzzleWorker) {
     try {
       worker = new PuzzleWorker();
-    } catch (error) {
+    } catch {
       // Fallback if worker creation fails
       const { generatePuzzle } = await import('./PuzzleGenerator');
       return generatePuzzle(difficulty, seed);
@@ -59,7 +59,7 @@ export async function generatePuzzleInWorker(
     }
 
     // Set up one-time message listener
-    const handleMessage = (e: MessageEvent) => {
+    const handleMessage = (e: MessageEvent): void => {
       if (e.data.type === 'result') {
         worker?.removeEventListener('message', handleMessage);
         resolve(e.data.result);

@@ -30,7 +30,7 @@
   ];
 
   let visibleCells = $state<Set<string>>(new Set());
-  let animationCycle = 0;
+  let _animationCycle = 0;
 
   onMount(() => {
     let currentIndex = 0;
@@ -47,11 +47,11 @@
         // Reset and start over
         visibleCells = new Set();
         currentIndex = 0;
-        animationCycle++;
+        _animationCycle++;
       }
     }, 150); // Each cell appears every 150ms
 
-    return () => {
+    return (): void => {
       clearInterval(intervalId);
     };
   });
