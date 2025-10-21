@@ -82,6 +82,9 @@ test.describe('New Game Functionality', () => {
     // Wait for modal to close
     await page.waitForSelector('.modal-content, [role="dialog"]', { state: 'hidden', timeout: 3000 }).catch(() => {});
 
+    // Wait for game to be fully initialized (same as helper function)
+    await page.waitForTimeout(1000);
+
     // Verify difficulty is displayed as 80%
     const difficultyValue = await page.locator('.stat-item:has(.stat-label:has-text("Difficulty")) .stat-value').textContent();
     expect(difficultyValue).toBe('80%');

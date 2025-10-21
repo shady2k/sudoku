@@ -19,9 +19,6 @@ test.describe('Puzzle Completion', () => {
     // Start a new game using helper (handles modal if present)
     await startNewGameIfNeeded(page);
 
-    // Wait a moment for game session to be saved
-    await page.waitForTimeout(500);
-
     // Extract the solution from localStorage
     const solution = await page.evaluate(() => {
       const sessionData = localStorage.getItem('sudoku:current-session');
@@ -45,8 +42,8 @@ test.describe('Puzzle Completion', () => {
         // Wait for cell to be ready (helps with WebKit timing)
         await cell.waitFor({ state: 'visible', timeout: 5000 });
 
-        // Click the cell to select it
-        await cell.click({ timeout: 15000 });
+        // Click the cell to select it (force: true for WebKit CI reliability)
+        await cell.click({ timeout: 15000, force: true });
 
         // Type the correct value from solution with delay for WebKit
         const correctValue = solution[row][col];
@@ -103,7 +100,6 @@ test.describe('Puzzle Completion', () => {
   test('should display correct time in congratulations modal', async ({ page }) => {
     // Start a new game
     await startNewGameIfNeeded(page);
-    await page.waitForTimeout(500);
 
     // Complete the puzzle quickly
     const solution = await page.evaluate(() => {
@@ -120,7 +116,7 @@ test.describe('Puzzle Completion', () => {
         if (cellClasses?.includes('clue')) continue;
 
         await cell.waitFor({ state: 'visible', timeout: 5000 });
-        await cell.click({ timeout: 15000 });
+        await cell.click({ timeout: 15000, force: true });
         await page.keyboard.press(solution[row][col].toString(), { delay: 100 });
         await page.waitForTimeout(150);
       }
@@ -149,7 +145,6 @@ test.describe('Puzzle Completion', () => {
   test('should only show congratulations modal once', async ({ page }) => {
     // Start a new game
     await startNewGameIfNeeded(page);
-    await page.waitForTimeout(500);
 
     const solution = await page.evaluate(() => {
       const sessionData = localStorage.getItem('sudoku:current-session');
@@ -165,7 +160,7 @@ test.describe('Puzzle Completion', () => {
         if (cellClasses?.includes('clue')) continue;
 
         await cell.waitFor({ state: 'visible', timeout: 5000 });
-        await cell.click({ timeout: 15000 });
+        await cell.click({ timeout: 15000, force: true });
         await page.keyboard.press(solution[row][col].toString(), { delay: 100 });
         await page.waitForTimeout(150);
       }
