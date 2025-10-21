@@ -491,4 +491,200 @@ describe('PuzzleGenerator', () => {
     });
 
   });
+
+  describe('Dig-Hole Algorithm - Paper Implementation', () => {
+    it('should generate Level 1 (Extremely Easy) puzzles with 50-60 clues', async () => {
+      const result = await generatePuzzle(10); // Level 1: 0-20%
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const clueCount = result.data.grid.reduce(
+          (sum, row) => sum + row.filter(val => val !== 0).length,
+          0
+        );
+
+        expect(clueCount).toBeGreaterThanOrEqual(50);
+        expect(clueCount).toBeLessThanOrEqual(60);
+      }
+    }, 5000);
+
+    it('should generate Level 2 (Easy) puzzles with 36-49 clues', async () => {
+      const result = await generatePuzzle(30); // Level 2: 21-40%
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const clueCount = result.data.grid.reduce(
+          (sum, row) => sum + row.filter(val => val !== 0).length,
+          0
+        );
+
+        expect(clueCount).toBeGreaterThanOrEqual(36);
+        expect(clueCount).toBeLessThanOrEqual(49);
+      }
+    }, 5000);
+
+    it('should generate Level 3 (Medium) puzzles with 32-35 clues', async () => {
+      const result = await generatePuzzle(50); // Level 3: 41-60%
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const clueCount = result.data.grid.reduce(
+          (sum, row) => sum + row.filter(val => val !== 0).length,
+          0
+        );
+
+        expect(clueCount).toBeGreaterThanOrEqual(32);
+        expect(clueCount).toBeLessThanOrEqual(35);
+      }
+    }, 5000);
+
+    it('should generate Level 4 (Difficult) puzzles with 28-31 clues', async () => {
+      const result = await generatePuzzle(70); // Level 4: 61-80%
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const clueCount = result.data.grid.reduce(
+          (sum, row) => sum + row.filter(val => val !== 0).length,
+          0
+        );
+
+        expect(clueCount).toBeGreaterThanOrEqual(28);
+        expect(clueCount).toBeLessThanOrEqual(31);
+      }
+    }, 10000);
+
+    it('should generate Level 5 (Evil) puzzles with 22-27 clues', async () => {
+      const result = await generatePuzzle(90); // Level 5: 81-100%
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const clueCount = result.data.grid.reduce(
+          (sum, row) => sum + row.filter(val => val !== 0).length,
+          0
+        );
+
+        expect(clueCount).toBeGreaterThanOrEqual(22);
+        expect(clueCount).toBeLessThanOrEqual(27);
+      }
+    }, 30000); // Evil level can take longer with certain random seeds
+
+    it('should generate puzzles with unique solutions across all levels', async () => {
+      const levels = [10, 30, 50, 70, 90];
+
+      for (const level of levels) {
+        const result = await generatePuzzle(level);
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          // All generated puzzles should have unique solution
+          expect(hasUniqueSolution(result.data.grid)).toBe(true);
+        }
+      }
+    }, 60000); // Increased timeout - hasUniqueSolution validation is expensive
+
+    it('should complete generation within reasonable time for all levels', async () => {
+      const levels = [
+        { difficulty: 10, maxTime: 5000 },    // Level 1 - usually very fast
+        { difficulty: 30, maxTime: 5000 },    // Level 2 - usually very fast
+        { difficulty: 50, maxTime: 5000 },    // Level 3 - usually very fast
+        { difficulty: 70, maxTime: 10000 },   // Level 4 - can vary with random seeds
+        { difficulty: 90, maxTime: 25000 }    // Level 5 - worst case can be higher (paper reports ~1088ms average)
+      ];
+
+      for (const { difficulty, maxTime } of levels) {
+        const start = performance.now();
+        const result = await generatePuzzle(difficulty);
+        const elapsed = performance.now() - start;
+
+        expect(result.success).toBe(true);
+        expect(elapsed).toBeLessThan(maxTime);
+      }
+    }, 100000); // Increased overall timeout to allow for worst-case random seeds
+
+    it('should enforce row/column minimum constraints for difficult puzzles', async () => {
+      const result = await generatePuzzle(70); // Level 4 should have min 2 per row/col
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const { grid } = result.data;
+
+        // Check each row has at least 2 givens
+        for (let row = 0; row < 9; row++) {
+          const rowGivens = grid[row]!.filter(val => val !== 0).length;
+          expect(rowGivens).toBeGreaterThanOrEqual(2);
+        }
+
+        // Check each column has at least 2 givens
+        for (let col = 0; col < 9; col++) {
+          const colGivens = grid.map(row => row[col]).filter(val => val !== 0).length;
+          expect(colGivens).toBeGreaterThanOrEqual(2);
+        }
+      }
+    }, 10000);
+
+    it('should enforce row/column minimum constraints for easy puzzles', async () => {
+      const result = await generatePuzzle(30); // Level 2 should have min 4 per row/col
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const { grid } = result.data;
+
+        // Check each row has at least 4 givens
+        for (let row = 0; row < 9; row++) {
+          const rowGivens = grid[row]!.filter(val => val !== 0).length;
+          expect(rowGivens).toBeGreaterThanOrEqual(4);
+        }
+
+        // Check each column has at least 4 givens
+        for (let col = 0; col < 9; col++) {
+          const colGivens = grid.map(row => row[col]).filter(val => val !== 0).length;
+          expect(colGivens).toBeGreaterThanOrEqual(4);
+        }
+      }
+    }, 5000);
+
+    it('should generate reproducible puzzles with same seed and difficulty', async () => {
+      const seed = 42;
+      const difficulty = 50;
+
+      const result1 = await generatePuzzle(difficulty, seed);
+      const result2 = await generatePuzzle(difficulty, seed);
+
+      expect(result1.success).toBe(true);
+      expect(result2.success).toBe(true);
+
+      if (result1.success && result2.success) {
+        expect(result1.data.grid).toEqual(result2.data.grid);
+        expect(result1.data.solution).toEqual(result2.data.solution);
+      }
+    }, 10000);
+
+    it('should verify all generated puzzles have valid solutions', async () => {
+      const levels = [10, 30, 50, 70, 90];
+
+      for (const level of levels) {
+        const result = await generatePuzzle(level);
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const { grid, solution } = result.data;
+
+          // Solution should be complete
+          expect(solution.every(row => row.every(val => val >= 1 && val <= 9))).toBe(true);
+
+          // All given clues in puzzle should match solution
+          for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+              const puzzleVal = grid[r]![c]!;
+              const solutionVal = solution[r]![c]!;
+
+              if (puzzleVal !== 0) {
+                expect(puzzleVal).toBe(solutionVal);
+              }
+            }
+          }
+        }
+      }
+    }, 120000); // Increased timeout for all 5 levels
+  });
 });
