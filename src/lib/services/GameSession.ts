@@ -183,6 +183,14 @@ function validateMove(session: GameSession, position: CellPosition): Result<void
     return failure('INVALID_MOVE', 'Cannot modify clue cells');
   }
 
+  // Prevent modifying cells that already have the correct value
+  if (session.puzzle?.solution) {
+    const expectedValue = session.puzzle.solution[row]?.[col] ?? 0;
+    if (cell.value !== 0 && cell.value === expectedValue) {
+      return failure('INVALID_MOVE', 'Cannot modify cells with correct values');
+    }
+  }
+
   if (session.isCompleted) {
     return failure('GAME_ALREADY_COMPLETED', 'Game is already completed');
   }
@@ -582,8 +590,11 @@ export function undoMove(session: GameSession): Result<GameSession> {
     currentIndex: session.history.currentIndex - 1
   };
 
-  // Recalculate mistake count based on current grid state
-  newSession.mistakeCount = calculateMistakeCount(newSession);
+  // Preserve the cumulative mistake count (mistakes should never decrease)
+  newSession.mistakeCount = session.mistakeCount;
+
+  // Update isMistake flags on cells to reflect current board state
+  updateMistakeFlags(newSession);
 
   // Recalculate completion status
   newSession.isCompleted = isPuzzleCompleted(newSession);
@@ -699,17 +710,22 @@ function applySetCandidatesAction(session: GameSession, action: SetCandidatesAct
 }
 
 /**
- * Calculates the current mistake count by counting cells marked as mistakes
+ * Updates the isMistake flags on all cells based on the current board state
+ * Does NOT change the mistake count - only updates visual indicators
  */
-function calculateMistakeCount(session: GameSession): number {
-  let mistakeCount = 0;
+function updateMistakeFlags(session: GameSession): void {
+  if (!session.puzzle?.solution) {
+    return;
+  }
+
   for (let row = 0; row < 9; row++) {
     for (let col = 0; col < 9; col++) {
       const cell = session.cells[row]?.[col];
-      if (cell && cell.isMistake) {
-        mistakeCount++;
+      if (cell) {
+        const expectedValue = session.puzzle.solution[row]?.[col] ?? 0;
+        cell.isMistake = cell.value !== 0 && cell.value !== expectedValue;
       }
     }
   }
-  return mistakeCount;
 }
+

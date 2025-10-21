@@ -31,12 +31,20 @@
     const matches = highlighted && cell.value !== 0 && cell.value === highlighted;
     return !!matches;
   });
+
+  // Check if this cell has the correct value (should be readonly)
+  const isCorrect = $derived.by(() => {
+    if (cell.value === 0 || !gameStore.session?.puzzle?.solution) return false;
+    const expectedValue = gameStore.session.puzzle.solution[cell.row]?.[cell.col] ?? 0;
+    return cell.value === expectedValue;
+  });
 </script>
 
 <button
   type="button"
   class="cell"
   class:clue={cell.isClue}
+  class:correct={isCorrect && !cell.isClue}
   class:selected={isSelected}
   class:selected-notes-mode={shouldShowNotesMode}
   class:related={isRelated}
@@ -79,7 +87,7 @@
     cursor: pointer;
   }
 
-  .cell:hover:not(.clue) {
+  .cell:hover:not(.clue):not(.correct) {
     background-color: #f0f0f0;
   }
 
@@ -94,6 +102,10 @@
   .cell.clue {
     background-color: #f5f5f5;
     font-weight: 700;
+  }
+
+  .cell.correct:hover {
+    cursor: not-allowed;
   }
 
   .cell.selected {
@@ -118,7 +130,7 @@
     background-color: #fff9c4 !important;
   }
 
-  .cell.highlighted-number:hover:not(.clue) {
+  .cell.highlighted-number:hover:not(.clue):not(.correct) {
     background-color: #fff59d !important;
   }
 

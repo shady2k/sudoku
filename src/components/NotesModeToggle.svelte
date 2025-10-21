@@ -4,9 +4,15 @@
 
   function handleToggle(mode: 'fill' | 'notes'): void {
     const shouldBeNotesMode = mode === 'notes';
+    // Always set the mode to what was clicked
     if (gameStore.notesMode !== shouldBeNotesMode) {
       gameStore.toggleNotesMode();
     }
+  }
+
+  function handleTouchEnd(event: TouchEvent, mode: 'fill' | 'notes'): void {
+    event.preventDefault();
+    handleToggle(mode);
   }
 
   function handleKeyDown(event: KeyboardEvent): void {
@@ -42,6 +48,7 @@
             class:active={!gameStore.notesMode}
             data-mode="fill"
             onclick={(): void => handleToggle('fill')}
+            ontouchend={(e: TouchEvent): void => handleTouchEnd(e, 'fill')}
             aria-label="Fill mode - enter numbers directly">
       <span class="btn-text">FILL</span>
     </button>
@@ -52,6 +59,7 @@
             class:active={gameStore.notesMode}
             data-mode="notes"
             onclick={(): void => handleToggle('notes')}
+            ontouchend={(e: TouchEvent): void => handleTouchEnd(e, 'notes')}
             aria-label="Notes mode - enter candidate marks">
       <span class="btn-text">NOTES</span>
       <span class="hotkey">N</span>
