@@ -642,9 +642,9 @@ function digHoles(
   const sequence = generateDiggingSequence(config.sequence, rng);
   const explored = new Set<string>(); // Pruning: track explored cells
 
-  // Dynamic time budget based on difficulty - use undefined for evil level (no time limits)
+  // Dynamic time budget based on difficulty - reasonable limits even for evil level
   const actualTimeBudget = timeBudget ?? (
-    config.minGivensPerRowCol === 0 ? undefined : // Evil level: no time limits for accuracy
+    config.minGivensPerRowCol === 0 ? 8000 : // Evil level: 8 seconds (was unlimited)
     config.minGivensPerRowCol === 2 ? 3000 : // Difficult: 3 seconds
     2000 // Others: 2 seconds
   );

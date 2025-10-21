@@ -578,7 +578,7 @@ describe('PuzzleGenerator', () => {
         // The puzzle should actually be hard
         expect(complexity.complexity).toBeGreaterThanOrEqual(3); // Should be medium or harder
       }
-    }, 45000); // Increased timeout for complexity analysis
+    }, 15000); // Reduced timeout - now has 8s time limit
 
     it('should generate puzzles with unique solutions across all levels', async () => {
       const levels = [10, 30, 50, 70, 90];
@@ -601,7 +601,7 @@ describe('PuzzleGenerator', () => {
         { difficulty: 30, maxTime: 5000 },    // Level 2 - usually very fast
         { difficulty: 50, maxTime: 5000 },    // Level 3 - usually very fast
         { difficulty: 70, maxTime: 10000 },   // Level 4 - can vary with random seeds
-        { difficulty: 90, maxTime: 25000 }    // Level 5 - worst case can be higher (paper reports ~1088ms average)
+        { difficulty: 90, maxTime: 15000 }    // Level 5 - increased to account for 8s time budget
       ];
 
       for (const { difficulty, maxTime } of levels) {
