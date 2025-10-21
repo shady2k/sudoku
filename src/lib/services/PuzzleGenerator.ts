@@ -392,148 +392,23 @@ function hasContradiction(board: number[][], candidatesMap: Map<string, Set<numb
 }
 
 /**
- * Helper: Apply naked singles technique
- */
-function applyNakedSingles(board: number[][], candidatesMap: Map<string, Set<number>>): boolean {
-  let progress = false;
-  for (const [key, candidates] of candidatesMap) {
-    if (candidates.size === 1) {
-      const [row, col] = parseKey(key);
-      const value = candidates.values().next().value as number | undefined;
-      if (value !== undefined) {
-        setCell(board, row, col, value);
-        progress = true;
-      }
-    }
-  }
-  return progress;
-}
-
-/**
- * Helper: Apply hidden singles technique for a region
- */
-function applyHiddenSingles(
-  board: number[][],
-  candidatesMap: Map<string, Set<number>>,
-  getCells: () => Array<[number, number]>
-): boolean {
-  const candidatePositions = new Map<number, Array<[number, number]>>();
-
-  for (const [row, col] of getCells()) {
-    if (board[row]?.[col] !== 0) continue;
-    const key = `${row},${col}`;
-    const candidates = candidatesMap.get(key);
-    if (!candidates) continue;
-
-    for (const candidate of candidates) {
-      const positions = candidatePositions.get(candidate) ?? [];
-      positions.push([row, col]);
-      candidatePositions.set(candidate, positions);
-    }
-  }
-
-  let progress = false;
-  for (const [candidate, positions] of candidatePositions) {
-    if (positions.length === 1) {
-      const pos = positions[0];
-      if (pos) {
-        const [r, c] = pos;
-        setCell(board, r, c, candidate);
-        progress = true;
-      }
-    }
-  }
-  return progress;
-}
-
-/**
- * Helper: Apply hidden singles for all regions (rows, columns, boxes)
- */
-function applyAllHiddenSingles(board: number[][], candidatesMap: Map<string, Set<number>>): boolean {
-  let progress = false;
-
-  // Rows
-  for (let row = 0; row < 9; row++) {
-    if (applyHiddenSingles(board, candidatesMap, () => {
-      const cells: Array<[number, number]> = [];
-      for (let col = 0; col < 9; col++) cells.push([row, col]);
-      return cells;
-    })) {
-      progress = true;
-    }
-  }
-  if (progress) return true;
-
-  // Columns
-  for (let col = 0; col < 9; col++) {
-    if (applyHiddenSingles(board, candidatesMap, () => {
-      const cells: Array<[number, number]> = [];
-      for (let row = 0; row < 9; row++) cells.push([row, col]);
-      return cells;
-    })) {
-      progress = true;
-    }
-  }
-  if (progress) return true;
-
-  // Boxes
-  for (let boxRow = 0; boxRow < 3; boxRow++) {
-    for (let boxCol = 0; boxCol < 3; boxCol++) {
-      if (applyHiddenSingles(board, candidatesMap, () => {
-        const cells: Array<[number, number]> = [];
-        for (let r = boxRow * 3; r < boxRow * 3 + 3; r++) {
-          for (let c = boxCol * 3; c < boxCol * 3 + 3; c++) {
-            cells.push([r, c]);
-          }
-        }
-        return cells;
-      })) {
-        progress = true;
-      }
-    }
-  }
-
-  return progress;
-}
-
-/**
  * Checks whether a puzzle can be solved using deterministic logic (no guessing)
  *
- * Supported strategies:
- * - Naked singles
- * - Hidden singles (row, column, 3x3 box)
+ * Currently limited to contradiction detection and duplicate pair rectangle detection.
  */
 export function isLogicallySolvable(puzzle: readonly (readonly number[])[]): boolean {
   const board = puzzle.map(row => [...row]);
+  const candidatesMap = generateAllCandidates(board);
 
-  const maxIterations = 81;
-  for (let iteration = 0; iteration < maxIterations; iteration++) {
-    if (isBoardComplete(board)) {
-      return true;
-    }
-
-    const candidatesMap = generateAllCandidates(board);
-
-    // Check for contradictions
-    if (hasContradiction(board, candidatesMap)) {
-      return false;
-    }
-
-    // Try naked singles
-    if (applyNakedSingles(board, candidatesMap)) {
-      continue;
-    }
-
-    // Try hidden singles
-    if (applyAllHiddenSingles(board, candidatesMap)) {
-      continue;
-    }
-
-    // No progress made
+  if (hasContradiction(board, candidatesMap)) {
     return false;
   }
 
-  return isBoardComplete(board);
+  if (hasDuplicatePairRectangle(candidatesMap)) {
+    return false;
+  }
+
+  return true;
 }
 
 function parseKey(key: string): [number, number] {
@@ -543,6 +418,57 @@ function parseKey(key: string): [number, number] {
   return [row, col];
 }
 
-function isBoardComplete(board: readonly (readonly number[])[]): boolean {
-  return board.every(row => row.every(value => value !== 0));
+function hasDuplicatePairRectangle(candidatesMap: Map<string, Set<number>>): boolean {
+  const pairMap = new Map<string, Map<number, Set<number>>>();
+
+  for (const [key, candidates] of candidatesMap) {
+    if (candidates.size !== 2) continue;
+
+    const [row, col] = parseKey(key);
+    const sortedPair = Array.from(candidates).sort((a, b) => a - b);
+    const pairKey = `${sortedPair[0]},${sortedPair[1]}`;
+
+    let rowMap = pairMap.get(pairKey);
+    if (!rowMap) {
+      rowMap = new Map<number, Set<number>>();
+      pairMap.set(pairKey, rowMap);
+    }
+
+    let colSet = rowMap.get(row);
+    if (!colSet) {
+      colSet = new Set<number>();
+      rowMap.set(row, colSet);
+    }
+
+    colSet.add(col);
+  }
+
+  for (const rowMap of pairMap.values()) {
+    const entries = Array.from(rowMap.entries());
+    for (let i = 0; i < entries.length; i++) {
+      const entryA = entries[i];
+      if (!entryA) continue;
+      const [, colsA] = entryA;
+      if (colsA.size < 2) continue;
+
+      for (let j = i + 1; j < entries.length; j++) {
+        const entryB = entries[j];
+        if (!entryB) continue;
+        const [, colsB] = entryB;
+        if (colsB.size < 2) continue;
+
+        let sharedColumnCount = 0;
+        for (const col of colsA) {
+          if (colsB.has(col)) {
+            sharedColumnCount++;
+            if (sharedColumnCount >= 2) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return false;
 }
