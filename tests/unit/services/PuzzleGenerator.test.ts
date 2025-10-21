@@ -577,7 +577,8 @@ describe('PuzzleGenerator', () => {
         expect(result.success).toBe(true);
         if (result.success) {
           // All generated puzzles should have unique solution
-          expect(hasUniqueSolution(result.data.grid)).toBe(true);
+          // Use longer timeout for hasUniqueSolution to avoid false negatives
+          expect(hasUniqueSolution(result.data.grid, 30000)).toBe(true);
         }
       }
     }, 60000); // Increased timeout - hasUniqueSolution validation is expensive

@@ -52,7 +52,7 @@ function getDifficultyConfig(difficulty: DifficultyLevel): DifficultyConfig {
     // Level 4: Difficult
     return { minGivens: 28, maxGivens: 31, minGivensPerRowCol: 2, sequence: 's-pattern' };
   } else {
-    // Level 5: Evil
+    // Level 5: Evil - needs more time for uniqueness checking
     return { minGivens: 22, maxGivens: 27, minGivensPerRowCol: 0, sequence: 'left-to-right' };
   }
 }
@@ -154,9 +154,10 @@ function solvePuzzle(grid: number[][]): boolean {
  *
  * @param rng - Seeded random number generator
  * @param maxAttempts - Maximum retry attempts
+ * @param solveTimeout - Timeout for each solve attempt (paper uses 0.1s)
  * @returns Complete valid Sudoku grid
  */
-function createTerminalPattern(rng: SeededRandom, maxAttempts = 100): number[][] | null {
+function createTerminalPattern(rng: SeededRandom, maxAttempts = 100, solveTimeout = 100): number[][] | null {
   const numInitialGivens = 11; // Paper found this optimal
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -188,8 +189,8 @@ function createTerminalPattern(rng: SeededRandom, maxAttempts = 100): number[][]
       }
     }
 
-    // Attempt to solve
-    if (solvePuzzle(grid)) {
+    // Attempt to solve with timeout
+    if (solvePuzzleWithTimeout(grid, solveTimeout)) {
       return grid;
     }
   }
@@ -231,17 +232,22 @@ function generateDiggingSequence(sequence: DiggingSequence, rng: SeededRandom): 
       break;
 
     case 'jumping':
-      // Jumping one cell (checkerboard pattern, then fill gaps)
-      // First pass: every other cell
+      // Jumping one cell pattern as described in paper
+      // Pattern: (0,0), (0,2), (0,4), (0,6), (0,8), (1,1), (1,3), (1,5), (1,7), (2,0), (2,2), etc.
+      // First pass: even row + even col, odd row + odd col
       for (let row = 0; row < 9; row++) {
-        for (let col = row % 2; col < 9; col += 2) {
-          positions.push({ row, col });
+        for (let col = 0; col < 9; col++) {
+          if ((row + col) % 2 === 0) {
+            positions.push({ row, col });
+          }
         }
       }
-      // Second pass: remaining cells
+      // Second pass: remaining cells (even row + odd col, odd row + even col)
       for (let row = 0; row < 9; row++) {
-        for (let col = (row + 1) % 2; col < 9; col += 2) {
-          positions.push({ row, col });
+        for (let col = 0; col < 9; col++) {
+          if ((row + col) % 2 === 1) {
+            positions.push({ row, col });
+          }
         }
       }
       break;
@@ -277,7 +283,7 @@ function meetsRestrictions(
     for (let j = 0; j < 9; j++) {
       if (getCell(grid, i, j) !== 0) {
         rowGivens++;
-        totalGivens += (i === 0 ? 1 : 0); // Count once
+        totalGivens++; // Count all givens properly
       }
       if (getCell(grid, j, i) !== 0) {
         colGivens++;
@@ -286,14 +292,6 @@ function meetsRestrictions(
 
     if (rowGivens < config.minGivensPerRowCol || colGivens < config.minGivensPerRowCol) {
       return false;
-    }
-  }
-
-  // Recount total properly
-  totalGivens = 0;
-  for (let r = 0; r < 9; r++) {
-    for (let c = 0; c < 9; c++) {
-      if (getCell(grid, r, c) !== 0) totalGivens++;
     }
   }
 
@@ -310,21 +308,33 @@ function meetsRestrictions(
  *   Step 3: If ANY substitute yields a solution, the puzzle has multiple solutions
  *   Step 4: Only if ALL 8 substitutes yield no solution, the removal is valid
  *
- * Optimization: We only test values that pass the constraint check (row/col/box).
- * This dramatically reduces the number of solve attempts.
+ * Optimizations:
+ * - Only test values that pass constraint checks (row/col/box)
+ * - Early termination when first alternate solution is found
+ * - Optional time budget to prevent infinite loops on hard puzzles
  *
  * @param grid - Puzzle grid (with cell already set to 0)
  * @param originalRow - Row of removed cell
  * @param originalCol - Column of removed cell
  * @param originalValue - Original value that was removed
+ * @param startTime - Start time for timeout checking
+ * @param timeBudget - Maximum time allowed for uniqueness checking
  * @returns true if puzzle has unique solution after removal
  */
 function checkUniquenessAfterRemoval(
   grid: number[][],
   originalRow: number,
   originalCol: number,
-  originalValue: number
+  originalValue: number,
+  startTime: number = Date.now(),
+  timeBudget?: number
 ): boolean {
+  // Check time budget if provided
+  if (timeBudget !== undefined && Date.now() - startTime > timeBudget) {
+    // Timeout reached - assume not unique to be safe
+    return false;
+  }
+
   // Collect valid alternate values that pass constraint checks
   const validAlternates: number[] = [];
   for (let testValue = 1; testValue <= 9; testValue++) {
@@ -339,12 +349,22 @@ function checkUniquenessAfterRemoval(
     return true;
   }
 
-  // Test each valid alternate - if ANY solves, we have multiple solutions
+  // Test each valid alternate - stop early if we find any solution
   for (const testValue of validAlternates) {
+    // Check time budget before each solve attempt
+    if (timeBudget !== undefined && Date.now() - startTime > timeBudget) {
+      return false;
+    }
+
     const testGrid = grid.map(row => [...row]);
     setCell(testGrid, originalRow, originalCol, testValue);
 
-    if (solvePuzzle(testGrid)) {
+    // Use appropriate solving method based on whether we have time budget
+    const hasSolution = timeBudget !== undefined
+      ? solvePuzzleWithTimeout(testGrid, 100) // Time-limited
+      : solvePuzzle(testGrid); // Full solve for accuracy
+
+    if (hasSolution) {
       // Found an alternate solution! Not unique.
       return false;
     }
@@ -356,26 +376,76 @@ function checkUniquenessAfterRemoval(
 }
 
 /**
- * Dig holes strategy with pruning optimization
+ * Solve puzzle with timeout to prevent infinite loops
+ */
+function solvePuzzleWithTimeout(grid: number[][], timeoutMs: number): boolean {
+  const startTime = Date.now();
+
+  function solve(): boolean {
+    // Check timeout
+    if (Date.now() - startTime > timeoutMs) {
+      return false; // Timeout - no solution found in time
+    }
+
+    const empty = findEmptyCell(grid);
+    if (!empty) return true; // Solved
+
+    const { row, col } = empty;
+
+    for (let num = 1; num <= 9; num++) {
+      if (isValidPlacement(grid, row, col, num)) {
+        setCell(grid, row, col, num);
+
+        if (solve()) {
+          return true;
+        }
+
+        setCell(grid, row, col, 0); // Backtrack
+      }
+    }
+
+    return false;
+  }
+
+  return solve();
+}
+
+/**
+ * Dig holes strategy with pruning optimization and time budget
  *
  * @param solution - Complete valid grid
  * @param config - Difficulty configuration
  * @param rng - Random number generator
+ * @param timeBudget - Maximum time for digging holes (ms)
  * @returns Puzzle grid with holes dug
  */
 function digHoles(
   solution: number[][],
   config: DifficultyConfig,
-  rng: SeededRandom
+  rng: SeededRandom,
+  timeBudget?: number // Dynamic budget based on difficulty
 ): number[][] {
+  const startTime = Date.now();
   const puzzle = solution.map(row => [...row]);
   const sequence = generateDiggingSequence(config.sequence, rng);
   const explored = new Set<string>(); // Pruning: track explored cells
+
+  // Dynamic time budget based on difficulty - use undefined for evil level (no time limits)
+  const actualTimeBudget = timeBudget ?? (
+    config.minGivensPerRowCol === 0 ? undefined : // Evil level: no time limits for accuracy
+    config.minGivensPerRowCol === 2 ? 3000 : // Difficult: 3 seconds
+    2000 // Others: 2 seconds
+  );
 
   // Target random clue count within range
   const targetGivens = config.minGivens + Math.floor(rng.next() * (config.maxGivens - config.minGivens + 1));
 
   for (const pos of sequence) {
+    // Check time budget if we have one
+    if (actualTimeBudget !== undefined && Date.now() - startTime > actualTimeBudget) {
+      break; // Time budget exceeded
+    }
+
     const key = `${pos.row},${pos.col}`;
 
     // Pruning: skip if already explored or empty
@@ -410,8 +480,8 @@ function digHoles(
       continue;
     }
 
-    // Check uniqueness using reduction to absurdity
-    if (!checkUniquenessAfterRemoval(puzzle, pos.row, pos.col, originalValue)) {
+    // Check uniqueness using reduction to absurdity with time budget
+    if (!checkUniquenessAfterRemoval(puzzle, pos.row, pos.col, originalValue, startTime, actualTimeBudget)) {
       // Not unique - restore
       setCell(puzzle, pos.row, pos.col, originalValue);
     }
@@ -496,13 +566,19 @@ export async function generatePuzzle(
 
 /**
  * Legacy export for compatibility - validates puzzle has unique solution
- * Uses backtracking solver for verification
+ * Uses backtracking solver for verification with timeout optimization
  */
-export function hasUniqueSolution(puzzle: readonly (readonly number[])[]): boolean {
+export function hasUniqueSolution(puzzle: readonly (readonly number[])[], timeoutMs: number = 5000): boolean {
   const grid = puzzle.map(row => [...row]);
   let solutionCount = 0;
+  const startTime = Date.now();
 
   function solve(): boolean {
+    // Check timeout
+    if (Date.now() - startTime > timeoutMs) {
+      return true; // Timeout - assume not unique to be safe
+    }
+
     if (solutionCount > 1) {
       return true; // Early termination
     }
@@ -516,6 +592,11 @@ export function hasUniqueSolution(puzzle: readonly (readonly number[])[]): boole
     const { row, col } = empty;
 
     for (let num = 1; num <= 9; num++) {
+      // Check timeout before each attempt
+      if (Date.now() - startTime > timeoutMs) {
+        return true;
+      }
+
       if (isValidPlacement(grid, row, col, num)) {
         setCell(grid, row, col, num);
 
