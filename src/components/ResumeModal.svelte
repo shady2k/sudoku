@@ -13,6 +13,14 @@
   import { loadPreferences } from '../lib/services/StorageService';
   import LoadingState from './LoadingState.svelte';
 
+  // Skip loading delay in test environment
+  // Check for both Vitest (unit tests) and Playwright (E2E tests)
+  const isTestEnv = import.meta.env.MODE === 'test' ||
+                    (typeof window !== 'undefined' &&
+                     ((window as any).__VITEST__ ||
+                      (window as any).__PLAYWRIGHT__ ||
+                      navigator.webdriver));
+
   interface Props {
     isOpen: boolean;
     onResume?: () => void;
@@ -64,34 +72,42 @@
 
     // Give browser time to render the animation by yielding to event loop
     // This allows the loading state to appear and animate smoothly
-    await new Promise(resolve => requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setTimeout(resolve, 0);
-      });
-    }));
+    // Skip this in test environment for faster tests
+    if (!isTestEnv) {
+      await new Promise(resolve => requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(resolve, 0);
+        });
+      }));
+    }
 
     const startTime = Date.now();
 
     // NOW start puzzle generation (after animation is rendering)
     const puzzlePromise = onNewGame(selectedDifficulty);
 
-    // Wait for minimum 1 second total
-    const minTimePromise = new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait for minimum 1 second total (skip in tests)
+    const minDelay = isTestEnv ? 0 : 1000;
+    const minTimePromise = new Promise(resolve => setTimeout(resolve, minDelay));
 
     // Wait for both to complete
     await Promise.all([puzzlePromise, minTimePromise]);
 
-    // Ensure at least 1 second total has elapsed
-    const elapsed = Date.now() - startTime;
-    if (elapsed < 1000) {
-      await new Promise(resolve => setTimeout(resolve, 1000 - elapsed));
+    // Ensure at least minimum time has elapsed (skip in tests)
+    if (!isTestEnv) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 1000) {
+        await new Promise(resolve => setTimeout(resolve, 1000 - elapsed));
+      }
     }
 
     // Announce puzzle is ready for screen readers
     puzzleReady = true;
 
-    // Small delay to allow screen reader announcement
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Small delay to allow screen reader announcement (skip in tests)
+    if (!isTestEnv) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
 
     // Hide loading and close modal
     showLoadingState = false;

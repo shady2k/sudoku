@@ -21,6 +21,10 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     actionTimeout: 10000, // 10 seconds for actions
     navigationTimeout: 10000, // 10 seconds for page loads
+    // Set a flag to skip artificial loading delays in tests
+    extraHTTPHeaders: {
+      'X-Test-Mode': 'true',
+    },
   },
 
   projects: [
