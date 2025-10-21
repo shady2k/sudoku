@@ -1,6 +1,6 @@
 {
   "name": "sudoku",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Offline Sudoku Game with real-time validation, keyboard/mouse support, and auto-save",
   "type": "module",
   "scripts": {
