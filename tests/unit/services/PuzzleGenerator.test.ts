@@ -565,24 +565,22 @@ describe('PuzzleGenerator', () => {
           0
         );
 
+        // Validate clue count range
         expect(clueCount).toBeGreaterThanOrEqual(22);
         expect(clueCount).toBeLessThanOrEqual(27);
 
-        // Debug: Analyze the actual difficulty of the generated puzzle
-        const complexity = measureSolvingComplexity(result.data.grid, 200000); // Use high limit to get accurate count
-        const propagation = measureConstraintPropagation(result.data.grid);
+        // Validate complexity using SAME parameters as production verifyEvilPuzzle()
+        const complexity = measureSolvingComplexity(result.data.grid, 1000000);
+
         console.log(`100% puzzle - Clues: ${clueCount}`);
         console.log(`Search complexity: Level ${complexity.complexity} (${complexity.searchAttempts} attempts)`);
-        console.log(`Obvious moves: ${propagation.obviousMoves}, Score: ${propagation.propagationScore}`);
+        console.log(`Obvious moves: ${complexity.obviousMoves}, Score: ${complexity.obviousMoveScore}`);
 
-        // Evil puzzles should consistently achieve evil difficulty
-        // Must be Level 5 complexity OR Level 4 with substantial search attempts
-        expect(
-          complexity.complexity === 5 ||
-          (complexity.complexity === 4 && complexity.searchAttempts >= 25000)
-        ).toBe(true);
+        // Evil puzzles MUST meet strict quality threshold
+        // This matches verifyEvilPuzzle() at line 779 in PuzzleGenerator.ts
+        expect(complexity.searchAttempts).toBeGreaterThanOrEqual(100000);
       }
-    }, 30000); // Increased timeout - now has 20s time limit for evil puzzles
+    }, 30000);
 
     it('should generate puzzles with unique solutions across all levels', async () => {
       const levels = [10, 30, 50, 70]; // Skip 90-100 range as evil puzzles take too long to validate
