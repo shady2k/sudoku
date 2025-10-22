@@ -3,8 +3,7 @@ import {
   generatePuzzle,
   generateCompleteGrid,
   hasUniqueSolution,
-  measureSolvingComplexity,
-  measureConstraintPropagation
+  measureSolvingComplexity
 } from '../../../src/lib/services/PuzzleGenerator';
 import { isValidMove } from '../../../src/lib/utils/validation';
 
