@@ -434,7 +434,7 @@ function solvePuzzleWithTimeout(grid: number[][], timeoutMs: number): boolean {
  * Measures puzzle solving complexity by counting search attempts (with limits for performance)
  * This implements the paper's "enumerating search times" metric
  */
-function measureSolvingComplexity(grid: readonly (readonly number[])[], maxAttempts: number = 50000): { complexity: number; searchAttempts: number } {
+function measureSolvingComplexity(grid: readonly (readonly number[])[], maxAttempts: number = 1000000): { complexity: number; searchAttempts: number } {
   const testGrid = grid.map(row => [...row]);
   let searchAttempts = 0;
 
@@ -470,6 +470,8 @@ function measureSolvingComplexity(grid: readonly (readonly number[])[], maxAttem
   let complexity = 1; // Level 1: < 100 attempts
   if (searchAttempts >= maxAttempts) {
     complexity = 5; // Treat maxed out attempts as Level 5 (evil)
+  } else if (searchAttempts >= 100000) {
+    complexity = 5; // Level 5 (Evil): 100,000-999,999 attempts
   } else if (searchAttempts >= 10000) {
     complexity = 4; // Level 4: 10,000-99,999 attempts
   } else if (searchAttempts >= 1000) {
@@ -550,8 +552,9 @@ function measureConstraintPropagation(grid: readonly (readonly number[])[]): { o
  */
 function calculateTimeBudget(config: DifficultyConfig, timeBudget?: number): number {
   return timeBudget ?? (
-    config.minGivensPerRowCol === 0 ? 8000 : // Evil level: 8 seconds
-    config.minGivensPerRowCol === 2 ? 3000 : // Difficult: 3 seconds
+    config.minGivensPerRowCol === 0 ? 20000 : // Evil level: 20 seconds (paper allows 100k+ searches)
+    config.minGivensPerRowCol === 2 ? 5000 : // Difficult: 5 seconds
+    config.minGivensPerRowCol === 3 ? 3000 : // Medium: 3 seconds
     2000 // Others: 2 seconds
   );
 }
@@ -578,6 +581,257 @@ function countGivens(puzzle: readonly (readonly number[])[]): number {
     }
   }
   return count;
+}
+
+/**
+ * Equivalent Propagation - Digit Swap
+ * Swaps two digits globally throughout the grid
+ */
+function propagationDigitSwap(grid: number[][], digit1: number, digit2: number): number[][] {
+  const newGrid = grid.map(row =>
+    row.map(cell => {
+      if (cell === digit1) return digit2;
+      if (cell === digit2) return digit1;
+      return cell;
+    })
+  );
+
+  return newGrid;
+}
+
+/**
+ * Equivalent Propagation - Column Swap
+ * Swaps two columns within the same block-column
+ */
+function propagationColumnSwap(grid: number[][], col1: number, col2: number): number[][] {
+  const newGrid = grid.map(row => [...row]);
+  for (let row = 0; row < 9; row++) {
+    const currentRow = newGrid[row];
+    if (currentRow && currentRow[col1] !== undefined && currentRow[col2] !== undefined) {
+      const temp = currentRow[col1];
+      currentRow[col1] = currentRow[col2];
+      currentRow[col2] = temp;
+    }
+  }
+
+  return newGrid;
+}
+
+/**
+ * Equivalent Propagation - Block-Column Swap
+ * Swaps two entire block-columns
+ */
+function propagationBlockColumnSwap(grid: number[][], block1: number, block2: number): number[][] {
+  const newGrid = grid.map(row => [...row]);
+  for (let row = 0; row < 9; row++) {
+    const currentRow = newGrid[row];
+    if (currentRow) {
+      for (let i = 0; i < 3; i++) {
+        const col1 = block1 * 3 + i;
+        const col2 = block2 * 3 + i;
+        if (currentRow[col1] !== undefined && currentRow[col2] !== undefined) {
+          const temp = currentRow[col1];
+          currentRow[col1] = currentRow[col2];
+          currentRow[col2] = temp;
+        }
+      }
+    }
+  }
+
+  return newGrid;
+}
+
+/**
+ * Equivalent Propagation - Row Swap
+ * Swaps two rows within the same block-row
+ */
+function propagationRowSwap(grid: number[][], row1: number, row2: number): number[][] {
+  const newGrid = grid.map(row => [...row]);
+  const temp = newGrid[row1];
+  if (temp && newGrid[row2]) {
+    newGrid[row1] = newGrid[row2];
+    newGrid[row2] = temp;
+  }
+
+  return newGrid;
+}
+
+/**
+ * Equivalent Propagation - Grid Rotation
+ * Rotates entire grid 90° clockwise
+ */
+function propagationGridRotate(grid: number[][]): number[][] {
+  const newGrid: number[][] = Array.from({ length: 9 }, () => Array(9).fill(0));
+  for (let row = 0; row < 9; row++) {
+    const currentRow = grid[row];
+    if (currentRow) {
+      for (let col = 0; col < 9; col++) {
+        const targetRow = newGrid[col];
+        const currentValue = currentRow[col];
+        if (targetRow && currentValue !== undefined) {
+          targetRow[8 - row] = currentValue;
+        }
+      }
+    }
+  }
+  return newGrid;
+}
+
+/**
+ * Apply random equivalent propagation transformations
+ * These preserve puzzle validity, uniqueness, and difficulty
+ *
+ * @param puzzle - Puzzle grid with holes
+ * @param solution - Complete solution grid
+ * @param rng - Random number generator
+ * @returns Object with transformed puzzle and solution
+ */
+function applyRandomPropagation(
+  puzzle: number[][],
+  solution: number[][],
+  rng: SeededRandom
+): { puzzle: number[][], solution: number[][] } {
+  let transformedPuzzle = puzzle.map(row => [...row]);
+  let transformedSolution = solution.map(row => [...row]);
+
+  // Apply 1-5 random transformations to BOTH grids with same parameters
+  const numTransformations = 1 + Math.floor(rng.next() * 5);
+
+  for (let i = 0; i < numTransformations; i++) {
+    const transformType = Math.floor(rng.next() * 5);
+
+    switch (transformType) {
+      case 0: {
+        // Digit swap - pick two digits
+        const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        rng.shuffle(digits);
+        const digit1 = digits[0];
+        const digit2 = digits[1];
+        if (digit1 !== undefined && digit2 !== undefined) {
+          transformedPuzzle = propagationDigitSwap(transformedPuzzle, digit1, digit2);
+          transformedSolution = propagationDigitSwap(transformedSolution, digit1, digit2);
+        }
+        break;
+      }
+      case 1: {
+        // Column swap within block
+        const blockCol = Math.floor(rng.next() * 3);
+        const base = blockCol * 3;
+        const cols = [base, base + 1, base + 2];
+        rng.shuffle(cols);
+        const col1 = cols[0];
+        const col2 = cols[1];
+        if (col1 !== undefined && col2 !== undefined) {
+          transformedPuzzle = propagationColumnSwap(transformedPuzzle, col1, col2);
+          transformedSolution = propagationColumnSwap(transformedSolution, col1, col2);
+        }
+        break;
+      }
+      case 2: {
+        // Block-column swap
+        const blocks = [0, 1, 2];
+        rng.shuffle(blocks);
+        const block1 = blocks[0];
+        const block2 = blocks[1];
+        if (block1 !== undefined && block2 !== undefined) {
+          transformedPuzzle = propagationBlockColumnSwap(transformedPuzzle, block1, block2);
+          transformedSolution = propagationBlockColumnSwap(transformedSolution, block1, block2);
+        }
+        break;
+      }
+      case 3: {
+        // Row swap within block
+        const blockRow = Math.floor(rng.next() * 3);
+        const base = blockRow * 3;
+        const rows = [base, base + 1, base + 2];
+        rng.shuffle(rows);
+        const row1 = rows[0];
+        const row2 = rows[1];
+        if (row1 !== undefined && row2 !== undefined) {
+          transformedPuzzle = propagationRowSwap(transformedPuzzle, row1, row2);
+          transformedSolution = propagationRowSwap(transformedSolution, row1, row2);
+        }
+        break;
+      }
+      case 4:
+        // Grid rotation
+        transformedPuzzle = propagationGridRotate(transformedPuzzle);
+        transformedSolution = propagationGridRotate(transformedSolution);
+        break;
+    }
+  }
+
+  return { puzzle: transformedPuzzle, solution: transformedSolution };
+}
+
+/**
+ * Verify evil puzzle meets strict quality criteria
+ */
+function verifyEvilPuzzle(puzzle: readonly (readonly number[])[]): boolean {
+  // Check givens count
+  const givens = countGivens(puzzle);
+  if (givens < 22 || givens > 27) {
+    return false;
+  }
+
+  // Verify high search complexity (critical for evil difficulty)
+  const { searchAttempts } = measureSolvingComplexity(puzzle, 1000000);
+  if (searchAttempts < 100000) {
+    return false; // Not hard enough
+  }
+
+  // Verify at least one row/column has very sparse givens (≤2)
+  let minRowGivens = 9;
+  let minColGivens = 9;
+
+  for (let i = 0; i < 9; i++) {
+    let rowGivens = 0;
+    let colGivens = 0;
+
+    for (let j = 0; j < 9; j++) {
+      if (getCell(puzzle, i, j) !== 0) rowGivens++;
+      if (getCell(puzzle, j, i) !== 0) colGivens++;
+    }
+
+    minRowGivens = Math.min(minRowGivens, rowGivens);
+    minColGivens = Math.min(minColGivens, colGivens);
+  }
+
+  // Evil puzzles should have at least one very sparse row or column
+  if (minRowGivens > 2 && minColGivens > 2) {
+    return false; // Not sparse enough
+  }
+
+  return true;
+}
+
+/**
+ * Verify puzzle quality based on difficulty level
+ */
+function verifyPuzzleQuality(
+  puzzle: readonly (readonly number[])[],
+  config: DifficultyConfig
+): boolean {
+  // Check givens count
+  const givens = countGivens(puzzle);
+  if (givens < config.minGivens || givens > config.maxGivens) {
+    return false;
+  }
+
+  // For evil puzzles, apply strict verification
+  if (config.minGivensPerRowCol === 0) {
+    return verifyEvilPuzzle(puzzle);
+  }
+
+  // For difficult puzzles, check complexity
+  if (config.minGivensPerRowCol === 2) {
+    const { searchAttempts } = measureSolvingComplexity(puzzle, 200000);
+    if (searchAttempts < 10000) {
+      return false; // Not hard enough for difficult level
+    }
+  }
+
+  return true;
 }
 
 /**
@@ -619,24 +873,76 @@ function performStrategicRemoval(
   startTime: number,
   timeBudget: number
 ): void {
-  if (targetComplexity < 4) return;
+  if (targetComplexity < 3) return; // Also apply to medium puzzles
 
   const constraints = analyzeCellConstraints(puzzle);
-  const maxAttempts = Math.min(targetComplexity === 5 ? 3 : 2, constraints.length);
-  const targetRemovals = targetComplexity === 5 ? 2 : 1;
+
+  // For evil puzzles, be much more aggressive
+  const maxAttempts = targetComplexity === 5 ? Math.min(constraints.length, 10) :
+                      targetComplexity === 4 ? 5 : 2;
+  const targetRemovals = targetComplexity === 5 ? 5 :
+                         targetComplexity === 4 ? 3 : 1;
   let successfulRemovals = 0;
 
-  for (let i = 0; i < maxAttempts && successfulRemovals < targetRemovals; i++) {
-    const constraint = constraints[i];
-    if (!constraint) break;
+  // Try removing from both constrained and less constrained cells for evil puzzles
+  const cellsToTry = targetComplexity === 5 ?
+    [...constraints, ...getRandomCells(puzzle, 10)] :
+    constraints;
 
-    const { row, col } = constraint;
+  for (let i = 0; i < maxAttempts && successfulRemovals < targetRemovals; i++) {
+    const cell = cellsToTry[i];
+    if (!cell) break;
+
+    const { row, col } = cell;
     if (getCell(puzzle, row, col) !== 0) {
       if (tryRemoveCell(puzzle, row, col, config, startTime, timeBudget)) {
         successfulRemovals++;
       }
     }
   }
+}
+
+/**
+ * Get random non-empty cells for strategic removal
+ */
+function getRandomCells(puzzle: number[][], count: number): Array<{ row: number; col: number; options: number }> {
+  const cells: Array<{ row: number; col: number; options: number }> = [];
+  const positions: Array<{ row: number; col: number }> = [];
+
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      if (getCell(puzzle, row, col) !== 0) {
+        positions.push({ row, col });
+      }
+    }
+  }
+
+  // Shuffle positions
+  for (let i = positions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const posI = positions[i];
+    const posJ = positions[j];
+    if (posI && posJ) {
+      positions[i] = posJ;
+      positions[j] = posI;
+    }
+  }
+
+  // Take first 'count' positions and count their options
+  for (let i = 0; i < Math.min(count, positions.length); i++) {
+    const pos = positions[i];
+    if (!pos) break;
+    const { row, col } = pos;
+    let options = 0;
+    for (let num = 1; num <= 9; num++) {
+      if (isValidPlacement(puzzle, row, col, num)) {
+        options++;
+      }
+    }
+    cells.push({ row, col, options });
+  }
+
+  return cells.sort((a, b) => a.options - b.options);
 }
 
 /**
@@ -658,23 +964,41 @@ function digHoles(
   const puzzle = solution.map(row => [...row]);
   const sequence = generateDiggingSequence(config.sequence, rng);
   const explored = new Set<string>();
+  const failedCells = new Set<string>(); // Enhanced pruning: track cells that failed uniqueness
 
   const actualTimeBudget = calculateTimeBudget(config, timeBudget);
   const targetGivens = config.minGivens + Math.floor(rng.next() * (config.maxGivens - config.minGivens + 1));
   const targetComplexity = calculateTargetComplexity(config);
 
-  // First pass: remove cells to reach target clue count
+  // First pass: remove cells to reach target clue count with enhanced pruning
   for (const pos of sequence) {
     if (Date.now() - startTime > actualTimeBudget) break;
 
     const key = `${pos.row},${pos.col}`;
-    if (explored.has(key) || getCell(puzzle, pos.row, pos.col) === 0) continue;
+    if (explored.has(key) || failedCells.has(key) || getCell(puzzle, pos.row, pos.col) === 0) continue;
+
+    // Enhanced pruning: for evil puzzles, skip if we've reached minimum givens in row/col
+    if (config.minGivensPerRowCol === 0) {
+      const currentRow = puzzle[pos.row];
+      const rowGivens = currentRow?.filter(val => val !== 0).length || 0;
+      const colGivens = puzzle.map(row => row[pos.col]).filter(val => val !== 0).length;
+      if (rowGivens <= 1 || colGivens <= 1) continue; // Maintain at least 1 per row/col
+    }
 
     explored.add(key);
 
     if (countGivens(puzzle) <= targetGivens) break;
 
-    tryRemoveCell(puzzle, pos.row, pos.col, config, startTime, actualTimeBudget);
+    const originalValue = getCell(puzzle, pos.row, pos.col);
+    if (originalValue !== 0) {
+      setCell(puzzle, pos.row, pos.col, 0);
+
+      if (!meetsRestrictions(puzzle, config) ||
+          !checkUniquenessAfterRemoval(puzzle, pos.row, pos.col, originalValue, startTime, actualTimeBudget)) {
+        setCell(puzzle, pos.row, pos.col, originalValue);
+        failedCells.add(key); // Enhanced pruning: remember failed cells
+      }
+    }
   }
 
   // Second pass: strategic removal for harder puzzles
@@ -711,6 +1035,8 @@ export async function generateCompleteGrid(seed?: number): Promise<Result<number
  * 3. Apply restrictions on givens distribution
  * 4. Verify uniqueness using reduction to absurdity
  * 5. Use pruning to avoid backtracking
+ * 6. Apply equivalent propagation for diversity
+ * 7. Verify puzzle meets quality criteria (with retry for evil puzzles)
  *
  * @param difficulty - Difficulty level (0-100%, where 0% = easiest, 100% = hardest)
  * @param seed - Optional seed for reproducibility
@@ -726,30 +1052,70 @@ export async function generatePuzzle(
   }
   const validSeed = validationResult.data;
   const config = getDifficultyConfig(difficulty);
-  const rng = new SeededRandom(validSeed);
 
-  // Step 1: Create terminal pattern using Las Vegas algorithm
+  // Determine max attempts based on difficulty
+  // Evil puzzles need more attempts to meet quality criteria
+  const maxAttempts = config.minGivensPerRowCol === 0 ? 10 : 3;
+  const overallTimeout = config.minGivensPerRowCol === 0 ? 30000 : 10000;
+  const startTime = Date.now();
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // Check overall timeout
+    if (Date.now() - startTime > overallTimeout) {
+      break;
+    }
+
+    // Create a unique seed for each attempt
+    const attemptSeed = validSeed + attempt;
+    const rng = new SeededRandom(attemptSeed);
+
+    // Step 1: Create terminal pattern using Las Vegas algorithm
+    const gridResult = await generateCompleteGrid(attemptSeed);
+    if (!gridResult.success) {
+      continue; // Try again
+    }
+    const solution = gridResult.data;
+
+    // Step 2: Dig holes to create puzzle
+    const puzzle = digHoles(solution, config, rng);
+
+    // Step 3: Verify puzzle quality
+    if (!verifyPuzzleQuality(puzzle, config)) {
+      continue; // Try again with different seed
+    }
+
+    // Step 4: Apply equivalent propagation for diversity
+    const transformed = applyRandomPropagation(puzzle, solution, rng);
+
+    // Count final clues
+    const clueCount = countGivens(transformed.puzzle);
+
+    return success({
+      grid: transformed.puzzle,
+      solution: transformed.solution,
+      clues: transformed.puzzle.map(row => row.map(val => val !== 0)),
+      difficultyRating: clueCount,
+      puzzleId: `puzzle-${attemptSeed}-${difficulty}`,
+      generatedAt: Date.now()
+    });
+  }
+
+  // Fallback: If we couldn't generate a quality puzzle, generate one without strict verification
+  // This ensures we always return a valid puzzle, even if not perfectly meeting quality criteria
+  const rng = new SeededRandom(validSeed);
   const gridResult = await generateCompleteGrid(validSeed);
   if (!gridResult.success) {
     return gridResult;
   }
   const solution = gridResult.data;
-
-  // Step 2: Dig holes to create puzzle
   const puzzle = digHoles(solution, config, rng);
-
-  // Count final clues
-  let clueCount = 0;
-  for (let r = 0; r < 9; r++) {
-    for (let c = 0; c < 9; c++) {
-      if (getCell(puzzle, r, c) !== 0) clueCount++;
-    }
-  }
+  const transformed = applyRandomPropagation(puzzle, solution, rng);
+  const clueCount = countGivens(transformed.puzzle);
 
   return success({
-    grid: puzzle,
-    solution: solution.map(row => [...row]),
-    clues: puzzle.map(row => row.map(val => val !== 0)),
+    grid: transformed.puzzle,
+    solution: transformed.solution,
+    clues: transformed.puzzle.map(row => row.map(val => val !== 0)),
     difficultyRating: clueCount,
     puzzleId: `puzzle-${validSeed}-${difficulty}`,
     generatedAt: Date.now()
